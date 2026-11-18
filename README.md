@@ -46,3 +46,14 @@ Es un sitio estático: abre `public/index.html` en el navegador.
 - Pestaña **Delivery**: un restaurante elige su local, marca o busca la dirección del cliente, elige moto o auto y tamaño del pedido, y sigue al repartidor (va al local, retira, va al cliente, entrega).
 - **Precio**: mientras una localidad tenga pocos conductores (por defecto menos de 30) o pocos viajes pagados (menos de 40), cada conductor ofrece su precio y el pasajero o el local elige la oferta. Después la app muestra un rango estimado con los percentiles 25 a 75 del valor por km de viajes pagados parecidos. Los taxis siempre cobran con taxímetro.
 - En Supabase: tablas `restaurante`, `pedido_delivery`, `oferta`, `tarifa_conductor`, `config_precio` (umbrales por localidad) y la función `rango_precio(localidad, servicio, km)`.
+
+## Entornos y pruebas
+
+- **Producción:** rama `main` → https://trayectocsb.pages.dev
+- **Desarrollo:** rama `desarrollo` → vista previa de Cloudflare Pages (https://desarrollo.trayectocsb.pages.dev). Todo cambio se prueba aquí antes de pasar a `main`.
+- **Pruebas de regresión:** `node tests/regresion.mjs` (usa Playwright). Para probar la vista previa: `BASE_URL=https://desarrollo.trayectocsb.pages.dev node tests/regresion.mjs`.
+
+## Identidad visual (etapa 1)
+
+- Componentes SVG reutilizables en `public/ui/vamo-ui.js`: `marca()`, `logoV()`, `iconoApp(variante)`, `icono(nombre)`, `pin(tipo)`, `chip(tipo, texto)`.
+- Paleta: fondo #0B0F24, turquesa #00E5FF, fucsia #FF00B8, violeta #8A2BE2, amarillo #FFC107. Tipografía Montserrat. Tema oscuro por defecto y claro opcional.
