@@ -410,8 +410,8 @@ map.on('mouseleave', 'vehicles', () => { map.getCanvas().style.cursor = S.tab ==
 const popup = mapboxgl ? new mapboxgl.Popup({ closeButton: false, offset: 12 }) : null;
 map.on('click', 'vehicles', e => { const p = e.features[0].properties; if (p.info) { popup.setLngLat(e.lngLat).setHTML(`<div style="font:13px/1.4 Inter,system-ui,sans-serif;color:#14232a">${p.info}</div>`).addTo(map); e.preventDefault(); } });
 
-function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url); renderStyleBar(); }
-function set3D(on) { is3D = on; map.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 800 }); mapReady = false; map.setStyle(STYLES[mapStyle].url); renderStyleBar(); }
+function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url, { diff: false }); renderStyleBar(); }
+function set3D(on) { is3D = on; map.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 800 }); mapReady = false; map.setStyle(STYLES[mapStyle].url, { diff: false }); renderStyleBar(); }
 function renderStyleBar() { document.getElementById('styleBar').innerHTML = Object.entries(STYLES).map(([k, s]) => `<button data-style="${k}" aria-pressed="${k === mapStyle}">${s.n}</button>`).join('') + `<button data-3d="1" aria-pressed="${is3D}">3D</button><button data-region="1" title="Ver toda la región">Región</button>`; }
 document.getElementById('styleBar').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.style) setStyle(b.dataset.style); else if (b.dataset['3d']) set3D(!is3D); else if (b.dataset.region) fitRegion(); });
 renderStyleBar();
