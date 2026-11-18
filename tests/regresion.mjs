@@ -31,14 +31,14 @@ await page.goto(BASE); await page.waitForTimeout(1200);
 const ev = f => page.evaluate(f);
 const wait = ms => page.waitForTimeout(ms);
 // Navegación de 6 secciones: Micros y Colectivos están en «Buses y colectivos»; Delivery y Dueños en «Más servicios»
-const GRUPO = { micros: 'buses', colectivos: 'buses', delivery: 'mas', duenos: 'mas' };
+const GRUPO = { buses: 'locomocion', viaje: 'mas', planificar: 'mas', misviajes: 'mas', colectivos: 'mas', delivery: 'mas', duenos: 'mas', conductor: 'mas', favoritos: 'mas', config: 'mas', avisos: 'mas' };
 const irA = async (p, t) => { const g = GRUPO[t]; await p.click(`#tabs [data-tab=${g || t}]`); if (g) await p.click(`#view [data-tab=${t}]`); };
 const until = async (f, ms = 60000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await ev(f)) return true; await wait(500); } return false; };
 
 await test('Carga la identidad VAMO (logo, tema oscuro, pestañas con íconos)', async () => {
   assert(await ev(() => !!window.VamoUI && !!document.querySelector('#marca .vamo-v')), 'falta el logo SVG');
   assert(await ev(() => getComputedStyle(document.body).backgroundColor === 'rgb(11, 15, 36)'), 'el fondo no es #0B0F24');
-  assert(await page.locator('.tab svg').count() === 6, 'faltan íconos en las pestañas'); });
+  assert(await page.locator('.tab svg').count() === 4, 'faltan íconos en las pestañas'); });
 await test('Pedir viaje: precio libre con 3 ofertas y asignación', async () => {
   await irA(page, 'viaje');
   await ev(() => { PRECIO.modo = 'conductor'; S.clase = 'eco'; render(); }); await page.click('#pedir');
@@ -87,17 +87,36 @@ await test('Cada pestaña muestra solo sus vehículos', async () => {
   await ev(() => { S.filtro.bus = false; }); k = await kinds(); assert(k === 'bus', 'con el filtro Buses apagado, la pestaña Buses quedó vacía: ' + k); await ev(() => { S.filtro.bus = true; });
   await irA(page, 'planificar'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 4, 'Planificar debería mostrar todos los filtros');
   await ev(() => { delete map.getSource; mapReady = __mr; }); await irA(page, 'viaje'); });
-await test('Navegación: 6 secciones con subsecciones', async () => {
+await test('Navegación Express: 4 secciones', async () => {
   const ns = await page.locator('#tabs .tab .tl').allInnerTexts();
-  assert(ns.join('|') === 'Inicio|Pedir viaje|Buses y colectivos|Planificar|Mis viajes|Más servicios', 'secciones: ' + ns.join('|'));
-  await irA(page, 'colectivos'); assert(await ev(() => S.tab === 'colectivos' && document.querySelector('#tabs [data-nav=buses]').getAttribute('aria-selected') === 'true'), 'Colectivos no quedó dentro de Buses y colectivos');
-  await irA(page, 'duenos'); assert(await page.locator('#view .back').count() === 1, 'falta volver a Más servicios'); });
-await test('Inicio: destino, semáforo y botones grandes', async () => {
-  await irA(page, 'inicio'); await page.selectOption('#destSel', 'valparaiso');
-  const txt = await page.locator('#view').innerText(); assert(txt.includes('Qué hay hacia Valparaíso'), 'no muestra el destino');
-  assert(await page.locator('#view .sem').count() >= 2, 'falta el semáforo'); assert(txt.includes('Santa Isabel'), 'faltan los colectivos');
-  await page.click('#vipasar'); assert((await page.locator('#view').innerText()).includes('próximamente'), 'Vi pasar no explica que llega después');
-  await page.click('#esperando'); assert(await ev(() => S.tab === 'buses' && !!S.bq.o && !!S.bq.d), 'Estoy esperando no abrió la búsqueda'); });
+  assert(ns.join('|') === 'Inicio|Locomoción|Mapa|Más', 'secciones: ' + ns.join('|'));
+  await irA(page, 'duenos'); assert(await ev(() => document.querySelector('#tabs [data-nav=mas]').getAttribute('aria-selected') === 'true'), 'Dueños no quedó dentro de Más');
+  assert(await page.locator('#view .back').count() === 1, 'falta volver a Más'); });
+await test('Inicio Express: pregunta, buscador y 3 acciones', async () => {
+  await irA(page, 'inicio'); const txt = await page.locator('#view').innerText();
+  assert(txt.includes('¿A dónde vamos?'), 'falta la pregunta'); assert(await page.locator('#view .accion').count() === 3, 'no son 3 acciones');
+  await page.fill('#destQ', 'Valparaíso'); await page.press('#destQ', 'Enter'); await wait(200);
+  assert(await ev(() => S.tab === 'locomocion' && S.dest === 'valparaiso'), 'el buscador no llevó a Locomoción'); });
+await test('Ver locomoción: tarjetas con semáforo, fuente y ejemplo', async () => {
+  assert(await page.locator('#view .tarjeta').count() >= 2, 'faltan tarjetas'); const txt = await page.locator('#view').innerText();
+  for (const w of ['Ejemplo', 'Sin información', 'Fuente', 'Sin estimación disponible', 'Colectivos']) assert(txt.includes(w), 'falta: ' + w);
+  await page.click('[data-lf=colectivos]'); assert(await page.locator('#view [data-loco]').count() === 0, 'el filtro no ocultó buses'); await page.click('[data-lf=todos]');
+  await page.locator('#view [data-loco]').first().click(); assert(await ev(() => S.tab === 'buses' && !!S.selRoute), 'la tarjeta no abrió el detalle'); });
+await test('Avisar dónde viene: dos acciones y formulario mínimo', async () => {
+  await irA(page, 'inicio'); await page.click('#avisarBtn'); assert(await page.locator('[data-avmodo]').count() === 2, 'no hay 2 acciones');
+  await page.click('[data-avmodo=vipasar]'); assert(await page.locator('[data-avdest=nose]').count() === 1, 'falta «No sé hacia dónde iba»');
+  await page.click('[data-avtipo=bus]'); await page.click('[data-avdest=nose]'); await page.click('#avEnviar');
+  const txt = await page.locator('#view').innerText(); assert(txt.includes('Gracias') && txt.includes('no se envía'), 'no confirma o no aclara que es prototipo'); await page.click('#avFin'); });
+await test('Modo conductor: colectivo y bus con botones grandes', async () => {
+  await irA(page, 'conductor'); assert(await page.locator('#cIniciar').isDisabled(), 'permite iniciar sin sentido');
+  await page.click('[data-csent="Hacia Valparaíso"]'); await page.click('#cIniciar'); await page.click('#cMas');
+  assert(await ev(() => S.cond.cupos === S.cond.max), 'los cupos pasaron el máximo'); for (let n = 0; n < 6; n++) await page.click('#cMenos');
+  assert(await ev(() => S.cond.cupos === 0), 'cupos negativos'); await page.click('#cFinalizar');
+  await page.click('[data-ctipo=bus]'); assert((await page.locator('#view').innerText()).includes('Próxima salida'), 'falta próxima salida');
+  await page.click('#cIniciar'); await page.click('[data-cret="10"]'); assert((await page.locator('#view').innerText()).includes('retraso 10'), 'no informó retraso'); await page.click('#cFinalizar'); });
+await test('Más: cada acceso lleva a su función', async () => {
+  for (const t of ['viaje', 'planificar', 'misviajes', 'colectivos', 'delivery', 'duenos', 'conductor', 'favoritos', 'avisos', 'config']) {
+    await irA(page, t); assert(await ev(() => S.tab) === t, 'no llegó a ' + t); assert((await page.locator('#view').innerText()).length > 20, t + ' está vacío'); } });
 await test('Recorridos de ejemplo: marcados y se pueden ocultar', async () => {
   await irA(page, 'buses'); await ev(() => { S.bq = { o: '', d: '' }; render(); });
   assert((await page.locator('#view').innerText()).includes('de ejemplo'), 'no avisa que son de ejemplo');
@@ -105,14 +124,14 @@ await test('Recorridos de ejemplo: marcados y se pueden ocultar', async () => {
   assert((await page.locator('#view').innerText()).includes('Aún no hay recorridos verificados'), 'falta el aviso');
   await page.click('#ejToggle'); assert(await page.locator('#view button.route').count() > 0, 'no volvieron'); });
 await test('Mis viajes: pasaje comprado', async () => { await irA(page, 'misviajes'); assert(/TR-/.test(await page.locator('#view').innerText()), 'no aparece el pasaje'); });
-await test('Más servicios: accesos a Delivery, Dueños, Colectivos y bajo consumo', async () => { await irA(page, 'mas'); assert(await page.locator('#view .svc').count() === 7, 'faltan servicios');
-  assert(await page.locator('#view [data-tab=delivery]').count() === 1 && await page.locator('#liteBtn').count() === 1, 'faltan accesos'); });
+await test('Configuración: tema, bajo consumo y ejemplos', async () => { await irA(page, 'config');
+  for (const id of ['#cfgTema', '#liteBtn', '#ejToggle']) assert(await page.locator(id).count() === 1, 'falta ' + id); });
 await test('Bajo consumo: funciona sin mapa ni librería de mapas', async () => {
   const l = await browser.newPage({ viewport: { width: 390, height: 844 } }); const reqs = []; l.on('request', r => reqs.push(r.url())); l.on('pageerror', e => errors.push('lite: ' + e.message));
   await l.goto(BASE + '?lite=1'); await l.waitForTimeout(800);
   assert(await l.evaluate(() => document.documentElement.classList.contains('lite') && getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa sigue visible');
   assert(!reqs.some(u => /maplibre|openfreemap|tile/i.test(u)), 'cargó el mapa: ' + reqs.filter(u => /maplibre|tile/.test(u)).join(' '));
-  assert((await l.locator('#view').innerText()).includes('Qué hay hacia'), 'Inicio no funciona sin mapa');
+  assert((await l.locator('#view').innerText()).includes('¿A dónde vamos?'), 'Inicio no funciona sin mapa');
   await l.goto(BASE + '?lite=0'); await l.waitForTimeout(300); assert(await l.evaluate(() => !document.documentElement.classList.contains('lite')), 'no volvió al modo normal'); await l.close(); });
 await test('Mapa: solo vistas Calles y Satélite', async () => {
   const v = await page.locator('#styleBar [data-style]').allInnerTexts(); assert(v.join('|') === 'Calles|Satélite', 'vistas: ' + v.join('|'));
@@ -124,7 +143,9 @@ await test('Cambio de localidad', async () => { await page.selectOption('#loc', 
 await test('Celular: barra inferior y sin desborde horizontal', async () => {
   const m = await browser.newPage({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
-  assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); await m.close(); });
+  assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa se ve en Inicio');
+  await m.click('#tabs [data-tab=mapa]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no aparece en Mapa');
+  await m.close(); });
 // ---- Recorridos desde la base de datos (respuestas simuladas con tests/fixtures/bd.json) ----
 const FIX = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'bd.json'), 'utf8'));
 const bd = await browser.newPage({ viewport: { width: 1300, height: 860 } }); bd.on('pageerror', e => errors.push('bd: ' + e.message));
