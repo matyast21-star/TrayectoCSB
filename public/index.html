@@ -5,9 +5,8 @@
 <meta name="description" content="Trayecto: autos, taxis, buses interurbanos y micros de Casablanca en un solo lugar.">
 <title>Trayecto Casablanca</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
-<script src="config.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
@@ -130,7 +129,7 @@ tr.best td{color:var(--ok);font-weight:600}
 .qres button:hover,.qres button:focus-visible{background:var(--surface2)}
 .note{margin:0;font-size:12.5px;color:var(--warn);border:1px solid currentColor;border-radius:8px;padding:8px 10px}
 .btn.ghost[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
-.mapboxgl-ctrl-group button{color:#14232a}
+.maplibregl-ctrl-group button{color:#14232a}
 .mapctl{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:12px;display:flex;flex-direction:column;gap:6px}
 .mapctl button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer;font-size:16px}
 .legend{z-index:2;position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:34px;background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:11.5px;display:flex;gap:12px;flex-wrap:wrap;max-width:calc(100% - 24px)}
@@ -156,7 +155,7 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
     <div class="brand"><i aria-hidden="true"></i>Trayecto</div>
     <label for="loc">Localidad</label>
     <select id="loc"></select>
-    <span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales.">PROTOTIPO · DATOS DE EJEMPLO</span>
+    <span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales (OpenStreetMap).">PROTOTIPO · DATOS DE EJEMPLO</span>
     <span class="dbstate" id="dbState">Conectando base de datos…</span>
   </header>
   <div class="main">
@@ -351,39 +350,42 @@ const TABS = [{ id: 'viaje', n: 'Pedir viaje', c: 'var(--auto)' }, { id: 'buses'
 const placeOf = id => POI[id] || S.custom[id];
 
 /* ============ Mapa real (Mapbox GL) ============ */
-const TOKEN = window.MAPBOX_TOKEN || '';
-if (!TOKEN) document.body.insertAdjacentHTML('afterbegin', '<p style="margin:0;padding:10px 16px;background:#b33a3a;color:#fff;font:14px system-ui">Falta el token de Mapbox: crea public/config.js a partir de config.example.js o define MAPBOX_TOKEN en Cloudflare Pages.</p>');
-if (window.mapboxgl) mapboxgl.accessToken = TOKEN;
+// Mapa 100% gratuito: MapLibre GL + OpenFreeMap, OpenTopoMap, imágenes Esri, rutas OSRM y búsqueda Photon
+const mapboxgl = window.maplibregl;
+const TOKEN = 'libre';
 const ll = c => [c[1], c[0]];
 const COL = { auto: '#d9822b', taxi: '#f2c200', ocupado: '#7d8a8e', bus: '#1f5fa8', micro: '#2e8b57', accent: '#0f4c5c', ink: '#14232a', walk: '#6b7a7f' };
+function rasterStyle(tiles, maxzoom, attribution, labels) {
+  const st = { version: 8, glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf', sources: { base: { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom, attribution } }, layers: [{ id: 'base', type: 'raster', source: 'base' }] };
+  if (labels) { st.sources.labels = { type: 'raster', tiles: [labels], tileSize: 256, maxzoom }; st.layers.push({ id: 'labels', type: 'raster', source: 'labels' }); }
+  return st;
+}
 const STYLES = {
-  calles: { n: 'Calles', url: 'mapbox://styles/mapbox/streets-v12' },
-  relieve: { n: 'Relieve', url: 'mapbox://styles/mapbox/outdoors-v12' },
-  satelite: { n: 'Satélite', url: 'mapbox://styles/mapbox/satellite-streets-v12' },
-  claro: { n: 'Solo calles', url: 'mapbox://styles/mapbox/light-v11' },
-  noche: { n: 'Noche', url: 'mapbox://styles/mapbox/navigation-night-v1' }
+  calles: { n: 'Calles', url: 'https://tiles.openfreemap.org/styles/liberty' },
+  relieve: { n: 'Relieve', url: rasterStyle('https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 17, 'Mapa: © OpenTopoMap (CC-BY-SA) · © colaboradores de OpenStreetMap') },
+  satelite: { n: 'Satélite', url: rasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 19, 'Imágenes: Esri, Maxar, Earthstar Geographics', 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}') },
+  claro: { n: 'Solo calles', url: 'https://tiles.openfreemap.org/styles/positron' },
+  noche: { n: 'Noche', url: 'https://tiles.openfreemap.org/styles/dark' }
 };
 let mapStyle = 'calles', is3D = false, mapReady = false;
 try { const s = localStorage.getItem('trayecto-style'); if (STYLES[s]) mapStyle = s; } catch (e) {}
 const NOOP_CANVAS = { style: {} };
-const map = TOKEN && window.mapboxgl ? new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, language: 'es', maxPitch: 75 })
+const map = mapboxgl ? new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, maxPitch: 75 })
   : new Proxy({}, { get: (t, k) => k === 'getCanvas' ? () => NOOP_CANVAS : k === 'getZoom' ? () => 13 : () => {} });
-if (TOKEN && window.mapboxgl) {
+if (mapboxgl) {
   map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
-} else document.getElementById('map').innerHTML = '<div style="display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:var(--muted)">El mapa se activa cuando se configura el token de Mapbox. El resto de la app funciona.</div>';
+} else document.getElementById('map').innerHTML = '<div style="display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:var(--muted)">No se pudo cargar el mapa. Revisa tu conexión; el resto de la app funciona.</div>';
 const fc = features => ({ type: 'FeatureCollection', features });
 const line = (coords, props) => ({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords.map(ll) } });
 const point = (c, props) => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: ll(c) } });
-const FONT = ['DIN Pro Medium', 'Arial Unicode MS Regular'], FONTB = ['DIN Pro Bold', 'Arial Unicode MS Bold'];
+const FONT = ['Noto Sans Regular'], FONTB = ['Noto Sans Bold'];
 
 function setupLayers() {
   mapReady = false;
-  if (!map.getSource('dem')) map.addSource('dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
-  map.setTerrain(is3D || mapStyle === 'relieve' ? { source: 'dem', exaggeration: is3D ? 1.5 : 1.2 } : null);
-  if (mapStyle === 'relieve' && !map.getLayer('sombras')) { try { map.addLayer({ id: 'sombras', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': 0.45, 'hillshade-shadow-color': '#3d4a3a' } }, map.getStyle().layers.find(l => l.type === 'symbol')?.id); } catch (e) {} }
-  if (is3D && map.getSource('composite') && !map.getLayer('edificios')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'composite', 'source-layer': 'building', filter: ['==', 'extrude', 'true'], minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-base': ['get', 'min_height'], 'fill-extrusion-opacity': 0.75 } }); } catch (e) {} }
-  if (is3D && !map.getLayer('cielo')) { try { map.addLayer({ id: 'cielo', type: 'sky', paint: { 'sky-type': 'atmosphere', 'sky-atmosphere-sun-intensity': 12 } }); } catch (e) {} }
+  if (!map.getSource('dem')) map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Relieve: Mapzen Terrain Tiles' });
+  map.setTerrain(is3D ? { source: 'dem', exaggeration: 1.5 } : null);
+  if (is3D && map.getSource('openmaptiles') && !map.getLayer('edificios')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.75 } }); } catch (e) {} }
   for (const id of ['routes', 'stops', 'vehicles', 'ride', 'pins', 'plan']) if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: fc([]) });
   const dark = mapStyle === 'noche' || mapStyle === 'satelite';
   const halo = dark ? '#0b1416' : '#ffffff', txt = dark ? '#f1f5f5' : '#14232a';
@@ -405,7 +407,7 @@ function setupLayers() {
 map.on('style.load', setupLayers);
 map.on('mouseenter', 'vehicles', () => { map.getCanvas().style.cursor = 'pointer'; });
 map.on('mouseleave', 'vehicles', () => { map.getCanvas().style.cursor = S.tab === 'viaje' && !S.ride ? 'crosshair' : ''; });
-const popup = window.mapboxgl ? new mapboxgl.Popup({ closeButton: false, offset: 12 }) : null;
+const popup = mapboxgl ? new mapboxgl.Popup({ closeButton: false, offset: 12 }) : null;
 map.on('click', 'vehicles', e => { const p = e.features[0].properties; if (p.info) { popup.setLngLat(e.lngLat).setHTML(`<div style="font:13px/1.4 Inter,system-ui,sans-serif;color:#14232a">${p.info}</div>`).addTo(map); e.preventDefault(); } });
 
 function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url); renderStyleBar(); }
@@ -415,7 +417,7 @@ document.getElementById('styleBar').addEventListener('click', e => { const b = e
 renderStyleBar();
 
 function fit(coords, padKm = 1) {
-  if (!TOKEN || !window.mapboxgl) return; const b = new mapboxgl.LngLatBounds(); coords.forEach(c => b.extend(ll(c)));
+  if (!mapboxgl) return; const b = new mapboxgl.LngLatBounds(); coords.forEach(c => b.extend(ll(c)));
   const pad = window.innerWidth < 820 ? 40 : 70;
   map.fitBounds(b, { padding: { top: pad + 50, bottom: pad + 30, left: pad, right: pad }, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900, maxZoom: 16, pitch: is3D ? 60 : 0 });
 }
@@ -468,15 +470,16 @@ const RC = {}, RCP = {};
 const rkey = (a, b) => a.map(x => x.toFixed(5)).join() + '|' + b.map(x => x.toFixed(5)).join();
 const cached = (a, b) => RC[rkey(a, b)];
 function directions(a, b) { const k = rkey(a, b); if (RC[k]) return Promise.resolve(RC[k]); if (RCP[k]) return RCP[k];
-  return RCP[k] = fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${a[1]},${a[0]};${b[1]},${b[0]}?geometries=geojson&overview=full&language=es&access_token=${TOKEN}`)
+  return RCP[k] = fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?geometries=geojson&overview=full`)
     .then(r => r.json()).then(j => { const rt = j.routes && j.routes[0]; if (!rt) return null; return RC[k] = { coords: rt.geometry.coordinates.map(([x, y]) => [y, x]), km: rt.distance / 1000, mins: rt.duration / 60 }; }).catch(() => null); }
 function ensureRoute(a, b) { if (cached(a, b)) return; directions(a, b).then(r => { if (r) { const y = view.scrollTop; render(); view.scrollTop = y; } }); }
 
 /* Direcciones: búsqueda y nombre de un punto */
-async function revName(c) { try { const j = await (await fetch(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${c[1]}&latitude=${c[0]}&language=es&limit=1&access_token=${TOKEN}`)).json();
-  const f = j.features && j.features[0]; if (!f) return null; const p = f.properties; return p.name + (p.context && p.context.place ? ', ' + p.context.place.name : ''); } catch (e) { return null; } }
-async function searchAddr(q, near) { try { const j = await (await fetch(`https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(q)}&country=cl&language=es&limit=6&proximity=${near[1]},${near[0]}&access_token=${TOKEN}`)).json();
-  return (j.features || []).map(f => ({ n: f.properties.full_address || f.properties.name, c: [f.geometry.coordinates[1], f.geometry.coordinates[0]] })); } catch (e) { return []; } }
+const photonName = p => { const calle = p.street ? p.street + (p.housenumber ? ' ' + p.housenumber : '') : ''; const main = p.name && p.name !== p.street ? p.name : calle || p.name || ''; return [main, p.city || p.town || p.village || p.county].filter(Boolean).join(', '); };
+async function revName(c) { try { const j = await (await fetch(`https://photon.komoot.io/reverse?lat=${c[0]}&lon=${c[1]}&limit=1`)).json();
+  const f = j.features && j.features[0]; return f ? photonName(f.properties) || null : null; } catch (e) { return null; } }
+async function searchAddr(q, near) { try { const j = await (await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${near[0]}&lon=${near[1]}&limit=6&bbox=-76,-56,-66,-17`)).json();
+  return (j.features || []).map(f => ({ n: photonName(f.properties), c: [f.geometry.coordinates[1], f.geometry.coordinates[0]] })).filter(r => r.n); } catch (e) { return []; } }
 function nearestLoc(c) { return LOCALIDADES.reduce((b, l) => dist(N[l.id], c) < dist(N[b.id], c) ? l : b); }
 function addCustom(c, n) { const id = 'pt' + Date.now() + Math.floor(Math.random() * 1000); S.custom[id] = { id, n, loc: nearestLoc(c).id, c }; return id; }
 function setPoint(which, c, label) { const id = addCustom(c, label || 'Punto en el mapa'); S[which] = id;

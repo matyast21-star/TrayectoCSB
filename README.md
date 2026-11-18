@@ -2,7 +2,17 @@
 
 Prototipo de app web de transporte para Casablanca (Región de Valparaíso, Chile): autos a pedido, taxis locales, buses interurbanos y micros urbanas y rurales en un solo lugar, pensada para sumar Curacaví, Valparaíso, Viña del Mar, Quilpué y Santiago.
 
-> Los vehículos, horarios, tarifas y operadores son **datos de ejemplo**. El mapa, las calles y las direcciones son reales (Mapbox).
+> Los vehículos, horarios, tarifas y operadores son **datos de ejemplo**. El mapa, las calles y las direcciones son reales.
+
+## Mapa gratuito
+
+No necesita claves ni cuentas de pago:
+- Motor de mapa: MapLibre GL JS (código abierto).
+- Calles, solo calles y noche: OpenFreeMap (datos de OpenStreetMap).
+- Relieve: OpenTopoMap. Satélite: imágenes de Esri. Terreno 3D: Mapzen Terrain Tiles.
+- Rutas por calle: servidor público de OSRM. Búsqueda de direcciones: Photon (Komoot).
+
+Los servidores públicos de OSRM y Photon son para pruebas; con más tráfico conviene alojar los propios o usar un plan pagado.
 
 ## Qué incluye
 
@@ -15,13 +25,12 @@ Prototipo de app web de transporte para Casablanca (Región de Valparaíso, Chil
 
 ## Ejecutar
 
-Es un sitio estático. Copia `public/config.example.js` como `public/config.js`, pon tu token público de Mapbox y abre `public/index.html` en el navegador.
+Es un sitio estático: abre `public/index.html` en el navegador.
 
 ## Publicar en Cloudflare Pages
 
 1. Cloudflare → Workers & Pages → Create → Pages → Connect to Git → elige este repositorio.
 2. Framework preset: None. Build command: `node scripts/build.mjs`. Build output directory: `public`.
-3. En Settings → Variables, agrega `MAPBOX_TOKEN` con tu token público de Mapbox (pk.…).
 4. Cada push a `main` publica una nueva versión.
 
 ## Base de datos (Supabase)
@@ -31,4 +40,3 @@ Es un sitio estático. Copia `public/config.example.js` como `public/config.js`,
 - `supabase/migrations/` tiene el esquema multi-localidad (PostGIS, RLS, Realtime para posiciones de vehículos).
 - `supabase/seed.sql` carga localidades, tarifas y lugares de ejemplo.
 
-El token de Mapbox no se guarda en el repositorio. Antes de compartir el sitio, restringe el token a tu dominio en https://account.mapbox.com/access-tokens.
