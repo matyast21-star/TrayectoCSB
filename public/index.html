@@ -410,8 +410,7 @@ map.on('click', 'vehicles', e => { const p = e.features[0].properties; if (p.inf
 
 function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url, { diff: false }); renderStyleBar(); }
 function apply3D() {
-  try { if (!map.getSource('dem')) map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Relieve: Mapzen Terrain Tiles' });
-    map.setTerrain(is3D ? { source: 'dem', exaggeration: 1.4 } : null); } catch (e) { console.warn('Terreno 3D no disponible', e); }
+  // 3D: vista inclinada con edificios en volumen (el relieve del terreno queda para una versión futura)
   if (map.getLayer('edificios')) map.removeLayer('edificios');
   if (is3D && map.getSource('openmaptiles')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.75 } }, map.getLayer('routes-casing') ? 'routes-casing' : undefined); } catch (e) {} }
 }
