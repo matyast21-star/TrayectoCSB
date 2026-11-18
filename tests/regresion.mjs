@@ -54,8 +54,9 @@ await test('Buses: ver salidas y comprar pasaje con QR', async () => {
   await irA(page, 'buses'); await page.locator('[data-route][data-th=programado]').first().click(); await wait(300);
   const dep = page.locator('[data-dep]').first(); assert(await dep.count(), 'no hay salidas'); await dep.click(); await page.click('#comprar'); await wait(300);
   assert(await ev(() => !!S.ticket && !!document.getElementById('qr')), 'no se emitió el pasaje'); });
-await test('Micros: lista de líneas urbanas y rurales', async () => {
-  await irA(page, 'micros'); assert(await page.locator('[data-route]').count() >= 4, 'faltan líneas'); });
+await test('Micros desactivadas: no aparecen en la app', async () => {
+  await irA(page, 'buses'); assert(await page.locator('#view [data-tab=micros]').count() === 0, 'sigue la pestaña Micros');
+  assert(await ev(() => MICROS.length === 0 && !ALLROUTES.some(r => r.kind === 'micro') && !document.querySelector('[data-f=micro]')), 'quedan micros'); });
 await test('Planificar: opciones multimodales', async () => {
   await irA(page, 'planificar'); assert(await page.locator('[data-plan]').count() >= 1, 'sin opciones'); await page.locator('[data-plan]').first().click(); });
 await test('Delivery: despacho completo hasta entregado', async () => {
@@ -84,14 +85,12 @@ await test('Cada pestaña muestra solo sus vehículos', async () => {
   await irA(page, 'buses'); await page.waitForTimeout(300); k = await kinds();
   assert(!/auto|taxi|moto|micro/.test(k), 'en Buses aparecen autos: ' + k);
   await ev(() => { S.filtro.bus = false; }); k = await kinds(); assert(k === 'bus', 'con el filtro Buses apagado, la pestaña Buses quedó vacía: ' + k); await ev(() => { S.filtro.bus = true; });
-  await irA(page, 'micros'); await page.waitForTimeout(300); k = await kinds();
-  assert(!/auto|taxi|moto|bus/.test(k), 'en Micros aparecen otros: ' + k);
-  await irA(page, 'planificar'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 5, 'Planificar debería mostrar todos los filtros');
+  await irA(page, 'planificar'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 4, 'Planificar debería mostrar todos los filtros');
   await ev(() => { delete map.getSource; mapReady = __mr; }); await irA(page, 'viaje'); });
 await test('Navegación: 6 secciones con subsecciones', async () => {
   const ns = await page.locator('#tabs .tab .tl').allInnerTexts();
   assert(ns.join('|') === 'Inicio|Pedir viaje|Buses y colectivos|Planificar|Mis viajes|Más servicios', 'secciones: ' + ns.join('|'));
-  await irA(page, 'micros'); assert(await ev(() => S.tab === 'micros' && document.querySelector('#tabs [data-nav=buses]').getAttribute('aria-selected') === 'true'), 'Micros no quedó dentro de Buses y colectivos');
+  await irA(page, 'colectivos'); assert(await ev(() => S.tab === 'colectivos' && document.querySelector('#tabs [data-nav=buses]').getAttribute('aria-selected') === 'true'), 'Colectivos no quedó dentro de Buses y colectivos');
   await irA(page, 'duenos'); assert(await page.locator('#view .back').count() === 1, 'falta volver a Más servicios'); });
 await test('Inicio: destino, semáforo y botones grandes', async () => {
   await irA(page, 'inicio'); await page.selectOption('#destSel', 'valparaiso');
@@ -106,7 +105,7 @@ await test('Recorridos de ejemplo: marcados y se pueden ocultar', async () => {
   assert((await page.locator('#view').innerText()).includes('Aún no hay recorridos verificados'), 'falta el aviso');
   await page.click('#ejToggle'); assert(await page.locator('#view button.route').count() > 0, 'no volvieron'); });
 await test('Mis viajes: pasaje comprado', async () => { await irA(page, 'misviajes'); assert(/TR-/.test(await page.locator('#view').innerText()), 'no aparece el pasaje'); });
-await test('Más servicios: accesos a Delivery, Dueños, Micros y bajo consumo', async () => { await irA(page, 'mas'); assert(await page.locator('#view .svc').count() === 8, 'faltan servicios');
+await test('Más servicios: accesos a Delivery, Dueños, Colectivos y bajo consumo', async () => { await irA(page, 'mas'); assert(await page.locator('#view .svc').count() === 7, 'faltan servicios');
   assert(await page.locator('#view [data-tab=delivery]').count() === 1 && await page.locator('#liteBtn').count() === 1, 'faltan accesos'); });
 await test('Bajo consumo: funciona sin mapa ni librería de mapas', async () => {
   const l = await browser.newPage({ viewport: { width: 390, height: 844 } }); const reqs = []; l.on('request', r => reqs.push(r.url())); l.on('pageerror', e => errors.push('lite: ' + e.message));
@@ -133,8 +132,8 @@ await bd.route(/\/rest\/v1\//, r => { const t = new URL(r.request().url()).pathn
 await bd.goto(BASE); await bd.waitForTimeout(1500);
 const bev = f => bd.evaluate(f);
 await test('Base de datos: carga recorridos y paraderos desde Supabase', async () => {
-  assert(await bev(() => RUTAS_FUENTE === 'bd'), 'no usó la base'); assert(await bev(() => ALLROUTES.length === 4), 'cantidad de recorridos distinta: ' + await bev(() => ALLROUTES.length));
-  assert(/4 recorridos/.test(await bd.locator('#dbState').innerText()), 'el estado no indica los recorridos'); });
+  assert(await bev(() => RUTAS_FUENTE === 'bd'), 'no usó la base'); assert(await bev(() => ALLROUTES.length === 3), 'cantidad de recorridos distinta: ' + await bev(() => ALLROUTES.length));
+  assert(/3 recorridos/.test(await bd.locator('#dbState').innerText()), 'el estado no indica los recorridos'); });
 await test('Rótulos de horario: programado, estimado y sin horario confirmado', async () => {
   await irA(bd, 'buses'); const txt = await bd.locator('#view').innerText();
   for (const w of ['Programado', 'Estimado', 'Sin horario confirmado', 'Sin estimación disponible']) assert(txt.includes(w), 'falta: ' + w); });
@@ -151,7 +150,7 @@ await test('Búsqueda por origen y destino', async () => {
 await test('Paraderos favoritos y recorridos frecuentes', async () => {
   await bd.selectOption('#bqO', 'cb-term'); await bd.click('[data-favp=cb-term]'); assert(await bev(() => FAV.paraderos.includes('cb-term')), 'no guardó favorito');
   assert(await bd.locator('[data-bqo=cb-term]').count() === 1, 'no muestra el favorito'); assert(await bev(() => frecuentes().includes('I1')), 'no registró frecuente'); });
-await test('Micros desde la base', async () => { await irA(bd, 'micros'); assert(await bd.locator('[data-route=L1]').count() === 1, 'falta L1'); });
+await test('Micros de la base no se muestran', async () => { assert(await bev(() => !ALLROUTES.some(r => r.id === 'L1')), 'aparece L1'); });
 await bd.close();
 
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
