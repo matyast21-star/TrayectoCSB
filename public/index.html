@@ -555,7 +555,8 @@ const fitLoc = id => { const R = LOC[id].radio + 0.4; fit([off(N[id], -R, -R), o
 
 // Cada pestaña muestra solo los vehículos que le sirven, para no congestionar el mapa
 const VIS = { viaje: ['auto', 'taxi'], buses: ['bus'], micros: ['micro'], delivery: ['moto', 'auto'], planificar: ['auto', 'taxi', 'moto', 'bus', 'micro'], duenos: ['auto', 'taxi', 'moto'] };
-const ver = k => !!S.filtro[k] && (VIS[S.tab] || VIS.planificar).includes(k);
+// En pestañas de un solo tipo (Buses, Micros) no hay filtros: ese tipo siempre se ve
+const ver = k => { const vs = VIS[S.tab] || VIS.planificar; return vs.includes(k) && (vs.length < 2 || !!S.filtro[k]); };
 const planRouteIds = () => S.tab === 'planificar' ? (planOptions()[S.plan.sel] || { legs: [] }).legs.map(l => l.route).filter(Boolean) : [];
 function drawBase() {
   if (!mapReady) return;

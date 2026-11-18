@@ -79,6 +79,7 @@ await test('Cada pestaña muestra solo sus vehículos', async () => {
   assert(await ev(() => __src.routes.features.every(f => f.properties.op === 0)), 'en Pedir viaje se ven recorridos de buses');
   await page.click('[data-tab=buses]'); await page.waitForTimeout(300); k = await kinds();
   assert(!/auto|taxi|moto|micro/.test(k), 'en Buses aparecen autos: ' + k);
+  await ev(() => { S.filtro.bus = false; }); k = await kinds(); assert(k === 'bus', 'con el filtro Buses apagado, la pestaña Buses quedó vacía: ' + k); await ev(() => { S.filtro.bus = true; });
   await page.click('[data-tab=micros]'); await page.waitForTimeout(300); k = await kinds();
   assert(!/auto|taxi|moto|bus/.test(k), 'en Micros aparecen otros: ' + k);
   await page.click('[data-tab=planificar]'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 5, 'Planificar debería mostrar todos los filtros');
