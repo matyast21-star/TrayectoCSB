@@ -84,6 +84,9 @@ await test('Cada pestaña muestra solo sus vehículos', async () => {
   assert(!/auto|taxi|moto|bus/.test(k), 'en Micros aparecen otros: ' + k);
   await page.click('[data-tab=planificar]'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 5, 'Planificar debería mostrar todos los filtros');
   await ev(() => { delete map.getSource; mapReady = __mr; }); await page.click('[data-tab=viaje]'); });
+await test('Mapa: solo vistas Calles y Satélite', async () => {
+  const v = await page.locator('#styleBar [data-style]').allInnerTexts(); assert(v.join('|') === 'Calles|Satélite', 'vistas: ' + v.join('|'));
+  assert(await page.locator('#styleBar [data-3d]').count() === 0, 'sigue la vista 3D'); });
 await test('Tema claro / oscuro', async () => {
   await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'light'), 'no pasó a claro'); await page.click('#tema');
   assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a oscuro'); });
