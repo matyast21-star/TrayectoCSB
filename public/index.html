@@ -353,7 +353,7 @@ const placeOf = id => POI[id] || S.custom[id];
 /* ============ Mapa real (Mapbox GL) ============ */
 const TOKEN = window.MAPBOX_TOKEN || '';
 if (!TOKEN) document.body.insertAdjacentHTML('afterbegin', '<p style="margin:0;padding:10px 16px;background:#b33a3a;color:#fff;font:14px system-ui">Falta el token de Mapbox: crea public/config.js a partir de config.example.js o define MAPBOX_TOKEN en Cloudflare Pages.</p>');
-mapboxgl.accessToken = TOKEN;
+if (window.mapboxgl) mapboxgl.accessToken = TOKEN;
 const ll = c => [c[1], c[0]];
 const COL = { auto: '#d9822b', taxi: '#f2c200', ocupado: '#7d8a8e', bus: '#1f5fa8', micro: '#2e8b57', accent: '#0f4c5c', ink: '#14232a', walk: '#6b7a7f' };
 const STYLES = {
@@ -365,9 +365,13 @@ const STYLES = {
 };
 let mapStyle = 'calles', is3D = false, mapReady = false;
 try { const s = localStorage.getItem('trayecto-style'); if (STYLES[s]) mapStyle = s; } catch (e) {}
-const map = new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, language: 'es', maxPitch: 75 });
-map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
-map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+const NOOP_CANVAS = { style: {} };
+const map = TOKEN && window.mapboxgl ? new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, language: 'es', maxPitch: 75 })
+  : new Proxy({}, { get: (t, k) => k === 'getCanvas' ? () => NOOP_CANVAS : k === 'getZoom' ? () => 13 : () => {} });
+if (TOKEN && window.mapboxgl) {
+  map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+  map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+} else document.getElementById('map').innerHTML = '<div style="display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:var(--muted)">El mapa se activa cuando se configura el token de Mapbox. El resto de la app funciona.</div>';
 const fc = features => ({ type: 'FeatureCollection', features });
 const line = (coords, props) => ({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords.map(ll) } });
 const point = (c, props) => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: ll(c) } });
@@ -401,7 +405,7 @@ function setupLayers() {
 map.on('style.load', setupLayers);
 map.on('mouseenter', 'vehicles', () => { map.getCanvas().style.cursor = 'pointer'; });
 map.on('mouseleave', 'vehicles', () => { map.getCanvas().style.cursor = S.tab === 'viaje' && !S.ride ? 'crosshair' : ''; });
-const popup = new mapboxgl.Popup({ closeButton: false, offset: 12 });
+const popup = window.mapboxgl ? new mapboxgl.Popup({ closeButton: false, offset: 12 }) : null;
 map.on('click', 'vehicles', e => { const p = e.features[0].properties; if (p.info) { popup.setLngLat(e.lngLat).setHTML(`<div style="font:13px/1.4 Inter,system-ui,sans-serif;color:#14232a">${p.info}</div>`).addTo(map); e.preventDefault(); } });
 
 function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url); renderStyleBar(); }
@@ -411,7 +415,7 @@ document.getElementById('styleBar').addEventListener('click', e => { const b = e
 renderStyleBar();
 
 function fit(coords, padKm = 1) {
-  const b = new mapboxgl.LngLatBounds(); coords.forEach(c => b.extend(ll(c)));
+  if (!TOKEN || !window.mapboxgl) return; const b = new mapboxgl.LngLatBounds(); coords.forEach(c => b.extend(ll(c)));
   const pad = window.innerWidth < 820 ? 40 : 70;
   map.fitBounds(b, { padding: { top: pad + 50, bottom: pad + 30, left: pad, right: pad }, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900, maxZoom: 16, pitch: is3D ? 60 : 0 });
 }
