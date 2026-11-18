@@ -71,6 +71,8 @@ button,select,input{font:inherit;color:inherit}
 .tabs{display:flex;gap:2px;overflow-x:auto;padding:8px max(12px,env(safe-area-inset-left,0px)) 0;border-bottom:1px solid var(--line);flex-shrink:0}
 .tab{border:0;background:none;padding:9px 10px 10px;font-weight:600;font-size:13px;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
 .tab svg{width:16px;height:16px;flex-shrink:0}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+@media (min-width:821px) and (max-width:1400px){.tab{padding:9px 7px 10px;gap:5px;font-size:12.5px}}
 .tab .ts{display:none}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tc,var(--accent))}
 .tab[aria-selected="true"] svg{color:var(--tc,var(--accent));filter:drop-shadow(0 0 6px var(--tc,var(--accent)))}
