@@ -7,8 +7,8 @@
 <link rel="icon" href="ui/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="ui/icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0B0F24">
-<script>try { if (localStorage.getItem('vamo-tema') === 'claro') document.documentElement.dataset.theme = 'light'; } catch (e) {}</script>
+<meta name="theme-color" content="#FFFFFF">
+<script>try { if (localStorage.getItem('vamo-tema2') === 'oscuro') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
 <script src="ui/vamo-ui.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
@@ -22,10 +22,27 @@ else document.write('<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@
 <style>
 /* Layout: panel de operación a la izquierda, mapa esquemático de la región a la derecha; en teléfono el mapa va arriba y el panel debajo. */
 :root{
+  /* Kit visual VAMO (tema claro, por defecto): fondos blancos, bordes suaves, color intenso solo en acciones y estados */
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface2:#F3F4F6; --ink:#1F2A44; --muted:#6B7280; --line:#E5E7EB;
+  --ocean:#E8EEF7; --land:#F6F8FC; --road:#D1D5DB; --vine:#CDE5D3;
+  --morado:#7B2FF7; --turquesa:#00C8FF; --fucsia:#FF007A; --violeta:#7B2FF7; --amarillo:#FFC107;
+  --bus:#7B2FF7; --colectivo:#00A9DB; --taxi:#E0A100; --auto:#1F2A44; --moto:#FF7A00; --micro:#15924A;
+  --accent:#7B2FF7; --accent-ink:#FFFFFF; --accent-t:#7B2FF7;
+  --ok:#16A34A; --warn:#B7791F; --bad:#DC2626;
+  --grad:linear-gradient(#7B2FF7,#7B2FF7);
+  --glow:0 0 0 3px color-mix(in srgb,#7B2FF7 18%,transparent);
+  --sombra:0 1px 2px rgba(31,42,68,.06),0 4px 14px rgba(31,42,68,.07);
+  --glass:rgba(255,255,255,.94);
+  --f-display:"Montserrat","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
   --bg:#0B0F24; --surface:#11173A; --surface2:#161E48; --ink:#EEF2FF; --muted:#9AA3C7; --line:#28316A;
   --ocean:#0A1230; --land:#10173A; --road:#2A3366; --vine:#1E3A3A;
   --turquesa:#00E5FF; --fucsia:#FF00B8; --violeta:#8A2BE2; --amarillo:#FFC107;
-  --moto:#B44CFF; --auto:#FF8A1F; --taxi:#FFC107; --bus:#2F8BFF; --micro:#22C55E; --accent:#00E5FF; --accent-ink:#0B0F24; --accent-t:#00E5FF;
+  --moto:#B44CFF; --auto:#FF8A1F; --taxi:#FFC107; --bus:#2F8BFF; --colectivo:#00E5FF; --micro:#22C55E; --morado:#8A2BE2; --sombra:none; --accent:#00E5FF; --accent-ink:#0B0F24; --accent-t:#00E5FF;
   --ok:#22C55E; --warn:#FFC107; --bad:#FF4D6D;
   --grad:linear-gradient(90deg,#00E5FF 0%,#8A2BE2 55%,#FF00B8 100%);
   --glow:0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 0 16px color-mix(in srgb,var(--accent) 35%,transparent);
@@ -34,14 +51,6 @@ else document.write('<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@
   --f-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
-}
-:root[data-theme="light"]{
-  --bg:#F3F5FC; --surface:#FFFFFF; --surface2:#EEF1FA; --ink:#0B0F24; --muted:#525C86; --line:#D6DBEF;
-  --ocean:#DCE6F5; --land:#F6F8FC; --road:#C4CAE0; --vine:#BFD8C6;
-  --moto:#8A2BE2; --auto:#D96A00; --taxi:#C99700; --bus:#1F6FE0; --micro:#15924A; --accent:#00B8D9; --accent-ink:#0B0F24; --accent-t:#00758C;
-  --ok:#15924A; --warn:#A86A00; --bad:#C4243F;
-  --glass:color-mix(in srgb,#FFFFFF 88%,transparent);
-  color-scheme:light;
 }
 html,body{height:100%}
 body{margin:0}
@@ -196,7 +205,7 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
 .st.disponible{--c:var(--ok)} .st.ocupado{--c:var(--muted)} .st.ruta{--c:var(--amarillo)} .st.vivo{--c:var(--fucsia)} .st.programado{--c:var(--bus)} .st.simulado{--c:var(--muted)} .st.comunidad{--c:var(--turquesa)}
 .panel{background:linear-gradient(180deg,var(--surface),var(--bg))}
 .card{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
-:root[data-theme="light"] .panel{background:var(--surface)}
+:root:not([data-theme="dark"]) .panel{background:var(--surface)}
 @media all{
   .app{height:auto;min-height:100%}
   .main{display:flex;flex-direction:column}
@@ -277,6 +286,120 @@ html.lite .panel{border-right:0}
 .tabs{left:50%!important;right:auto!important;transform:translateX(-50%);width:min(100%,480px)}
 .top select{max-width:min(52vw,220px)}
 @media (min-width:520px){html{background:var(--bg)}.app{border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:0 0 60px rgba(0,229,255,.07)}}
+/* ===== Kit visual VAMO (claro): encabezado, barra, botones, tarjetas, estados ===== */
+:root:not([data-theme="dark"]) .top{color:var(--ink);background:#fff;border-bottom:1px solid var(--line);border-image:none}
+:root:not([data-theme="dark"]) .vamo-nombre{color:var(--ink)}
+:root:not([data-theme="dark"]) .vamo-sello{color:var(--muted)}:root:not([data-theme="dark"]) .vamo-sello b{color:var(--ink)}
+:root:not([data-theme="dark"]) .vamo-v{filter:none}
+:root:not([data-theme="dark"]) .top select{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px;padding:7px 10px;font-weight:600;font-size:13px}
+:root:not([data-theme="dark"]) .iconbtn{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px}
+:root:not([data-theme="dark"]) .iconbtn:hover{box-shadow:var(--glow)}
+:root:not([data-theme="dark"]) .dbstate{color:var(--muted)}
+:root:not([data-theme="dark"]) .demo{color:#8A5A00;background:#FFF7E0;border-color:#FFE08A;box-shadow:none}
+:root:not([data-theme="dark"]) .app{box-shadow:0 0 40px rgba(31,42,68,.08)}
+:root:not([data-theme="dark"]) .panel{background:#fff}
+:root:not([data-theme="dark"]) .tabs{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(31,42,68,.05)}
+:root:not([data-theme="dark"]) .tab[aria-selected="true"] svg{filter:none}
+:root:not([data-theme="dark"]) .btn{text-shadow:none;box-shadow:0 2px 8px rgba(123,47,247,.25)}
+:root:not([data-theme="dark"]) .btn.amarillo{box-shadow:none}
+:root:not([data-theme="dark"]) .card{background:#fff;box-shadow:var(--sombra)}
+:root:not([data-theme="dark"]) .stylebar button{box-shadow:var(--sombra)}
+:root:not([data-theme="dark"]) .stylebar button[aria-pressed="true"]{color:#fff}
+:root:not([data-theme="dark"]) .fchip{box-shadow:var(--sombra);background:#fff}
+:root:not([data-theme="dark"]) .bigbtn svg,:root:not([data-theme="dark"]) .accion .ai svg{filter:none}
+:root:not([data-theme="dark"]) .pin.a{background:var(--ok);color:#fff;box-shadow:none}:root:not([data-theme="dark"]) .pin.b{background:var(--fucsia);box-shadow:none}
+:root:not([data-theme="dark"]) .sem i{box-shadow:none}
+.top{gap:10px}
+#campana{position:relative}#campana::after{content:"";position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--fucsia);border:1.5px solid var(--surface)}
+.btn{border-radius:14px;min-height:46px}.btn.sm{min-height:34px;border-radius:10px}
+.btn.secundario{background:color-mix(in srgb,var(--turquesa) 12%,var(--surface));color:var(--ink);border:1.5px solid var(--turquesa);box-shadow:none}
+.btn.ghost{background:var(--surface)}
+.btn.peligro{background:color-mix(in srgb,var(--bad) 7%,var(--surface));color:var(--bad);border:1.5px solid color-mix(in srgb,var(--bad) 45%,transparent);box-shadow:none}
+.tab[aria-selected="true"]{color:var(--accent)!important}
+.tab[aria-selected="true"] svg{color:var(--accent)!important}
+/* Selector de servicio (Buses · Colectivos · Taxis · Autos): uno a la vez, para separar en el mapa */
+.servicios{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:-2px -2px 0;padding:2px}
+.servicios::-webkit-scrollbar{display:none}
+.serv{flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;box-shadow:var(--sombra)}
+.serv svg{color:var(--c)}
+.serv[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}.serv[aria-pressed="true"] svg{color:#fff}
+.servnota{margin:-4px 0 0;font-size:12px;color:var(--muted)}
+/* Tarjeta «¿A dónde vamos?» */
+.destcard{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--sombra)}
+.destcard .hero{display:flex;gap:10px;align-items:flex-start}.destcard .hero>svg{color:var(--morado);flex-shrink:0;margin-top:2px}
+.destrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.destrow .buscar input{padding:12px 12px 12px 40px;font-size:15px;border-radius:12px;background:var(--surface)}
+.destrow .buscar svg{color:var(--fucsia)}
+.swap{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+/* Tres acciones en fila (Ver locomoción, Pedir un viaje, Avisar) */
+.acciones.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acciones.tres .accion{flex-direction:column;justify-content:center;text-align:center;gap:6px;padding:14px 6px;min-height:112px;font-size:14px;line-height:1.2;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 11%,var(--surface));color:var(--ink)}
+.acciones.tres .accion small{display:none}
+.acciones.tres .accion .ai{background:none;color:var(--c);width:auto;height:auto}
+.acciones.tres .accion.principal{background:color-mix(in srgb,var(--c) 11%,var(--surface));border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--ink)}.acciones.tres .accion.principal .ai{background:none;color:var(--c)}
+/* Tarjetas de transporte */
+:root:not([data-theme="dark"]) .tarjeta{background:#fff;box-shadow:var(--sombra);border:1px solid var(--line);border-left:4px solid var(--c)}
+.tarjeta{border-radius:16px}
+.tarjeta .tt b{display:flex;align-items:center;gap:6px}.tarjeta .tt b svg{color:var(--c)}
+.vh{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.vh .vi{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 12%,var(--surface));color:var(--c)}
+.vh .ve{text-align:right;font-weight:800;font-size:15px;max-width:88px}.vh .ve .hint{font-size:11px;line-height:1.25;display:block}
+.vh b{font-size:14.5px;line-height:1.25}
+.fuente{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.fuente[data-f=oficial]{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 8%,var(--surface))}
+.fuente[data-f=operador]{color:var(--morado);border-color:color-mix(in srgb,var(--morado) 45%,transparent);background:color-mix(in srgb,var(--morado) 8%,var(--surface))}
+.fuente[data-f=comunidad]{color:#0087B0;border-color:color-mix(in srgb,var(--turquesa) 55%,transparent);background:color-mix(in srgb,var(--turquesa) 9%,var(--surface))}
+/* Pastillas tipo segmento */
+:root:not([data-theme="dark"]) .seg{background:none;border:0;padding:0;gap:6px}
+:root:not([data-theme="dark"]) .seg button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:7px 14px;background:#fff;color:var(--ink)}
+:root:not([data-theme="dark"]) .seg button[aria-pressed="true"]{background:var(--morado);border-color:var(--morado);color:#fff;box-shadow:none}
+/* Semáforo como pastilla de estado */
+:root:not([data-theme="dark"]) .sem{background:color-mix(in srgb,var(--sc) 12%,#fff);border-color:color-mix(in srgb,var(--sc) 35%,transparent)}
+/* Avisar: dos tarjetas grandes */
+.acciones .accion[data-avmodo]{min-height:96px;border-radius:18px;border:1.5px solid color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 9%,var(--surface))}
+.acciones .accion[data-avmodo]::after{content:"›";margin-left:auto;font-size:26px;color:var(--c)}
+/* Panel conductor */
+.ubic{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface2);font-size:13px}
+.ubic i{width:12px;height:12px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.ubic[data-u=activa]{border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 8%,var(--surface))}.ubic[data-u=activa] i{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 20%,transparent)}
+.ubic[data-u=pendiente]{border-color:color-mix(in srgb,var(--amarillo) 60%,transparent);background:color-mix(in srgb,var(--amarillo) 10%,var(--surface))}.ubic[data-u=pendiente] i{background:var(--amarillo)}
+.estado-pill{align-self:center;display:inline-flex;gap:6px;align-items:center;font-weight:700;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface2)}
+.estado-pill i{width:9px;height:9px;border-radius:50%;background:var(--muted)}.estado-pill[data-on="1"]{color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface));border-color:color-mix(in srgb,var(--ok) 40%,transparent)}.estado-pill[data-on="1"] i{background:var(--ok)}
+:root:not([data-theme="dark"]) .gbtn{min-height:60px;border-radius:14px;font-size:17px;color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--c) 30%,transparent);display:flex;align-items:center;justify-content:center;gap:10px}
+:root:not([data-theme="dark"]) .gbtn.fin{background:#fff;color:var(--bad);border:1.5px solid color-mix(in srgb,var(--bad) 45%,transparent);box-shadow:none}
+:root:not([data-theme="dark"]) .cupos button{border-color:var(--morado);color:var(--morado);background:#fff}
+:root:not([data-theme="dark"]) .opcion{background:#fff}
+:root:not([data-theme="dark"]) .opcion[aria-pressed="true"]{border-color:var(--morado);background:color-mix(in srgb,var(--morado) 8%,#fff);box-shadow:inset 0 0 0 1px var(--morado)}
+/* Opciones (planificador, delivery, clases de viaje) como tarjetas */
+:root:not([data-theme="dark"]) .opt{border-radius:14px;padding:12px;box-shadow:var(--sombra)}
+:root:not([data-theme="dark"]) .opt .ic{border-radius:50%;width:38px;height:38px;background:color-mix(in srgb,var(--c,var(--morado)) 14%,#fff)!important;color:var(--c,var(--morado))}
+:root:not([data-theme="dark"]) .opt[aria-pressed="true"]{border-color:var(--morado);background:color-mix(in srgb,var(--morado) 6%,#fff);box-shadow:inset 0 0 0 1px var(--morado)}
+.opt .p::after{content:"";display:inline-block}
+.opt[aria-pressed="true"] .t::after{content:"✓";margin-left:6px;color:var(--morado);font-weight:800}
+.paso-n{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin:0}
+.paso-n b{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--morado);color:#fff;font-size:12px}
+.local{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.local .li{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--fucsia) 10%,var(--surface));color:var(--fucsia)}
+.local select{width:100%;border:0;background:none;font-weight:700;padding:0}
+:root:not([data-theme="dark"]) .chip[aria-pressed]{font-family:var(--f-body);border-radius:999px;padding:6px 14px;background:#fff;font-weight:600}
+:root:not([data-theme="dark"]) .chip[aria-pressed="true"]{background:var(--morado);border-color:var(--morado);color:#fff}
+:root:not([data-theme="dark"]) .chip{border-radius:999px;font-family:var(--f-body)}
+/* Estados vacíos y de error */
+.vacio{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:22px 16px;border:1px dashed var(--line);border-radius:16px;background:var(--surface2)}
+.vacio svg{color:var(--muted)}.vacio h3{margin:0}.vacio p{margin:0;font-size:12.5px;color:var(--muted)}
+.vacio[data-t=error]{border-color:color-mix(in srgb,var(--bad) 40%,transparent);background:color-mix(in srgb,var(--bad) 5%,var(--surface))}.vacio[data-t=error] svg{color:var(--bad)}
+/* Encabezado compacto: logo, localidad, tema y campana en una fila; avisos de prototipo y base de datos debajo */
+.top{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px}
+.top .brand{min-width:0}.top select{max-width:none!important;width:100%;min-width:0}
+.top .brand,.top select,#tema,#campana{grid-row:1}
+.estadobar{grid-row:2;grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.estadobar .dbstate{min-width:0}
+#tema{margin-left:0!important}
+.serv{flex:1 1 0;padding:8px 6px;font-size:12.5px;gap:4px;min-width:0}
+.serv svg{width:15px;height:15px;flex-shrink:0}
+/* Inicio: mapa más bajo para que se vean las acciones */
+html.en-inicio:not(.sinmapa) .main .mapwrap{height:34vh;min-height:220px}
+html.en-inicio .filtros{display:none}
 </style>
 </head>
 <body>
@@ -286,9 +409,10 @@ html.lite .panel{border-right:0}
     <div class="brand"><span id="marca"></span><span class="tagline" id="tagline">Tu viaje comienza aquí.</span></div>
     <label for="loc">Localidad</label>
     <select id="loc"></select>
-    <span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales (OpenStreetMap).">PROTOTIPO · DATOS DE EJEMPLO</span>
-    <span class="dbstate" id="dbState">Conectando base de datos…</span>
-    <button class="iconbtn" id="tema" type="button" aria-label="Cambiar a tema claro" title="Tema claro / oscuro"></button>
+    <div class="estadobar"><span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales (OpenStreetMap).">PROTOTIPO · DATOS DE EJEMPLO</span>
+    <span class="dbstate" id="dbState">Conectando base de datos…</span></div>
+    <button class="iconbtn" id="tema" type="button" aria-label="Cambiar a tema oscuro" title="Tema claro / oscuro"></button>
+    <button class="iconbtn" id="campana" type="button" aria-label="Notificaciones" title="Notificaciones"></button>
   </header>
   <div class="main">
     <section class="panel">
@@ -474,7 +598,7 @@ syncOwnerFleet();
 const TAXI = { bajada: 450, cada200: 190, espera: 190 }; // taxímetro de ejemplo
 const CLASES = [
   { id: 'eco', n: 'Económico', d: 'Auto particular, hasta 4 personas', f: 1, ic: 'A', tipo: 'auto', color: 'var(--auto)' },
-  { id: 'taxi', n: 'Taxi local', d: 'Taxi de la zona con taxímetro', f: 'taxi', ic: 'T', tipo: 'taxi', color: '#c9a000' },
+  { id: 'taxi', n: 'Taxi local', d: 'Taxi de la zona con taxímetro', f: 'taxi', ic: 'T', tipo: 'taxi', color: 'var(--taxi)' },
   { id: 'xl', n: 'XL', d: 'Van, hasta 7 personas', f: 1.45, ic: 'XL', tipo: 'auto', color: 'var(--auto)' },
   { id: 'comp', n: 'Compartido', d: 'Estilo colectivo, compartes el viaje', f: 0.6, ic: 'C', tipo: 'auto', color: 'var(--auto)' }
 ];
@@ -529,6 +653,7 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto
   ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 },
   bq: { o: '', d: '' },
   filtro: (() => { const d = { auto: true, taxi: true, moto: true, bus: true, micro: true }; try { return { ...d, ...JSON.parse(localStorage.getItem('vamo-filtro') || '{}') }; } catch (e) { return d; } })(),
+  serv: (() => { try { return localStorage.getItem('vamo-servicio') || 'bus'; } catch (e) { return 'bus'; } })(),
   dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
 // Navegación principal (6 secciones). Cada sección agrupa pestañas internas, sin quitar ninguna función.
 // VAMO Express: barra de 4 secciones. Cada sección agrupa pantallas internas; ninguna función se elimina.
@@ -537,7 +662,11 @@ const NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--tu
   { id: 'mapa', n: 'Mapa', s: 'Mapa', i: 'planificar', c: 'var(--accent)', tabs: ['mapa'] },
   { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
 // En celular el mapa solo aparece donde ayuda; en el resto de pantallas queda oculto (se abre desde «Mapa»)
-const CON_MAPA = ['mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
+const CON_MAPA = ['inicio', 'mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
+// Servicios separados: en Inicio se elige uno a la vez y el mapa muestra solo ese tipo (menos congestión)
+const SERV = [{ id: 'bus', n: 'Buses', vis: ['bus'], c: 'var(--bus)' }, { id: 'colectivo', n: 'Colectivos', vis: [], c: 'var(--colectivo)' },
+  { id: 'taxi', n: 'Taxis', vis: ['taxi'], c: 'var(--taxi)' }, { id: 'auto', n: 'Autos', vis: ['auto'], c: 'var(--auto)' }];
+const servDe = id => SERV.find(x => x.id === id) || SERV[0];
 const navDe = tab => NAV.find(n => n.tabs.includes(tab)) || NAV[0];
 // Recorridos de ejemplo: se pueden ocultar; nunca se presentan como vigentes
 const RV = list => S.ejemplos ? list : list.filter(r => !r.ejemplo);
@@ -548,7 +677,7 @@ const placeOf = id => POI[id] || S.custom[id];
 const mapboxgl = window.maplibregl;
 const TOKEN = 'libre';
 const ll = c => [c[1], c[0]];
-const COL = { moto: '#B44CFF', auto: '#FF8A1F', taxi: '#FFC107', ocupado: '#8C93B0', bus: '#2F8BFF', micro: '#22C55E', accent: '#00E5FF', fucsia: '#FF00B8', ink: '#0B0F24', linea: '#EEF2FF', walk: '#9AA3C7' };
+const COL = { moto: '#FF7A00', auto: '#1F2A44', taxi: '#FFC107', ocupado: '#9CA3AF', bus: '#7B2FF7', colectivo: '#00C8FF', micro: '#22C55E', accent: '#00C8FF', fucsia: '#FF007A', ink: '#0B0F24', linea: '#EEF2FF', walk: '#9AA3C7' };
 function rasterStyle(tiles, maxzoom, attribution, labels) {
   const st = { version: 8, glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf', sources: { base: { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom, attribution } }, layers: [{ id: 'base', type: 'raster', source: 'base' }] };
   if (labels) { st.sources.labels = { type: 'raster', tiles: [labels], tileSize: 256, maxzoom }; st.layers.push({ id: 'labels', type: 'raster', source: 'labels' }); }
@@ -628,7 +757,8 @@ const fitLoc = id => { const R = LOC[id].radio + 0.4; fit([off(N[id], -R, -R), o
 // Cada pestaña muestra solo los vehículos que le sirven, para no congestionar el mapa
 const VIS = { locomocion: ['bus'], mapa: ['auto', 'taxi', 'moto', 'bus'], avisar: [], conductor: [], favoritos: [], config: [], avisos: [], inicio: ['auto', 'taxi', 'bus', 'micro'], colectivos: [], misviajes: ['auto', 'taxi'], mas: ['auto', 'taxi', 'moto', 'bus', 'micro'], viaje: ['auto', 'taxi'], buses: ['bus'], micros: ['micro'], delivery: ['moto', 'auto'], planificar: ['auto', 'taxi', 'moto', 'bus', 'micro'], duenos: ['auto', 'taxi', 'moto'] };
 // En pestañas de un solo tipo (Buses, Micros) no hay filtros: ese tipo siempre se ve
-const ver = k => { const vs = VIS[S.tab] || VIS.planificar; return vs.includes(k) && (vs.length < 2 || !!S.filtro[k]); };
+const visDe = tab => tab === 'inicio' ? servDe(S.serv).vis : tab === 'locomocion' ? ({ buses: ['bus'], colectivos: [] }[S.lf] || ['bus']) : (VIS[tab] || VIS.planificar);
+const ver = k => { const vs = visDe(S.tab); return vs.includes(k) && (vs.length < 2 || !!S.filtro[k]); };
 const planRouteIds = () => S.tab === 'planificar' ? (planOptions()[S.plan.sel] || { legs: [] }).legs.map(l => l.route).filter(Boolean) : [];
 function drawBase() {
   if (!mapReady) return;
@@ -732,7 +862,7 @@ function viewViaje() {
     const modo = modoPrecio(o.loc, 'viaje');
     h += `<div class="opts">` + CLASES.map(c => { const q = quote(o.c, d.c, o.loc, c.f), rg = c.f !== 'taxi' && modo === 'rango' ? rangoPrecio(o.loc, 'viaje', q.km * (typeof c.f === 'number' ? 1 : 1), q.precio) : null;
       const pr = c.f === 'taxi' ? '~' + clp(q.precio) : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : `${clp(r100(rg.lo * c.f))}–${clp(r100(rg.hi * c.f)).slice(1)}`;
-      return `<button class="opt" data-clase="${c.id}" aria-pressed="${S.clase === c.id}"><span class="ic" style="background:${c.color}">${c.ic}</span><span><div class="t">${c.n}</div><div class="d">${c.d} · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min${q.real ? '' : ' (aprox.)'}</div></span><span class="p">${pr}</span></button>`; }).join('') + `</div>
+      return `<button class="opt" data-clase="${c.id}" aria-pressed="${S.clase === c.id}" style="--c:${c.color}"><span class="ic" style="background:${c.color}">${c.id === 'xl' ? '<b style="font-size:12px">XL</b>' : UI.icono(c.tipo, 20)}</span><span><div class="t">${c.n}</div><div class="d">${c.d} · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min${q.real ? '' : ' (aprox.)'}</div></span><span class="p">${pr}</span></button>`; }).join('') + `</div>
       <button class="btn" id="pedir" ${S.o === S.d ? 'disabled' : ''}>${S.clase !== 'taxi' && modo === 'conductor' ? 'Pedir ofertas de conductores' : 'Pedir ' + CLASES.find(c => c.id === S.clase).n}</button>
       ${precioInfoHTML(o.loc, 'viaje')}
       <p class="hint">${S.clase === 'taxi' ? `Taxímetro de ejemplo: bajada de bandera ${clp(TAXI.bajada)} + ${clp(TAXI.cada200)} cada 200 m. El precio final lo marca el taxímetro; los taxis siempre cobran con taxímetro.` : modo === 'conductor' ? `Tarifa de referencia para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min. Cada conductor ofrece su propio precio.` : `Rango calculado con lo que se pagó en viajes parecidos en ${LOC[o.loc].nombre}.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
@@ -810,39 +940,45 @@ const nombreDest = () => (LOC[S.dest] || {}).nombre || '';
 function setDest(id) { if (!LOC[id] || id === S.loc) return false; S.dest = id; try { localStorage.setItem('vamo-destino', id); } catch (e) {} return true; }
 function viewInicio() {
   const favs = (FAV.destinos || []).filter(id => LOC[id] && id !== S.loc), fp = FAV.paraderos.filter(id => POI[id]).slice(0, 2);
-  const opts = [...destinos().map(l => l.nombre), ...POIS.filter(p => p.loc !== S.loc).map(p => p.n)];
-  const accion = (id, c, i, t, d, cls) => `<button class="accion ${cls || ''}" id="${id}" style="--c:${c}"><span class="ai">${UI.icono(i, 24)}</span><span>${t}<small>${d}</small></span></button>`;
-  return `<div class="hero"><h2>¿A dónde vamos?</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}${S.dest && S.dest !== S.loc ? ` · destino: <b>${esc(nombreDest())}</b>` : ''}</p></div>
-    <div class="buscar">${UI.icono('ubicacion', 18)}<input id="destQ" list="destLista" type="search" autocomplete="off" placeholder="Busca tu destino: Valparaíso, Viña, Santiago…" aria-label="Destino" value=""><datalist id="destLista">${opts.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
-    ${favs.length || fp.length ? `<div class="row">${favs.map(id => `<button class="chip" data-dest="${id}">${UI.icono('estrella', 12)} ${esc(LOC[id].nombre)}</button>`).join('')}${fp.map(id => `<button class="chip" data-destp="${id}">${UI.icono('paradero', 12)} ${esc(POI[id].n)}</button>`).join('')}</div>` : ''}
-    <div class="acciones">
-      ${accion('verLoco', 'var(--turquesa)', 'bus', 'Ver locomoción', 'Buses y colectivos hacia tu destino', 'principal')}
-      ${accion('pedirViaje', 'var(--auto)', 'auto', 'Pedir un viaje', 'Auto o taxi de puerta a puerta')}
-      ${accion('avisarBtn', 'var(--fucsia)', 'comunidad', 'Avisar dónde viene', 'Ayuda a otros con un aviso de dos toques')}
+  const opts = [...destinos().map(l => l.nombre), ...POIS.filter(p => p.loc !== S.loc).map(p => p.n)], sv = servDe(S.serv);
+  const accion = (id, c, i, t, d, cls) => `<button class="accion ${cls || ''}" id="${id}" style="--c:${c}"><span class="ai">${UI.icono(i, 30)}</span><span>${t}<small>${d}</small></span></button>`;
+  const nota = { bus: 'En el mapa: solo buses (según horario de ejemplo).', colectivo: 'Colectivos Casablanca–Valparaíso: aún no hay conductores informando, por eso no aparecen en el mapa.', taxi: 'En el mapa: solo taxis (simulados).', auto: 'En el mapa: solo autos tipo Uber (simulados).' }[sv.id];
+  return `<div class="servicios" role="group" aria-label="Tipo de transporte">${SERV.map(x => `<button class="serv" data-serv="${x.id}" aria-pressed="${x.id === sv.id}" style="--c:${x.c}">${UI.icono(x.id, 16)}${x.n}</button>`).join('')}</div>
+    <p class="servnota">${nota}</p>
+    <div class="destcard"><div class="hero">${UI.icono('ubicacion', 26)}<div><h2>¿A dónde vamos?</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}${S.dest && S.dest !== S.loc ? ` · destino: <b>${esc(nombreDest())}</b>` : ''}. Consulta locomoción, pide un viaje o planifica tu ruta.</p></div></div>
+    <div class="destrow"><div class="buscar">${UI.icono('ubicacion', 18)}<input id="destQ" list="destLista" type="search" autocomplete="off" placeholder="Busca tu destino: Valparaíso, Viña…" aria-label="Destino" value=""><datalist id="destLista">${opts.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+    <button class="swap" id="swapLoc" aria-label="Invertir origen y destino" title="Invertir origen y destino">${UI.icono('cambiar', 20)}</button></div>
+    ${favs.length || fp.length ? `<div class="row">${favs.map(id => `<button class="chip" data-dest="${id}">${UI.icono('estrella', 12)} ${esc(LOC[id].nombre)}</button>`).join('')}${fp.map(id => `<button class="chip" data-destp="${id}">${UI.icono('paradero', 12)} ${esc(POI[id].n)}</button>`).join('')}</div>` : ''}</div>
+    <div class="acciones tres">
+      ${accion('verLoco', 'var(--turquesa)', sv.id === 'colectivo' ? 'colectivo' : 'bus', 'Ver locomoción', 'Buses y colectivos hacia tu destino', 'principal')}
+      ${accion('pedirViaje', 'var(--fucsia)', sv.id === 'taxi' ? 'taxi' : 'auto', 'Pedir un viaje', 'Auto o taxi de puerta a puerta')}
+      ${accion('avisarBtn', 'var(--amarillo)', 'megafono', 'Avisar dónde viene', 'Ayuda a otros con un aviso de dos toques')}
     </div>`;
 }
 function tarjetasLocomocion() {
+  // Cada tarjeta distingue el origen del dato: información oficial, ubicación del operador o reporte de la comunidad
   const d = LOC[S.dest], o = LOC[S.loc], f = S.lf || 'todos', out = [];
   const buses = RV(INTER).filter(r => { const ls = routeLocs(r); return ls.includes(S.loc) && ls.includes(S.dest); });
-  if (f !== 'colectivos') for (const r of buses) { const nx = nextDeps(r, 1)[0];
-    out.push(`<button class="tarjeta" data-loco="${r.id}" style="--c:var(--bus)"><div class="tt"><b>${UI.icono('bus', 16)} Bus · ${esc(r.nombre)}</b>${r.ejemplo ? '<span class="tag warn">Ejemplo</span>' : ''}</div>
-      ${UI.semaforo('sininfo', 'Sin GPS ni reportes en vivo', '')}
-      <div class="eta">${SIN_EST}</div>
-      <div class="hint">${r.cada ? `Próxima salida según horario ${r.ejemplo ? 'de ejemplo' : TH[r.th] ? TH[r.th][0].toLowerCase() : ''}: <b class="mono">${nx != null ? hhmm(nx) : 'mañana'}</b> · no garantizada` : 'Sin horario confirmado'}</div>
-      <div class="hint">Fuente: ${esc(r.fuente || 'sin fuente')} · ${actTxt(r)}</div></button>`); }
+  if (f !== 'colectivos') for (const r of buses) { const nx = nextDeps(r, 1)[0], sale = POI[r.paradas.find(id => POI[id] && POI[id].loc === S.loc)];
+    out.push(UI.tarjetaVehiculo({ tipo: 'bus', attrs: `data-loco="${r.id}"`, titulo: `Bus · ${r.nombre}`, sub: `${esc(r.op || 'Operador sin confirmar')}${sale ? ' · sale de ' + esc(sale.n) : ''}`,
+      eta: `<span class="hint" style="font-weight:600">${SIN_EST}</span>`,
+      estado: `<div class="row">${UI.semaforo('sininfo', 'Sin GPS ni reportes en vivo', '')}${r.ejemplo ? UI.fuente('ejemplo', 'Ejemplo · horario no oficial') : UI.fuente(r.th === 'oficial' ? 'oficial' : 'ninguna', TH[r.th] ? TH[r.th][0] : '')}</div>`,
+      lineas: [r.cada ? `Próxima salida según horario ${r.ejemplo ? 'de ejemplo' : TH[r.th] ? TH[r.th][0].toLowerCase() : ''}: <b class="mono">${nx != null ? hhmm(nx) : 'mañana'}</b> · no garantizada` : 'Sin horario confirmado', `Fuente: ${esc(r.fuente || 'sin fuente')} · ${actTxt(r)}`] })); }
   const colect = [S.loc, S.dest].sort().join() === 'casablanca,valparaiso';
-  if (f !== 'buses' && colect) out.push(`<button class="tarjeta" data-tab="colectivos" style="--c:var(--amarillo)"><div class="tt"><b>${UI.icono('colectivo', 16)} Colectivos · ${esc(o.nombre)}–${esc(d.nombre)}</b><span class="tag warn">Por verificar</span></div>
-      ${UI.semaforo('sininfo', 'Aún no hay conductores informando', '')}<div class="eta">${SIN_EST}</div>
-      <div class="hint">Salen de sector Santa Isabel (Casablanca) y Av. Argentina (Valparaíso). Cupos y salidas los informarán los conductores.</div></button>`);
+  if (f !== 'buses' && colect) out.push(UI.tarjetaVehiculo({ tipo: 'colectivo', attrs: 'data-tab="colectivos"', titulo: `Colectivo · ${o.nombre}–${d.nombre}`, sub: `Sale de ${S.loc === 'casablanca' ? 'sector Santa Isabel' : 'Av. Argentina'} · por verificar`,
+      eta: `<span class="hint" style="font-weight:600">${SIN_EST}</span>`,
+      estado: `<div class="row">${UI.semaforo('sininfo', 'Aún no hay conductores informando', '')}${UI.fuente('ninguna', 'Sin ubicación del operador')}</div>`,
+      lineas: ['Cupos y salidas los informarán los conductores. Los reportes de la comunidad se muestran aparte y no reemplazan la información oficial.'] }));
   return out;
 }
 function viewLocomocion() {
   if (!LOC[S.dest] || S.dest === S.loc) S.dest = destinos()[0].id;
   const t = tarjetasLocomocion(), favs = (FAV.destinos || []).filter(id => LOC[id] && id !== S.loc);
-  return `<div><h2>Hacia ${esc(nombreDest())}</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}. Cada tarjeta dice de dónde viene el dato y qué tan reciente es.</p></div>
+  return `<div><h2>Locomoción a ${esc(nombreDest())}</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}. Cada tarjeta dice de dónde viene el dato y qué tan reciente es.</p></div>
     <div class="row">${destinos().slice(0, 6).map(l => `<button class="chip ${l.id === S.dest ? 'sel' : ''}" data-dest="${l.id}">${favs.includes(l.id) ? '★ ' : ''}${esc(l.nombre)}</button>`).join('')}</div>
     <div class="seg" role="tablist" aria-label="Tipo">${[['todos', 'Todos'], ['buses', 'Buses'], ['colectivos', 'Colectivos']].map(([k, n]) => `<button data-lf="${k}" aria-pressed="${(S.lf || 'todos') === k}">${n}</button>`).join('')}</div>
-    <div class="list">${t.join('') || `<div class="card"><h3>Sin información hacia ${esc(nombreDest())}</h3><p class="hint" style="margin:0">${S.ejemplos ? 'No hay buses ni colectivos cargados para este destino.' : 'Aún no hay recorridos verificados.'} Puedes pedir un viaje en auto o taxi.</p><button class="btn sm" id="pedirViaje">Pedir un viaje</button></div>`}</div>
+    <div class="list">${t.join('') || UI.vacio('Sin información hacia ' + nombreDest(), (S.ejemplos ? 'No hay buses ni colectivos cargados para este destino.' : 'Aún no hay recorridos verificados.') + ' Puedes pedir un viaje en auto o taxi.', '<button class="btn sm" id="pedirViaje">Pedir un viaje</button>')}</div>
+    <details class="card"><summary><b>¿De dónde viene cada dato?</b></summary><div class="list" style="margin-top:8px">${UI.fuente('oficial')}<span class="hint">Horario publicado por la empresa.</span>${UI.fuente('operador')}<span class="hint">GPS del conductor, solo durante su servicio.</span>${UI.fuente('comunidad')}<span class="hint">Avisos de pasajeros; se confirman con 3 avisos independientes.</span></div></details>
     <div class="row"><button class="btn sm ghost" data-tab="mapa">${UI.icono('planificar', 14)} Ver en el mapa</button><button class="btn sm ghost" data-tab="buses">${UI.icono('paradero', 14)} Buscar por paradero</button><button class="btn sm ghost" id="favDest" aria-pressed="${favs.includes(S.dest)}">${UI.icono('estrella', 14)} ${favs.includes(S.dest) ? 'Destino favorito' : 'Guardar destino'}</button></div>
     <details class="card"><summary><b>¿Qué significan los colores?</b></summary>
     <div class="list" style="margin-top:8px">${UI.semaforo('confirmado', 'información reciente y validada', '')}${UI.semaforo('porconfirmar', 'reportes recientes, aún no bastan', '')}${UI.semaforo('sininfo', 'no hay datos recientes', '')}${UI.semaforo('sinservicio', 'suspensión confirmada', '')}</div></details>
@@ -870,20 +1006,22 @@ function viewAvisar() {
 function viewConductor() {
   const C = S.cond || (S.cond = { tipo: 'colectivo', activo: false, cupos: 4, max: 4, sentido: null, retraso: 0, hora: null });
   const ahora = () => hhmm(nowMin());
-  let h = `<div><h2>Modo conductor</h2><p class="sub">Todo se hace antes de partir. Mientras manejas, la pantalla se actualiza sola.</p></div>
+  let h = `<div><h2>Panel conductor</h2><p class="sub">Todo se hace antes de partir. Mientras manejas, la pantalla se actualiza sola.</p></div>
     <div class="seg">${[['colectivo', 'Colectivo'], ['bus', 'Bus']].map(([k, n]) => `<button data-ctipo="${k}" aria-pressed="${C.tipo === k}" ${C.activo ? 'disabled' : ''}>${UI.icono(k, 15)} ${n}</button>`).join('')}</div>
-    <div class="estadocond">${C.activo ? `En servicio${C.sentido ? ' · ' + esc(C.sentido) : ''} · desde ${C.hora}${C.retraso ? ' · retraso ' + C.retraso + ' min' : ''}` : 'Fuera de servicio'}</div><div class="cond">`;
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--${C.tipo === 'bus' ? 'bus' : 'colectivo'})">${UI.icono(C.tipo, 64)}<span class="estado-pill" data-on="${C.activo ? 1 : 0}"><i></i>${C.activo ? (C.tipo === 'colectivo' ? (C.cupos ? 'Disponible' : 'Sin cupos') : 'En ruta') : 'Fuera de servicio'}</span></div>
+    <div class="estadocond">${C.activo ? `En servicio${C.sentido ? ' · ' + esc(C.sentido) : ''} · desde ${C.hora}${C.retraso ? ' · retraso ' + C.retraso + ' min' : ''}` : 'Fuera de servicio'}</div>
+    <div class="ubic" id="ubicInd" data-u="${C.activo ? 'pendiente' : 'off'}"><i aria-hidden="true"></i><span>${C.activo ? '<b>Ubicación: aún no se comparte.</b> En este prototipo el servicio se marca, pero el GPS se activará con las cuentas de conductor.' : '<b>Ubicación desactivada.</b> Se compartirá solo mientras estés en servicio.'}</span></div><div class="cond">`;
   if (C.tipo === 'colectivo') {
     if (!C.activo) h += `<div class="paso"><h3>Sentido</h3><div class="opciones">${['Hacia Valparaíso', 'Hacia Casablanca'].map(x => `<button class="opcion" data-csent="${x}" aria-pressed="${C.sentido === x}">${x}</button>`).join('')}</div></div>
-      <button class="gbtn" id="cIniciar" style="--c:var(--turquesa)" ${C.sentido ? '' : 'disabled'}>INICIAR SERVICIO</button>`;
-    else h += `<div class="paso"><h3>ACTUALIZAR CUPOS</h3><div class="cupos"><button id="cMenos" aria-label="Un cupo menos">−</button><output id="cCupos">${C.cupos}</output><button id="cMas" aria-label="Un cupo más">+</button></div><p class="hint" style="text-align:center;margin:0">${C.cupos === 0 ? 'Sin cupos' : 'Disponible'} · máximo ${C.max} según el vehículo</p></div>
-      <button class="gbtn" id="cFinalizar" style="--c:var(--fucsia)">FINALIZAR SERVICIO</button>`;
+      <button class="gbtn" id="cIniciar" style="--c:var(--morado)" ${C.sentido ? '' : 'disabled'}>${UI.icono('play', 20)} INICIAR SERVICIO</button>`;
+    else h += `<div class="paso"><h3 class="paso-n">${UI.icono('cupos', 18)} ACTUALIZAR CUPOS</h3><div class="cupos"><button id="cMenos" aria-label="Un cupo menos">−</button><output id="cCupos">${C.cupos}</output><button id="cMas" aria-label="Un cupo más">+</button></div><p class="hint" style="text-align:center;margin:0">${C.cupos === 0 ? 'Sin cupos' : 'Disponible'} · máximo ${C.max} según el vehículo</p></div>
+      <button class="gbtn fin" id="cFinalizar" style="--c:var(--fucsia)">${UI.icono('bandera', 20)} FINALIZAR SERVICIO</button>`;
   } else {
     const r = RV(INTER).find(x => x.cada && routeLocs(x).includes(S.loc)), nx = r ? nextDeps(r, 1)[0] : null;
     h += `<div class="card"><h3>Próxima salida</h3><div class="eta" style="font-size:22px;font-weight:800">${r && nx != null ? hhmm(nx) : 'Sin salidas asignadas'}</div><div class="hint">${r ? esc(r.nombre) + ' · ejemplo' : 'Tu empresa asignará tus salidas'}</div></div>`;
-    if (!C.activo) h += `<button class="gbtn" id="cIniciar" style="--c:var(--turquesa)">INICIAR RECORRIDO</button>`;
-    else h += `<div class="paso"><h3>INFORMAR RETRASO</h3><div class="opciones">${[5, 10, 15].map(m => `<button class="opcion" data-cret="${m}" aria-pressed="${C.retraso === m}">${m} min</button>`).join('')}</div></div>
-      <button class="gbtn" id="cFinalizar" style="--c:var(--fucsia)">FINALIZAR RECORRIDO</button>`;
+    if (!C.activo) h += `<button class="gbtn" id="cIniciar" style="--c:var(--morado)">${UI.icono('play', 20)} INICIAR RECORRIDO</button>`;
+    else h += `<div class="paso"><h3 class="paso-n">${UI.icono('reloj', 18)} INFORMAR RETRASO</h3><div class="opciones">${[5, 10, 15].map(m => `<button class="opcion" data-cret="${m}" aria-pressed="${C.retraso === m}">${m} min</button>`).join('')}</div></div>
+      <button class="gbtn fin" id="cFinalizar" style="--c:var(--fucsia)">${UI.icono('bandera', 20)} FINALIZAR RECORRIDO</button>`;
   }
   return h + `</div><p class="hint"><b>Prototipo:</b> esta pantalla todavía no comparte ubicación ni publica cambios. Con las cuentas de conductor (etapa de operadores) transmitirá tu ubicación solo durante el servicio, con un botón Detener siempre visible.</p>`;
 }
@@ -896,7 +1034,7 @@ function viewFavoritos() {
     <div class="card"><h3>Recorridos</h3>${r.map(id => fila('recorridos', id, ALLROUTES.find(x => x.id === id).nombre)).join('') || '<p class="hint" style="margin:0">Aún no guardas recorridos.</p>'}</div>`;
 }
 function viewConfig() {
-  const claro = document.documentElement.dataset.theme === 'light';
+  const claro = document.documentElement.dataset.theme !== 'dark';
   return `<div><h2>Configuración</h2></div><div class="lista">
     <button id="cfgTema">${UI.icono(claro ? 'luna' : 'sol', 20)}<span>Tema ${claro ? 'claro' : 'oscuro'}</span><small>Cambiar</small></button>
     <button id="liteBtn">${UI.icono('hoja', 20)}<span>Modo bajo consumo</span><small>${VAMO_LITE ? 'Activado' : 'Desactivado'}</small></button>
@@ -984,7 +1122,8 @@ function viewPlan() {
   return `<div><h2>Planifica tu viaje</h2><p class="sub">Combina auto, micros y buses interurbanos entre localidades.</p></div>
     <div class="field"><span class="pin a">A</span><select id="planO" aria-label="Origen">${placeOptions(S.plan.o)}</select></div>
     <div class="field"><span class="pin b">B</span><select id="planD" aria-label="Destino">${placeOptions(S.plan.d)}</select></div>
-    <div class="opts">${ops.map((op, i) => `<button class="opt" data-plan="${i}" aria-pressed="${i === S.plan.sel}"><span class="ic" style="background:${op.color}">${op.ic}</span><span><div class="t">${esc(op.n)} ${op.precio === cheapest ? '<span class="tag ok">Más barato</span>' : ''}</div><div class="d">Llegas ~${hhmm(nowMin() + op.mins)} · ${Math.round(op.mins)} min${op.sale ? ' · sale ' + hhmm(op.sale) : ''}</div></span><span class="p">${clp(op.precio)}</span></button>`).join('') || '<p class="hint">Elige un origen y un destino distintos.</p>'}</div>
+    <div class="row" style="justify-content:space-between"><h3>Opciones de viaje</h3><button class="btn sm ghost" id="planSwap">${UI.icono('cambiar', 14)} Invertir</button></div>
+    <div class="opts">${ops.map((op, i) => `<button class="opt" data-plan="${i}" aria-pressed="${i === S.plan.sel}" style="--c:${op.color}"><span class="ic" style="background:${op.color}">${UI.icono(/bus/i.test(op.color) ? 'bus' : /micro/i.test(op.color) ? 'micro' : 'auto', 20)}</span><span><div class="t">${esc(op.n)} ${op.precio === cheapest ? '<span class="tag ok">Más barato</span>' : ''}</div><div class="d">Llegas ~${hhmm(nowMin() + op.mins)} · ${Math.round(op.mins)} min${op.sale ? ' · sale ' + hhmm(op.sale) : ''}</div></span><span class="p">${clp(op.precio)}</span></button>`).join('') || '<p class="hint">Elige un origen y un destino distintos.</p>'}</div>
     ${ops[S.plan.sel] ? `<div class="card"><h3>Paso a paso</h3><ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${ops[S.plan.sel].legs.map(l => `<li>${esc(l.t)}</li>`).join('')}</ol>
       <button class="btn sm" id="planGo">${ops[S.plan.sel].legs.some(l => l.route && l.color === 'var(--bus)') ? 'Reservar todo en un pago' : 'Pedir auto'}</button></div>` : ''}
     <p class="hint">Tiempos y precios estimados con datos de ejemplo.</p>`;
@@ -1049,19 +1188,22 @@ function viewDelivery() {
   if (D.dest) ensureRoute(r.c, D.dest.c);
   const libres = t => FLEET.filter(v => v.estado === 'libre' && !v.job && v.tipo === t && v.loc === r.loc).length;
   let h = `<div><h2>Delivery para restaurantes</h2><p class="sub">Tu local pide una moto o un auto cercano, el repartidor retira el pedido y lo lleva al cliente. Lo sigues en el mapa.</p></div>
-  <label class="dlin">Tu local<select id="dlResto">${RESTOS.map(x => `<option value="${x.id}" ${x.id === D.resto ? 'selected' : ''}>${esc(x.n)} · ${esc(x.tipo)} · ${LOC[x.loc].nombre}</option>`).join('')}</select></label>
+  <label class="local"><span class="li">${UI.icono('delivery', 24)}</span><span style="min-width:0"><span class="hint">Tu local (ejemplo)</span><select id="dlResto" aria-label="Tu local">${RESTOS.map(x => `<option value="${x.id}" ${x.id === D.resto ? 'selected' : ''}>${esc(x.n)} · ${esc(x.tipo)} · ${LOC[x.loc].nombre}</option>`).join('')}</select></span></label>
   <div class="row"><span class="tag ok">${libres('moto')} motos libres</span><span class="tag ok">${libres('auto')} autos libres</span><span class="tag">${act.length} despachos en curso</span></div>
   <div class="card"><h3>Nuevo despacho</h3>
+    <p class="paso-n"><b>1</b>Dirección del cliente</p>
     <div class="field"><span class="pin" style="background:var(--moto)">C</span><div style="min-width:0">${D.dest ? `<b>${esc(D.dest.n)}</b>` : `<span class="hint">${D.pick ? 'Toca el mapa donde está el cliente.' : 'Falta la dirección del cliente.'}</span>`}</div></div>
     <div class="search"><input id="dq" type="search" autocomplete="off" placeholder="Buscar dirección del cliente…" aria-label="Dirección del cliente"><div id="dqres" class="qres" hidden></div></div>
     <div class="row"><button class="btn sm ghost" id="dlPick" aria-pressed="${D.pick}">Marcar al cliente en el mapa</button></div>
-    <div><div class="hint" style="margin-bottom:4px">Tamaño del pedido</div><div class="row">${TAMANOS.map(t => `<button class="chip" data-tam="${t.id}" aria-pressed="${D.tam === t.id}" title="${t.d}">${t.n}</button>`).join('')}</div></div>
+    <p class="paso-n"><b>2</b>Tamaño del pedido</p><div><div class="row">${TAMANOS.map(t => `<button class="chip" data-tam="${t.id}" aria-pressed="${D.tam === t.id}" title="${t.d}">${t.n}</button>`).join('')}</div></div>
+    <p class="paso-n"><b>3</b>Moto o auto</p>
     <div class="opts">${['moto', 'auto'].map(t => { const q = D.dest ? dlQuote(r.c, D.dest.c, t) : null, dis = t === 'moto' && D.tam === 'grande';
       const pr = !q ? '' : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : (g => `${clp(g.lo)}–${clp(g.hi).slice(1)}`)(rangoPrecio(r.loc, 'delivery', q.km, q.precio));
-      return `<button class="opt" data-dvt="${t}" aria-pressed="${vt === t}" ${dis ? 'disabled style="opacity:.45"' : ''}><span class="ic" style="background:${t === 'moto' ? 'var(--moto)' : 'var(--auto)'}">${t === 'moto' ? 'M' : 'A'}</span><span><div class="t">${t === 'moto' ? 'Moto' : 'Auto'}</div><div class="d">${t === 'moto' ? 'Más rápida, pedidos chicos y medianos' : 'Pedidos grandes o con lluvia'}${q ? ` · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min` : ''}</div></span><span class="p">${pr}</span></button>`; }).join('')}</div>
+      return `<button class="opt" data-dvt="${t}" aria-pressed="${vt === t}" style="--c:var(--${t})${dis ? ';opacity:.45' : ''}" ${dis ? 'disabled' : ''}><span class="ic" style="background:${t === 'moto' ? 'var(--moto)' : 'var(--auto)'}">${UI.icono(t, 20)}</span><span><div class="t">${t === 'moto' ? 'Moto' : 'Auto'}</div><div class="d">${t === 'moto' ? 'Más rápida, pedidos chicos y medianos' : 'Pedidos grandes o con lluvia'}${q ? ` · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min` : ''}</div></span><span class="p">${pr}</span></button>`; }).join('')}</div>
+    <p class="paso-n"><b>4</b>Pago y nota</p>
     <div class="form"><label>Pago del pedido<select id="dlPago"><option value="pagado" ${D.pago === 'pagado' ? 'selected' : ''}>Ya pagado</option><option value="efectivo" ${D.pago === 'efectivo' ? 'selected' : ''}>Cobrar en efectivo</option></select></label>
       <label>Nota para el repartidor<input id="dlNota" maxlength="80" value="${esc(D.nota)}" placeholder="Depto, timbre…"></label></div>
-    <button class="btn" id="dlPedir" ${D.dest ? '' : 'disabled'} style="background:var(--moto);color:#fff">${modo === 'conductor' ? 'Pedir ofertas de repartidores' : 'Pedir ' + (vt === 'moto' ? 'moto' : 'auto')}</button>
+    <button class="btn" id="dlPedir" ${D.dest ? '' : 'disabled'}>${UI.icono('delivery', 18)} ${modo === 'conductor' ? 'Pedir ofertas de repartidores' : 'Pedir delivery en ' + (vt === 'moto' ? 'moto' : 'auto')}</button>
   </div>
   ${precioInfoHTML(r.loc, 'delivery')}`;
   if (DL.length) h += `<div><h3>Despachos de hoy</h3></div><div class="list">${[...DL].reverse().map(dlCard).join('')}</div>`;
@@ -1109,14 +1251,15 @@ const UI = window.VamoUI || { icono: () => '', marca: () => 'VAMO', pin: () => '
 document.getElementById('marca').innerHTML = UI.marca();
 document.getElementById('tagline').insertAdjacentHTML('afterbegin', UI.icono('ubicacion', 14));
 const temaBtn = document.getElementById('tema');
-function pintarTema() { const claro = document.documentElement.dataset.theme === 'light'; temaBtn.innerHTML = UI.icono(claro ? 'luna' : 'sol', 18); temaBtn.setAttribute('aria-label', claro ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro');
+function pintarTema() { const claro = document.documentElement.dataset.theme !== 'dark'; temaBtn.innerHTML = UI.icono(claro ? 'luna' : 'sol', 18); temaBtn.setAttribute('aria-label', claro ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro');
   document.querySelector('meta[name=theme-color]').content = claro ? '#FFFFFF' : '#0B0F24'; }
-temaBtn.onclick = () => { const claro = document.documentElement.dataset.theme !== 'light'; if (claro) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;
-  try { localStorage.setItem('vamo-tema', claro ? 'claro' : 'oscuro'); } catch (e) {} pintarTema(); };
+temaBtn.onclick = () => { const oscuro = document.documentElement.dataset.theme !== 'dark'; if (oscuro) document.documentElement.dataset.theme = 'dark'; else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem('vamo-tema2', oscuro ? 'oscuro' : 'claro'); } catch (e) {} pintarTema(); if (typeof drawBase === 'function' && map.getSource) {} };
 pintarTema();
+const campBtn = document.getElementById('campana'); campBtn.innerHTML = UI.icono('campana', 18); campBtn.onclick = () => ir('avisos');
 const FILTROS = [['auto', 'Autos'], ['taxi', 'Taxis'], ['moto', 'Motos'], ['bus', 'Buses']];
 const filtrosEl = document.getElementById('filtros');
-function renderFiltros() { const fs = FILTROS.filter(([k]) => (VIS[S.tab] || VIS.planificar).includes(k)); filtrosEl.hidden = fs.length < 2; filtrosEl.innerHTML = fs.map(([k, n]) => `<button class="fchip" data-f="${k}" aria-pressed="${!!S.filtro[k]}" style="--c:${COL[k]}">${UI.icono(k, 15)}${n}</button>`).join(''); }
+function renderFiltros() { const fs = FILTROS.filter(([k]) => visDe(S.tab).includes(k)); filtrosEl.hidden = fs.length < 2; filtrosEl.innerHTML = fs.map(([k, n]) => `<button class="fchip" data-f="${k}" aria-pressed="${!!S.filtro[k]}" style="--c:${COL[k]}">${UI.icono(k, 15)}${n}</button>`).join(''); }
 filtrosEl.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; S.filtro[b.dataset.f] = !S.filtro[b.dataset.f];
   try { localStorage.setItem('vamo-filtro', JSON.stringify(S.filtro)); } catch (er) {} renderFiltros(); drawBase(); });
 renderFiltros();
@@ -1134,7 +1277,7 @@ function render() {
     { inicio: viewInicio, locomocion: viewLocomocion, mapa: viewMapa, avisar: viewAvisar, conductor: viewConductor, favoritos: viewFavoritos, config: viewConfig, avisos: viewAvisos, viaje: viewViaje, buses: viewBuses, micros: viewMicros, colectivos: viewColectivos, planificar: viewPlan, misviajes: viewMisViajes, mas: viewMas, delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
   map.getCanvas().style.cursor = (S.tab === 'viaje' && !S.ride) || (S.tab === 'delivery' && S.dl.pick) ? 'crosshair' : '';
   const sin = !CON_MAPA.includes(S.tab), antes = document.documentElement.classList.contains('sinmapa');
-  document.documentElement.classList.toggle('sinmapa', sin); if (antes && !sin && map.resize) setTimeout(() => map.resize(), 50);
+  document.documentElement.classList.toggle('sinmapa', sin); document.documentElement.classList.toggle('en-inicio', S.tab === 'inicio'); if (antes && !sin && map.resize) setTimeout(() => map.resize(), 50);
   if (S.ticket) drawQR(); renderFiltros(); drawBase();
 }
 function drawQR() { const c = document.getElementById('qr'); if (!c) return; const x = c.getContext('2d'); let h = 0; for (const ch of S.ticket.code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -1189,8 +1332,10 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.dataset.tab) { ir(b.dataset.tab); return; }
   if (b.id === 'ejToggle') { S.ejemplos = !S.ejemplos; try { localStorage.setItem('vamo-ejemplos', S.ejemplos ? '1' : '0'); } catch (er) {} S.selRoute = null; render(); return; }
   if (b.id === 'liteBtn' || b.id === 'liteOff') { location.search = VAMO_LITE ? '?lite=0' : '?lite=1'; return; }
-  if (b.id === 'verLoco') { ir('locomocion'); return; }
-  if (b.id === 'pedirViaje') { const p = POIS.find(x => x.loc === S.dest); if (p && S.dest !== S.loc) { S.d = p.id; S.pick = 'o'; } ir('viaje'); return; }
+  if (b.dataset.serv) { S.serv = b.dataset.serv; try { localStorage.setItem('vamo-servicio', S.serv); } catch (er) {} render(); return; }
+  if (b.id === 'swapLoc') { const d = S.dest, antes = S.loc; if (LOC[d] && d !== antes) { locEl.value = d; locEl.onchange(); setDest(antes); render(); } return; }
+  if (b.id === 'verLoco') { S.lf = S.serv === 'colectivo' ? 'colectivos' : S.serv === 'bus' ? 'buses' : S.lf; ir('locomocion'); return; }
+  if (b.id === 'pedirViaje') { const p = POIS.find(x => x.loc === S.dest); if (p && S.dest !== S.loc) { S.d = p.id; S.pick = 'o'; } if (S.tab === 'inicio') S.clase = S.serv === 'taxi' ? 'taxi' : S.serv === 'auto' ? 'eco' : S.clase; ir('viaje'); return; }
   if (b.id === 'avisarBtn') { S.av = null; ir('avisar'); return; }
   if (b.dataset.lf) { S.lf = b.dataset.lf; render(); return; }
   if (b.dataset.loco) { const r = ALLROUTES.find(x => x.id === b.dataset.loco); const ps = l => (r.paradas.find(id => POI[id] && POI[id].loc === l)) || ''; S.bq = { o: ps(S.loc), d: ps(S.dest) }; ir('buses'); S.selRoute = r.id; render(); return; }
@@ -1234,6 +1379,7 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
     PASAJES.unshift({ f: Date.now(), r: r.nombre, dep: hhmm(S.selDep), asiento: S.ticket.asiento, code: S.ticket.code }); saveMis(); render(); }
   else if (b.dataset.follow) { const [id, dep, dir] = b.dataset.follow.split('|'); S.follow = { id, dep: +dep, dir: +dir }; followTick(true); }
   else if (b.dataset.plan) { S.plan.sel = +b.dataset.plan; render(); }
+  else if (b.id === 'planSwap') { S.plan = { o: S.plan.d, d: S.plan.o, sel: 0 }; render(); fit([POI[S.plan.o].c, POI[S.plan.d].c], 2); }
   else if (b.id === 'planGo') { const op = planOptions()[S.plan.sel]; if (op.legs[0].color === 'var(--auto)') { S.o = S.plan.o; S.d = op.legs[0].t.startsWith('Auto de') ? S.plan.d : POIS.find(p => op.legs[0].t.includes(p.n)).id; S.tab = 'viaje'; render(); } else { b.textContent = 'Reserva de demostración lista ✓'; b.disabled = true; } return; }
   else if (b.dataset.oferta != null && S.ride && S.ride.fase === 'ofertas') { const o = S.ride.ofertas[+b.dataset.oferta]; S.ride.precio = o.precio; assignRide(S.ride, o.v); }
   else if (b.dataset.dqi != null) { const r = DQRES[+b.dataset.dqi]; if (r) { S.dl.dest = { c: r.c, n: r.n }; S.dl.pick = false; render(); fit([restoSel().c, r.c], 0.4); } }

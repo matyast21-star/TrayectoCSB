@@ -35,9 +35,10 @@ const GRUPO = { buses: 'locomocion', viaje: 'mas', planificar: 'mas', misviajes:
 const irA = async (p, t) => { const g = GRUPO[t]; await p.click(`#tabs [data-tab=${g || t}]`); if (g) await p.click(`#view [data-tab=${t}]`); };
 const until = async (f, ms = 60000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await ev(f)) return true; await wait(500); } return false; };
 
-await test('Carga la identidad VAMO (logo, tema oscuro, pestañas con íconos)', async () => {
+await test('Carga la identidad VAMO (logo, kit claro, pestañas con íconos)', async () => {
   assert(await ev(() => !!window.VamoUI && !!document.querySelector('#marca .vamo-v')), 'falta el logo SVG');
-  assert(await ev(() => getComputedStyle(document.body).backgroundColor === 'rgb(11, 15, 36)'), 'el fondo no es #0B0F24');
+  assert(await ev(() => getComputedStyle(document.body).backgroundColor === 'rgb(255, 255, 255)'), 'el fondo no es blanco');
+  assert(await ev(() => { const c = getComputedStyle(document.documentElement); return c.getPropertyValue('--morado').trim().toUpperCase() === '#7B2FF7' && c.getPropertyValue('--ink').trim().toUpperCase() === '#1F2A44' && c.getPropertyValue('--line').trim().toUpperCase() === '#E5E7EB'; }), 'la paleta no es la del kit');
   assert(await page.locator('.tab svg').count() === 4, 'faltan íconos en las pestañas'); });
 await test('Pedir viaje: precio libre con 3 ofertas y asignación', async () => {
   await irA(page, 'viaje');
@@ -137,13 +138,36 @@ await test('Mapa: solo vistas Calles y Satélite', async () => {
   const v = await page.locator('#styleBar [data-style]').allInnerTexts(); assert(v.join('|') === 'Calles|Satélite', 'vistas: ' + v.join('|'));
   assert(await page.locator('#styleBar [data-3d]').count() === 0, 'sigue la vista 3D'); });
 await test('Tema claro / oscuro', async () => {
-  await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'light'), 'no pasó a claro'); await page.click('#tema');
-  assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a oscuro'); });
+  await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'dark'), 'no pasó a oscuro'); await page.click('#tema');
+  assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a claro'); });
+await test('Kit visual: componentes reutilizables SVG', async () => {
+  assert(await ev(() => ['boton', 'tarjetaVehiculo', 'semaforo', 'buscador', 'selector', 'pin', 'vacio', 'error', 'fuente'].every(k => typeof VamoUI[k] === 'function')), 'faltan componentes');
+  assert(await ev(() => /<svg/.test(VamoUI.tarjetaVehiculo({ tipo: 'colectivo', titulo: 'x' })) && /<svg/.test(VamoUI.pin('colectivo'))), 'componentes sin SVG'); });
+await test('Inicio: servicios separados (buses, colectivos, taxis, autos)', async () => {
+  await irA(page, 'inicio'); assert((await page.locator('#view .serv').allInnerTexts()).join('|') === 'Buses|Colectivos|Taxis|Autos', 'no están los 4 servicios');
+  await ev(() => { window.__src = {}; window.__mr = mapReady; mapReady = true; map.getSource = id => ({ setData: d => { __src[id] = d; } }); });
+  const kinds = () => ev(() => { drawBase(); return [...new Set(__src.vehicles.features.map(f => f.properties.kind))].sort().join(','); });
+  for (const [sv, esperado] of [['taxi', /^taxi$/], ['auto', /^auto$/], ['bus', /^(bus)?$/], ['colectivo', /^$/]]) {
+    await page.click(`[data-serv=${sv}]`); const k = await kinds(); assert(esperado.test(k), `con ${sv} el mapa muestra: ${k}`); }
+  await page.click('[data-serv=taxi]'); await page.click('#pedirViaje'); assert(await ev(() => S.tab === 'viaje' && S.clase === 'taxi'), 'Taxis no abre el viaje en taxi');
+  await ev(() => { delete map.getSource; mapReady = __mr; }); await irA(page, 'inicio'); await page.click('[data-serv=bus]'); });
+await test('Inicio: invertir origen y destino', async () => {
+  await ev(() => { setDest('valparaiso'); render(); }); await page.click('#swapLoc'); assert(await ev(() => S.loc === 'valparaiso' && S.dest === 'casablanca'), 'no invirtió');
+  await page.click('#swapLoc'); assert(await ev(() => S.loc === 'casablanca' && S.dest === 'valparaiso'), 'no volvió'); });
+await test('Conductor: indicador de ubicación honesto', async () => {
+  await irA(page, 'conductor'); await ev(() => { S.cond = null; render(); }); assert(await ev(() => document.getElementById('ubicInd').dataset.u === 'off'), 'indicador no parte apagado');
+  await page.click('[data-csent="Hacia Valparaíso"]'); await page.click('#cIniciar'); assert(await ev(() => document.getElementById('ubicInd').dataset.u === 'pendiente' && /aún no se comparte/.test(document.getElementById('ubicInd').innerText)), 'el indicador no avisa que aún no comparte');
+  await page.click('#cFinalizar'); });
+await test('Planificador: invertir A y B', async () => {
+  await irA(page, 'planificar'); const [o, d] = await ev(() => [S.plan.o, S.plan.d]); await page.click('#planSwap'); assert(await ev(() => S.plan.o) === d && await ev(() => S.plan.d) === o, 'no invirtió'); await page.click('#planSwap'); });
+await test('Locomoción: tarjetas distinguen el origen del dato', async () => {
+  await irA(page, 'locomocion'); await ev(() => { setDest('valparaiso'); S.lf = 'todos'; render(); }); assert(await page.locator('#view .tarjeta .fuente').count() >= 2, 'faltan etiquetas de fuente'); });
 await test('Cambio de localidad', async () => { await page.selectOption('#loc', 'curacavi'); assert(await ev(() => S.loc === 'curacavi'), 'no cambió'); await page.selectOption('#loc', 'casablanca'); });
 await test('Celular: barra inferior y sin desborde horizontal', async () => {
   const m = await browser.newPage({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
-  assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa se ve en Inicio');
+  assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no se ve en Inicio');
+  await m.click('#tabs [data-tab=locomocion]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa se ve en Locomoción');
   await m.click('#tabs [data-tab=mapa]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no aparece en Mapa');
   await m.close(); });
 // ---- Recorridos desde la base de datos (respuestas simuladas con tests/fixtures/bd.json) ----
