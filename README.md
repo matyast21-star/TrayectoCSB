@@ -57,3 +57,10 @@ Es un sitio estático: abre `public/index.html` en el navegador.
 
 - Componentes SVG reutilizables en `public/ui/vamo-ui.js`: `marca()`, `logoV()`, `iconoApp(variante)`, `icono(nombre)`, `pin(tipo)`, `chip(tipo, texto)`.
 - Paleta: fondo #0B0F24, turquesa #00E5FF, fucsia #FF00B8, violeta #8A2BE2, amarillo #FFC107. Tipografía Montserrat. Tema oscuro por defecto y claro opcional.
+
+## Recorridos (etapa 2)
+
+- Recorridos, paraderos y horarios viven en Supabase (`recorrido`, `lugar`, `parada_recorrido`, `horario`) y la app los lee desde las vistas `recorrido_publico` y `lugar_publico`. Si no hay conexión, usa una copia local.
+- Cada recorrido declara el origen de su horario (`tipo_horario`): `oficial`, `programado`, `estimado` o `sin_horario`. Sin horario confirmado no se muestran buses en el mapa ni salidas: solo "Sin estimación disponible".
+- Datos iniciales (de ejemplo, no oficiales): `supabase/seed_recorridos.sql`.
+- Favoritos y frecuentes se guardan en el dispositivo; pasan a la cuenta en la etapa 3.
