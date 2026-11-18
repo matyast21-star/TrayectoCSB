@@ -1,6 +1,7 @@
 -- Trayecto: esquema inicial multi-localidad
 -- Todo cuelga de "localidad": sumar una comuna nueva es cargar datos, no cambiar código.
-create extension if not exists postgis;
+create extension if not exists postgis with schema extensions;
+set search_path = public, extensions;
 
 create type estado_localidad as enum ('piloto', 'activa', 'proximamente', 'destino');
 create type tipo_operador as enum ('dueno_independiente', 'taxi', 'empresa_buses', 'linea_micros');
@@ -162,7 +163,7 @@ create table cargo_plataforma (
 -- Buscar vehículos libres cerca de un punto
 create or replace function vehiculos_cercanos(lat double precision, lon double precision, radio_m int default 3000, p_tipo tipo_vehiculo default null)
 returns table (vehiculo_id uuid, patente text, tipo tipo_vehiculo, distancia_m double precision)
-language sql stable as $$
+language sql stable set search_path = public, extensions as $$
   select v.id, v.patente, v.tipo, st_distance(p.punto, st_makepoint(lon, lat)::geography)
   from posicion_vehiculo p join vehiculo v on v.id = p.vehiculo_id
   where v.activo and v.estado = 'libre' and (p_tipo is null or v.tipo = p_tipo)

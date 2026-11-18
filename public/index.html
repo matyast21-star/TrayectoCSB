@@ -45,6 +45,9 @@ button,select,input{font:inherit;color:inherit}
 .brand i{display:inline-block;width:22px;height:22px;border-radius:6px;background:conic-gradient(var(--auto) 0 33%,var(--bus) 0 66%,var(--micro) 0)}
 .top label{font-size:12px;color:var(--muted)}
 .top select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface2)}
+.dbstate{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dbstate::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.dbstate[data-ok="1"]::before{background:var(--ok)}
 .demo{margin-left:auto;font-size:11.5px;color:var(--warn);border:1px solid currentColor;border-radius:999px;padding:3px 10px;font-weight:600;letter-spacing:.02em}
 .main{display:grid;grid-template-columns:minmax(330px,420px) 1fr;min-height:0}
 .panel{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--surface)}
@@ -154,6 +157,7 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
     <label for="loc">Localidad</label>
     <select id="loc"></select>
     <span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales.">PROTOTIPO · DATOS DE EJEMPLO</span>
+    <span class="dbstate" id="dbState">Conectando base de datos…</span>
   </header>
   <div class="main">
     <section class="panel">
@@ -716,6 +720,18 @@ function loop(now) { const dt = Math.min(0.25, (now - last) / 1000); last = now;
     document.querySelectorAll('[data-live]').forEach(n => { n.innerHTML = busLiveRows(ALLROUTES.find(r => r.id === n.dataset.live)); });
     const nl = document.getElementById('nearList'); if (nl && !S.ride) { const o = placeOf(S.o); nl.innerHTML = nearHTML(o); const nb = document.getElementById('nLibres'); if (nb) nb.textContent = libresTxt(o); } }
   requestAnimationFrame(loop); }
+/* ============ Base de datos (Supabase) ============ */
+const SB_URL = 'https://yktziqqggiyhasifvvdb.supabase.co', SB_KEY = 'sb_publishable_M6szJFH4KE_d-rWSLf28Gg_RAUefnJW';
+async function sb(path) { const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: { apikey: SB_KEY } }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+async function cargarBD() { const el = document.getElementById('dbState');
+  try { const [locs, tars] = await Promise.all([sb('localidad?select=id,nombre,estado'), sb('tarifa?select=localidad_id,clase,base,por_km,por_min,minimo,bajada_bandera,por_200m')]);
+    for (const l of locs) if (LOC[l.id]) { LOC[l.id].estado = l.estado === 'proximamente' ? 'próximamente' : l.estado; LOC[l.id].nombre = l.nombre; }
+    for (const t of tars) { if (t.clase === 'eco' && LOC[t.localidad_id]) LOC[t.localidad_id].tarifa = { base: t.base, km: t.por_km, min: t.por_min, minimo: t.minimo };
+      if (t.clase === 'taxi' && t.bajada_bandera) { TAXI.bajada = t.bajada_bandera; TAXI.cada200 = t.por_200m; } }
+    locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
+    el.textContent = `Base de datos conectada · ${locs.length} localidades`; el.dataset.ok = '1'; const y = view.scrollTop; render(); view.scrollTop = y;
+  } catch (e) { el.textContent = 'Sin conexión a la base de datos, usando datos locales'; } }
+cargarBD();
 document.getElementById('clk').textContent = hhmm(nowMin());
 render();
 requestAnimationFrame(loop);

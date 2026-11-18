@@ -1,4 +1,5 @@
 -- Datos de EJEMPLO para el piloto (coordenadas aproximadas; tarifas y horarios no oficiales)
+set search_path = public, extensions;
 insert into localidad (id, nombre, comuna, centro, estado) values
  ('casablanca','Casablanca','Casablanca', st_makepoint(-71.4097,-33.3197)::geography,'piloto'),
  ('curacavi','Curacaví','Curacaví', st_makepoint(-71.1336,-33.4038)::geography,'proximamente'),

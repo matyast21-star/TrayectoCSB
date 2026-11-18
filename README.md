@@ -26,6 +26,8 @@ Es un sitio estático. Copia `public/config.example.js` como `public/config.js`,
 
 ## Base de datos (Supabase)
 
+- Proyecto en la organización TrayectoCSB (región São Paulo). La app lee localidades y tarifas con la clave publicable; si no hay conexión usa sus datos locales.
+
 - `supabase/migrations/` tiene el esquema multi-localidad (PostGIS, RLS, Realtime para posiciones de vehículos).
 - `supabase/seed.sql` carga localidades, tarifas y lugares de ejemplo.
 
