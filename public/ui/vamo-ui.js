@@ -27,6 +27,11 @@
     sol: 'M7 12a5 5 0 1 0 10 0a5 5 0 1 0-10 0 M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4 M1 12h2 M21 12h2 M4.2 19.8l1.4-1.4 M18.4 5.6l1.4-1.4',
     luna: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
     comunidad: 'M5 9a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M13 9a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M2 20c0-3 3-5 6-5s6 2 6 5 M12 15.5c1-.3 2-.5 4-.5 3 0 6 2 6 5',
+    misviajes: 'M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z M10 7v12',
+    mas: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z',
+    colectivo: 'M4 16V9a2 2 0 0 1 2-2h9l4 4v5H4z M4 12h15 M8 7v5 M7.5 16v2 M16.5 16v2',
+    qr: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h2v2h-2z M18 18h2v2h-2z M14 18h2 M18 14h2',
+    hoja: 'M5 19c0-8 5-14 15-14 0 10-6 15-14 15 M5 19l7-7',
     senal: 'M2 9a15 15 0 0 1 20 0 M5 12.5a10 10 0 0 1 14 0 M8.5 16a5 5 0 0 1 7 0 M12 19.5h.01'
   };
   const icono = (n, size = 20, extra = '') =>
@@ -45,7 +50,7 @@
   }
   // Marca completa: V + VAMO + sello "by fluva."
   function marca() {
-    return `<span class="vamo-marca" role="img" aria-label="VAMO by fluva">${logoV(30)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO</span><svg class="vamo-swoosh" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8Q50 0 98 3" fill="none" stroke="${C.amarillo}" stroke-width="2.4" stroke-linecap="round"/></svg><span class="vamo-sello">by <b>fluva.</b></span></span></span>`;
+    return `<span class="vamo-marca" role="img" aria-label="VAMO! by fluva">${logoV(30)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO!</span><svg class="vamo-swoosh" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8Q50 0 98 3" fill="none" stroke="${C.amarillo}" stroke-width="2.4" stroke-linecap="round"/></svg><span class="vamo-sello">by <b>fluva.</b></span></span></span>`;
   }
   // Ícono de app en 3 variantes: oscuro, amarillo, blanco
   function iconoApp(variante = 'oscuro', size = 96) {
@@ -79,7 +84,11 @@
     return Promise.all(PIN_TIPOS.map(t => new Promise(res => { const img = new Image(80, 104); img.onload = () => res([t, img]); img.onerror = () => res([t, null]); img.src = svgUrl(pin(t, 80)); })))
       .then(list => Object.fromEntries(list.filter(([, i]) => i)));
   }
+  // Semáforo de disponibilidad: color + texto + hora (nunca solo color)
+  const SEM = { confirmado: ['Confirmado', '#22C55E'], porconfirmar: ['Por confirmar', C.amarillo], sininfo: ['Sin información', '#C9D0EE'], sinservicio: ['Sin servicio', '#FF3B5C'] };
+  const semaforo = (estado, texto, hora) => { const [n, col] = SEM[estado] || SEM.sininfo;
+    return `<span class="sem" data-sem="${estado}" style="--sc:${col}"><i aria-hidden="true"></i><b>${n}</b>${texto ? `<span>${texto}</span>` : ''}${hora ? `<time>${hora}</time>` : ''}</span>`; };
   const chip = (tipo, texto) => `<span class="vchip" style="--c:${C[tipo] || C.turquesa}">${icono(tipo, 15)}${texto}</span>`;
 
-  window.VamoUI = { C, P, icono, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl };
+  window.VamoUI = { C, P, icono, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl, semaforo, SEM };
 })();
