@@ -2,8 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Trayecto: autos, taxis, buses interurbanos y micros de Casablanca en un solo lugar.">
-<title>Trayecto Casablanca</title>
+<meta name="description" content="VAMO by FLUVA. Tu viaje comienza aquí: autos, taxis, buses, micros y delivery de Casablanca en un solo lugar.">
+<title>VAMO · Casablanca</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%228%22%20fill%3D%22%2319f0de%22/%3E%3Cpath%20d%3D%22M7%207L16%2025L25%207%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%225.5%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20d%3D%22M7%207L16%2025L25%207%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.1%22%20stroke-dasharray%3D%222%202.2%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0a0a0a">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -14,7 +16,7 @@
 :root{
   --bg:#eef2f1; --surface:#ffffff; --surface2:#f5f8f7; --ink:#14232a; --muted:#5b6b70; --line:#d5dedd;
   --ocean:#cfe0e6; --land:#f6f8f4; --road:#c3cbc2; --vine:#b9cfa6;
-  --auto:#c9711c; --bus:#1f5fa8; --micro:#2e8b57; --accent:#0f4c5c; --accent-ink:#ffffff;
+  --moto:#9b3fb5; --auto:#c9711c; --bus:#1f5fa8; --micro:#2e8b57; --accent:#00c4b6; --accent-ink:#000000; --accent-t:#00796f;
   --ok:#2e8b57; --warn:#b7791f; --bad:#b33a3a;
   --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -23,12 +25,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1719; --surface:#162125; --surface2:#1b282c; --ink:#e3ecec; --muted:#93a5a8; --line:#26363a;
   --ocean:#10262e; --land:#152024; --road:#34454a; --vine:#2a3d2c;
-  --auto:#f0a04b; --bus:#5a9be6; --micro:#4fbf83; --accent:#6cc0cf; --accent-ink:#0b1416;
+  --moto:#c67be0; --auto:#f0a04b; --bus:#5a9be6; --micro:#4fbf83; --accent:#19f0de; --accent-ink:#000000; --accent-t:#19f0de;
   --ok:#4fbf83; --warn:#e0b252; --bad:#e07070; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1719; --surface:#162125; --surface2:#1b282c; --ink:#e3ecec; --muted:#93a5a8; --line:#26363a;
   --ocean:#10262e; --land:#152024; --road:#34454a; --vine:#2a3d2c;
-  --auto:#f0a04b; --bus:#5a9be6; --micro:#4fbf83; --accent:#6cc0cf; --accent-ink:#0b1416;
+  --moto:#c67be0; --auto:#f0a04b; --bus:#5a9be6; --micro:#4fbf83; --accent:#19f0de; --accent-ink:#000000; --accent-t:#19f0de;
   --ok:#4fbf83; --warn:#e0b252; --bad:#e07070; color-scheme:dark}
 html,body{height:100%}
 body{margin:0}
@@ -39,17 +41,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .app{height:100%;display:grid;grid-template-rows:auto 1fr}
-.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--surface);border-bottom:1px solid var(--line)}
-.brand{font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
-.brand i{display:inline-block;width:22px;height:22px;border-radius:6px;background:conic-gradient(var(--auto) 0 33%,var(--bus) 0 66%,var(--micro) 0)}
-.top label{font-size:12px;color:var(--muted)}
-.top select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface2)}
-.dbstate{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.top{color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:#0a0a0a;border-bottom:3px solid #19f0de}
+.brand{display:flex;align-items:center;gap:9px}
+.brand svg{flex-shrink:0;display:block}
+.bw{display:flex;flex-direction:column;line-height:1}
+.bn{font-family:var(--f-display);font-weight:800;font-size:21px;letter-spacing:.04em;color:#fff}
+.by{font-size:9.5px;font-weight:600;letter-spacing:.16em;color:#19f0de;margin-top:2px;text-transform:uppercase}
+.tagline{font-size:12.5px;color:#b8c4c4;margin-left:6px;padding-left:10px;border-left:1px solid #333}
+@media (max-width:700px){.tagline{display:none}}
+.top label{font-size:12px;color:#9fb0b0}
+.top select{padding:6px 8px;border:1px solid #333;border-radius:8px;background:#161616;color:#fff}
+.dbstate{font-size:11.5px;color:#9fb0b0;display:flex;align-items:center;gap:6px}
 .dbstate::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn)}
 .dbstate[data-ok="1"]::before{background:var(--ok)}
-.demo{margin-left:auto;font-size:11.5px;color:var(--warn);border:1px solid currentColor;border-radius:999px;padding:3px 10px;font-weight:600;letter-spacing:.02em}
+.demo{margin-left:auto;font-size:11.5px;color:#f2c94c;border:1px solid currentColor;border-radius:999px;padding:3px 10px;font-weight:600;letter-spacing:.02em}
 .main{display:grid;grid-template-columns:minmax(330px,420px) 1fr;min-height:0}
-.panel{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--surface)}
+.panel{display:flex;flex-direction:column;min-height:0;min-width:0;border-right:1px solid var(--line);background:var(--surface)}
 .tabs{display:flex;gap:2px;overflow-x:auto;padding:8px max(12px,env(safe-area-inset-left,0px)) 0;border-bottom:1px solid var(--line);flex-shrink:0}
 .tab{border:0;background:none;padding:9px 10px 10px;font-weight:600;font-size:13px;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tc,var(--accent))}
@@ -92,6 +99,17 @@ h3{font-family:var(--f-display);font-weight:700;font-size:14px;margin:0}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:3px 7px;background:var(--surface2);cursor:pointer}
 .chip.sel{border-color:var(--bus);color:var(--bus)}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-t);background:var(--surface)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.steps span{height:4px;border-radius:2px;background:var(--line)}
+.steps span.on{background:var(--moto)}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.offer{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.offer:hover{border-color:var(--accent)}
+.offer .p{font-family:var(--f-mono);font-size:15px;font-weight:500}
+.dlin{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.dlin input,.dlin select{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .live{font-size:12px;display:flex;flex-direction:column;gap:4px}
 .live div{display:flex;gap:6px;align-items:center}
 .tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
@@ -128,7 +146,7 @@ tr.best td{color:var(--ok);font-weight:600}
 .qres button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
 .qres button:hover,.qres button:focus-visible{background:var(--surface2)}
 .note{margin:0;font-size:12.5px;color:var(--warn);border:1px solid currentColor;border-radius:8px;padding:8px 10px}
-.btn.ghost[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn.ghost[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-t)}
 .maplibregl-ctrl-group button{color:#14232a}
 .mapctl{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:12px;display:flex;flex-direction:column;gap:6px}
 .mapctl button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer;font-size:16px}
@@ -142,7 +160,9 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
   .app{height:auto;min-height:100%}
   .main{display:flex;flex-direction:column}
   .mapwrap{height:52vh;min-height:300px;order:-1}
-  .panel{border-right:0}
+  .panel{border-right:0;min-width:0}
+  .main{min-width:0;max-width:100vw}
+  .top select{max-width:52vw}
   .view{overflow:visible}
   .demo{margin-left:0}
 }
@@ -152,7 +172,7 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
 
 <div class="app">
   <header class="top">
-    <div class="brand"><i aria-hidden="true"></i>Trayecto</div>
+    <div class="brand"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#19f0de"/><path d="M7 7L16 25L25 7" fill="none" stroke="#000" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 7L16 25L25 7" fill="none" stroke="#fff" stroke-width="1.1" stroke-dasharray="2 2.2" stroke-linejoin="round"/></svg><span class="bw"><span class="bn">VAMO</span><span class="by">by FLUVA</span></span><span class="tagline">Tu viaje comienza aquí.</span></div>
     <label for="loc">Localidad</label>
     <select id="loc"></select>
     <span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales (OpenStreetMap).">PROTOTIPO · DATOS DE EJEMPLO</span>
@@ -170,7 +190,8 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
       <div class="legend">
         <span><b style="background:var(--auto)"></b>Auto libre</span>
         <span><b style="background:#f2c200;box-shadow:0 0 0 1.5px #111"></b>Taxi libre</span>
-        <span><b style="background:var(--muted)"></b>Auto ocupado</span>
+        <span><b style="background:var(--moto)"></b>Moto delivery</span>
+        <span><b style="background:var(--muted)"></b>Ocupado</span>
         <span><i style="background:var(--bus)"></i>Bus interurbano</span>
         <span><i style="background:var(--micro)"></i>Micro local / rural</span>
       </div>
@@ -302,6 +323,10 @@ const TAXI_MOD = ['Toyota Corolla', 'Nissan Sentra', 'Hyundai Elantra', 'Chevrol
 for (const l of LOCALIDADES) { const n = l.id === 'casablanca' ? 9 : 4, nt = l.id === 'casablanca' ? 5 : 2;
   for (let i = 0; i < nt; i++) FLEET.push({ id: l.id + 't' + i, tipo: 'taxi', loc: l.id, pos: randIn(l.id), tgt: randIn(l.id), estado: rnd() < 0.3 ? 'ocupado' : 'libre', patente: plate(), cond: NOMBRES_COND[Math.floor(rnd() * NOMBRES_COND.length)], modelo: TAXI_MOD[Math.floor(rnd() * 4)], nota: (4.6 + rnd() * 0.4).toFixed(1) });
   for (let i = 0; i < n; i++) FLEET.push({ id: l.id + i, tipo: 'auto', loc: l.id, pos: randIn(l.id), tgt: randIn(l.id), estado: rnd() < 0.3 ? 'ocupado' : 'libre', patente: plate(), cond: NOMBRES_COND[Math.floor(rnd() * NOMBRES_COND.length)], modelo: ['Toyota Yaris', 'Chevrolet Sail', 'Kia Rio', 'Suzuki Swift', 'Hyundai Accent'][Math.floor(rnd() * 5)], nota: (4.6 + rnd() * 0.4).toFixed(1) }); }
+const MOTO_MOD = ['Honda CB 125', 'Yamaha YBR 125', 'Suzuki GN 125', 'Bajaj Pulsar 135'];
+for (const l of LOCALIDADES) if (l.id !== 'santiago') for (let i = 0; i < (l.id === 'casablanca' ? 6 : 2); i++)
+  FLEET.push({ id: l.id + 'm' + i, tipo: 'moto', loc: l.id, pos: randIn(l.id), tgt: randIn(l.id), estado: rnd() < 0.25 ? 'ocupado' : 'libre', patente: plate(), cond: NOMBRES_COND[Math.floor(rnd() * NOMBRES_COND.length)], modelo: MOTO_MOD[Math.floor(rnd() * 4)], nota: (4.6 + rnd() * 0.4).toFixed(1) });
+for (const v of FLEET) v.fx = 0.85 + rnd() * 0.4; // cada conductor fija su propio precio (más barato o más caro que la referencia)
 const SIM = 8; // velocidad de simulación para autos
 
 /* ============ Dueños de vehículos (demo) ============ */
@@ -314,17 +339,18 @@ let OWNER = { plan: 'viaje', vehiculos: [
   { id: 'o1', tipo: 'auto', modelo: 'Toyota Corolla 2019', patente: 'KXRT·45', servicio: 'viajes', activo: true, cond: 'Tú' },
   { id: 'o2', tipo: 'van', modelo: 'Hyundai H-1 2017', patente: 'JPLW·12', servicio: 'rural', activo: false, cond: 'Conductor asignado' },
   { id: 'o3', tipo: 'auto', modelo: 'Nissan Sentra 2020', patente: 'TXCB·27', servicio: 'taxi', activo: true, cond: 'Conductor asignado' }
-], viajes: [
+], tarifa: { base: 800, km: 600, minimo: 2500 }, viajes: [
   { h: '08:12', r: 'Plaza de Armas → Terminal de buses', m: 2800 },
   { h: '09:40', r: 'Hospital → Acceso Ruta 68', m: 3900 },
   { h: '11:05', r: 'Sector Sur → Plaza de Armas', m: 3100 },
   { h: '12:30', r: 'Casablanca → Caleta Quintay', m: 21500 }
 ] };
 try { const s = JSON.parse(localStorage.getItem('trayecto-owner-v2') || 'null'); if (s && s.vehiculos) OWNER = s; } catch (e) {}
+if (!OWNER.tarifa) OWNER.tarifa = { base: 800, km: 600, minimo: 2500 };
 const saveOwner = () => { try { localStorage.setItem('trayecto-owner-v2', JSON.stringify(OWNER)); } catch (e) {} };
 function syncOwnerFleet() {
   for (let i = FLEET.length - 1; i >= 0; i--) if (FLEET[i].owned) FLEET.splice(i, 1);
-  for (const v of OWNER.vehiculos) if (v.activo && (v.servicio === 'viajes' || v.servicio === 'taxi')) FLEET.push({ id: 'own-' + v.id, owned: true, tipo: v.servicio === 'taxi' ? 'taxi' : 'auto', loc: 'casablanca', pos: randIn('casablanca'), tgt: randIn('casablanca'), estado: 'libre', patente: v.patente, cond: v.cond, modelo: v.modelo, nota: '5.0' });
+  for (const v of OWNER.vehiculos) if (v.activo && (v.servicio === 'viajes' || v.servicio === 'taxi' || v.servicio === 'delivery')) FLEET.push({ id: 'own-' + v.id, owned: true, fx: 1, tipo: v.servicio === 'taxi' ? 'taxi' : v.tipo === 'moto' ? 'moto' : 'auto', loc: 'casablanca', pos: randIn('casablanca'), tgt: randIn('casablanca'), estado: 'libre', patente: v.patente, cond: v.cond, modelo: v.modelo, nota: '5.0' });
 }
 syncOwnerFleet();
 
@@ -343,10 +369,48 @@ function quote(a, b, locId, f = 1) {
   return { km, mins, real: !!rt, precio: Math.max(t.minimo * f, Math.round((t.base + t.km * km + t.min * mins) * f / 100) * 100) };
 }
 
+/* ============ Cómo se fija el precio ============
+   Mientras hay pocos conductores en una localidad, cada conductor ofrece su precio y el pasajero (o el restaurante) elige.
+   Cuando hay conductores suficientes y viajes pagados de referencia, la app muestra un rango estimado
+   calculado con lo que realmente se pagó en viajes parecidos (percentiles 25 a 75 del valor por km). */
+const PRECIO = { minConductores: 30, minPagados: 40, modo: 'auto' }; // modo: auto | conductor | rango (los dos últimos solo para probar)
+let PAGADOS = [];
+try { PAGADOS = JSON.parse(localStorage.getItem('trayecto-pagados-v1') || '[]'); } catch (e) {}
+if (!PAGADOS.length) { // historial de ejemplo
+  let z = 11; const r = () => (z = (z * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 22; i++) { const km = 0.8 + r() * 6; PAGADOS.push({ loc: 'casablanca', serv: 'viaje', km: +km.toFixed(2), precio: Math.round((900 + 650 * km + 110 * km * 2) * (0.85 + r() * 0.4) / 100) * 100 }); }
+  for (let i = 0; i < 9; i++) { const km = 0.6 + r() * 3.5; PAGADOS.push({ loc: 'casablanca', serv: 'delivery', km: +km.toFixed(2), precio: Math.round((1000 + 350 * km) * (0.85 + r() * 0.4) / 100) * 100 }); } }
+const savePagados = () => { try { localStorage.setItem('trayecto-pagados-v1', JSON.stringify(PAGADOS.slice(-500))); } catch (e) {} };
+const r100 = n => Math.round(n / 100) * 100;
+const pagados = (loc, serv) => PAGADOS.filter(p => p.loc === loc && p.serv === serv);
+const conductoresEn = (loc, serv) => FLEET.filter(v => v.loc === loc && (serv === 'delivery' ? v.tipo === 'moto' || v.tipo === 'auto' : v.tipo === 'auto')).length;
+function modoPrecio(loc, serv) { if (PRECIO.modo !== 'auto') return PRECIO.modo;
+  return conductoresEn(loc, serv) >= PRECIO.minConductores && pagados(loc, serv).length >= PRECIO.minPagados ? 'rango' : 'conductor'; }
+function pct(arr, q) { const a = [...arr].sort((x, y) => x - y), i = (a.length - 1) * q, lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); }
+function rangoPrecio(loc, serv, km, ref) { // rango según viajes pagados parecidos (distancia similar si hay suficientes)
+  let H = pagados(loc, serv); const cerca = H.filter(p => p.km >= km / 2 && p.km <= km * 2); if (cerca.length >= 5) H = cerca;
+  if (H.length < 3) return { n: H.length, lo: r100(ref * 0.9), med: ref, hi: r100(ref * 1.15) };
+  const t = H.map(p => p.precio / Math.max(0.5, p.km)), k = Math.max(0.5, km);
+  return { n: H.length, lo: r100(pct(t, 0.25) * k), med: r100(pct(t, 0.5) * k), hi: r100(pct(t, 0.75) * k) }; }
+function precioConductor(v, ref, km, f = 1) { // cada conductor pone su precio
+  if (v.owned) { const t = OWNER.tarifa; return Math.max(t.minimo, r100((t.base + t.km * km) * (typeof f === 'number' ? f : 1))); }
+  return Math.max(1000, r100(ref * v.fx)); }
+function registrarPagado(loc, serv, km, precio) { PAGADOS.push({ loc, serv, km: +km.toFixed(2), precio }); savePagados(); }
+function precioInfoHTML(loc, serv) {
+  const m = modoPrecio(loc, serv), nc = conductoresEn(loc, serv), np = pagados(loc, serv).length;
+  const pc = Math.min(100, Math.round(Math.min(nc / PRECIO.minConductores, np / PRECIO.minPagados) * 100));
+  return `<details class="card"><summary style="cursor:pointer;font-weight:600">${m === 'conductor' ? 'Precio libre: cada conductor pone su precio' : 'Precio estimado según viajes pagados'}</summary>
+    <p class="hint" style="margin:0">${m === 'conductor' ? `En ${LOC[loc].nombre} todavía hay pocos conductores, así que cada uno ofrece su precio y tú eliges la oferta que te convenga.` : `Hay conductores de sobra en ${LOC[loc].nombre}: el rango sale del valor por km de ${np} ${serv === 'delivery' ? 'despachos' : 'viajes'} ya pagados.`}
+    Se pasa a rango estimado con ${PRECIO.minConductores} conductores y ${PRECIO.minPagados} ${serv === 'delivery' ? 'despachos' : 'viajes'} pagados.</p>
+    <div class="row hint" style="justify-content:space-between"><span>${nc}/${PRECIO.minConductores} conductores · ${np}/${PRECIO.minPagados} pagados</span><span>${pc}%</span></div><div class="meter"><i style="width:${pc}%"></i></div>
+    <label class="dlin">Probar el modo (demo)<select id="modoPrecio">${[['auto', 'Automático según la zona'], ['conductor', 'Precio del conductor'], ['rango', 'Rango estimado']].map(([k, n]) => `<option value="${k}" ${PRECIO.modo === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></details>`; }
+const offerRow = (o, i) => `<button class="offer" data-oferta="${i}"><span class="plate">${esc(o.v.patente)}</span><span><div style="font-weight:600">${esc(o.v.cond)} · ★ ${o.v.nota}</div><div class="hint">${o.v.tipo === 'moto' ? 'Moto' : o.v.tipo === 'taxi' ? 'Taxi' : 'Auto'} · ${esc(o.v.modelo)} · llega en ${o.eta} min</div></span><span class="p">${clp(o.precio)}</span></button>`;
+
 /* ============ Estado ============ */
 const S = { note: '', followCar: false, loc: 'casablanca', tab: 'viaje', pick: 'o', o: 'cb-plaza', d: 'cb-term', custom: {}, clase: 'eco',
-  ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 } };
-const TABS = [{ id: 'viaje', n: 'Pedir viaje', c: 'var(--auto)' }, { id: 'buses', n: 'Buses', c: 'var(--bus)' }, { id: 'micros', n: 'Micros', c: 'var(--micro)' }, { id: 'planificar', n: 'Planificar', c: 'var(--accent)' }, { id: 'duenos', n: 'Dueños', c: 'var(--ink)' }];
+  ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 },
+  dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
+const TABS = [{ id: 'viaje', n: 'Pedir viaje', c: 'var(--auto)' }, { id: 'buses', n: 'Buses', c: 'var(--bus)' }, { id: 'micros', n: 'Micros', c: 'var(--micro)' }, { id: 'planificar', n: 'Planificar', c: 'var(--accent)' }, { id: 'delivery', n: 'Delivery', c: 'var(--moto)' }, { id: 'duenos', n: 'Dueños', c: 'var(--ink)' }];
 const placeOf = id => POI[id] || S.custom[id];
 
 /* ============ Mapa real (Mapbox GL) ============ */
@@ -354,7 +418,7 @@ const placeOf = id => POI[id] || S.custom[id];
 const mapboxgl = window.maplibregl;
 const TOKEN = 'libre';
 const ll = c => [c[1], c[0]];
-const COL = { auto: '#d9822b', taxi: '#f2c200', ocupado: '#7d8a8e', bus: '#1f5fa8', micro: '#2e8b57', accent: '#0f4c5c', ink: '#14232a', walk: '#6b7a7f' };
+const COL = { moto: '#9b3fb5', auto: '#d9822b', taxi: '#f2c200', ocupado: '#7d8a8e', bus: '#1f5fa8', micro: '#2e8b57', accent: '#00b3a6', ink: '#0a0a0a', walk: '#6b7a7f' };
 function rasterStyle(tiles, maxzoom, attribution, labels) {
   const st = { version: 8, glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf', sources: { base: { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom, attribution } }, layers: [{ id: 'base', type: 'raster', source: 'base' }] };
   if (labels) { st.sources.labels = { type: 'raster', tiles: [labels], tileSize: 256, maxzoom }; st.layers.push({ id: 'labels', type: 'raster', source: 'labels' }); }
@@ -453,8 +517,9 @@ function drawOver() {
   }
   for (const c of FLEET) { const mine = S.ride && S.ride.car === c && S.ride.fase !== 'fin';
     const libre = c.estado === 'libre';
-    v.push(point(c.pos, { kind: c.tipo, color: !libre && !mine ? COL.ocupado : c.tipo === 'taxi' ? COL.taxi : COL.auto, stroke: c.tipo === 'taxi' ? '#111111' : c.owned ? COL.ink : '#ffffff', owned: !!c.owned || c.tipo === 'taxi', hl: !!mine,
-      ...(mine ? { label: c.patente } : {}), info: `<b>${c.tipo === 'taxi' ? 'Taxi' : 'Auto'} ${esc(c.patente)}</b><br>${esc(c.modelo)} · ${esc(c.cond)} · ★ ${c.nota}<br>${libre ? 'Libre' : mine ? 'Tu viaje' : 'Ocupado'}` })); }
+    const dlj = c.job && S.tab === 'delivery';
+    v.push(point(c.pos, { kind: c.tipo, color: !libre && !mine && !dlj ? COL.ocupado : c.tipo === 'taxi' ? COL.taxi : c.tipo === 'moto' ? COL.moto : COL.auto, stroke: c.tipo === 'taxi' ? '#111111' : c.owned ? COL.ink : '#ffffff', owned: !!c.owned || c.tipo === 'taxi', hl: !!mine,
+      ...(mine || dlj ? { label: dlj ? c.job.code : c.patente } : {}), info: `<b>${c.tipo === 'taxi' ? 'Taxi' : c.tipo === 'moto' ? 'Moto delivery' : 'Auto'} ${esc(c.patente)}</b><br>${esc(c.modelo)} · ${esc(c.cond)} · ★ ${c.nota}<br>${c.job ? 'Despacho ' + c.job.code : libre ? 'Libre' : mine ? 'Tu viaje' : 'Ocupado'}` })); }
   map.getSource('vehicles').setData(fc(v));
   const pins = [], ride = [];
   if (S.tab === 'viaje') { const o = placeOf(S.o), d = placeOf(S.d);
@@ -462,6 +527,11 @@ function drawOver() {
     const R = S.ride;
     if (R && R.leg && (R.fase === 'va' || R.fase === 'viaje')) { const rest = remaining(R.leg, R.f); ride.push(line(rest, { color: R.fase === 'va' ? COL.auto : COL.accent })); }
     else if (!R && o && d) { const rt = cached(o.c, d.c); ride.push(line(rt ? rt.coords : [o.c, d.c], { color: COL.ink })); } }
+  if (S.tab === 'delivery') { const rs = restoSel();
+    for (const r of RESTOS) if (r.loc === rs.loc) pins.push(point(r.c, { label: r.id === rs.id ? 'R' : '', color: r.id === rs.id ? COL.moto : '#b98ac6' }));
+    if (S.dl.dest) { pins.push(point(S.dl.dest.c, { label: 'C', color: COL.ink })); const rt = cached(rs.c, S.dl.dest.c); ride.push(line(rt ? rt.coords : [rs.c, S.dl.dest.c], { color: COL.ink })); }
+    for (const p of dlActivos()) { if (p.fase === 'retira' || p.fase === 'reparto' || p.fase === 'va') pins.push(point(p.dest.c, { label: 'C', color: p.id === S.dl.sel ? COL.moto : '#7d8a8e' }));
+      if (p.leg && (p.fase === 'va' || p.fase === 'reparto')) ride.push(line(remaining(p.leg, p.f), { color: p.fase === 'va' ? COL.auto : COL.moto })); } }
   if (S.tab === 'planificar') { pins.push(point(POI[S.plan.o].c, { label: 'A', color: COL.accent })); pins.push(point(POI[S.plan.d].c, { label: 'B', color: COL.ink })); }
   map.getSource('pins').setData(fc(pins)); map.getSource('ride').setData(fc(ride));
 }
@@ -489,6 +559,8 @@ function setPoint(which, c, label) { const id = addCustom(c, label || 'Punto en 
   revName(c).then(n => { if (n && S.custom[id]) { S.custom[id].n = S.custom[id].n === 'Mi ubicación' ? 'Mi ubicación · ' + n : n; if (S.tab === 'viaje') { const y = view.scrollTop; render(); view.scrollTop = y; } } }); return id; }
 
 map.on('click', e => {
+  if (!e.defaultPrevented && S.tab === 'delivery' && S.dl.pick) { const c = [e.lngLat.lat, e.lngLat.lng]; S.dl.dest = { c, n: 'Punto en el mapa' }; S.dl.pick = false; render();
+    revName(c).then(n => { if (n && S.dl.dest && S.dl.dest.c === c) { S.dl.dest.n = n; rerender(); } }); return; }
   if (e.defaultPrevented || S.tab !== 'viaje' || (S.ride && S.ride.fase !== 'fin')) return;
   const c = [e.lngLat.lat, e.lngLat.lng];
   const near = POIS.reduce((b, p) => { const dd = dist(p.c, c); return dd < b.d ? { p, d: dd } : b; }, { p: null, d: 1e9 });
@@ -501,7 +573,7 @@ const view = document.getElementById('view');
 const placeOptions = (sel, filterLoc) => LOCALIDADES.map(l => `<optgroup label="${l.nombre}">` + POIS.filter(p => p.loc === l.id && (!filterLoc || true)).map(p => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.n)}</option>`).join('') + '</optgroup>').join('')
   + (S.custom[sel] ? `<option value="${sel}" selected>${esc(S.custom[sel].n)}</option>` : '');
 
-function nearbyCars(c, n = 3, tipo) { return FLEET.filter(v => v.estado === 'libre' && (!tipo || v.tipo === tipo)).map(v => ({ v, d: dist(v.pos, c) })).sort((a, b) => a.d - b.d).slice(0, n); }
+function nearbyCars(c, n = 3, tipo, loc) { return FLEET.filter(v => v.estado === 'libre' && !v.job && (tipo ? v.tipo === tipo : v.tipo !== 'moto') && (!loc || v.loc === loc)).map(v => ({ v, d: dist(v.pos, c) })).sort((a, b) => a.d - b.d).slice(0, n); }
 const nearRow = x => `<div><span class="dot" style="background:${x.v.tipo === 'taxi' ? '#f2c200' : 'var(--auto)'};margin:0;${x.v.tipo === 'taxi' ? 'box-shadow:0 0 0 1.5px #111' : ''}"></span><span class="plate">${x.v.patente}</span> ${x.v.tipo === 'taxi' ? 'Taxi · ' : ''}${esc(x.v.modelo)} · a ${Math.max(1, Math.round(x.d * 1.3 / 30 * 60))} min</div>`;
 function nearHTML(o) { return nearbyCars(o.c, 4).map(nearRow).join(''); }
 function libresTxt(o) { const a = FLEET.filter(v => v.estado === 'libre' && v.loc === o.loc && v.tipo === 'auto').length, t = FLEET.filter(v => v.estado === 'libre' && v.loc === o.loc && v.tipo === 'taxi').length; return `${a} autos · ${t} taxis libres`; }
@@ -517,16 +589,20 @@ function viewViaje() {
   if (!R) {
     if (S.o !== S.d) ensureRoute(o.c, d.c);
     h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>Disponibles cerca de A</h3><span class="tag ok" id="nLibres">${libresTxt(o)}</span></div><div class="live" id="nearList">${nearHTML(o)}</div></div>`;
-    h += `<div class="opts">` + CLASES.map(c => { const q = quote(o.c, d.c, o.loc, c.f);
-      return `<button class="opt" data-clase="${c.id}" aria-pressed="${S.clase === c.id}"><span class="ic" style="background:${c.color}">${c.ic}</span><span><div class="t">${c.n}</div><div class="d">${c.d} · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min${q.real ? '' : ' (aprox.)'}</div></span><span class="p">${c.f === 'taxi' ? '~' : ''}${clp(q.precio)}</span></button>`; }).join('') + `</div>
-      <button class="btn" id="pedir" ${S.o === S.d ? 'disabled' : ''}>Pedir ${CLASES.find(c => c.id === S.clase).n}</button>
-      <p class="hint">${S.clase === 'taxi' ? `Taxímetro de ejemplo: bajada de bandera ${clp(TAXI.bajada)} + ${clp(TAXI.cada200)} cada 200 m. El precio final lo marca el taxímetro.` : `Tarifa de ejemplo para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
+    const modo = modoPrecio(o.loc, 'viaje');
+    h += `<div class="opts">` + CLASES.map(c => { const q = quote(o.c, d.c, o.loc, c.f), rg = c.f !== 'taxi' && modo === 'rango' ? rangoPrecio(o.loc, 'viaje', q.km * (typeof c.f === 'number' ? 1 : 1), q.precio) : null;
+      const pr = c.f === 'taxi' ? '~' + clp(q.precio) : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : `${clp(r100(rg.lo * c.f))}–${clp(r100(rg.hi * c.f)).slice(1)}`;
+      return `<button class="opt" data-clase="${c.id}" aria-pressed="${S.clase === c.id}"><span class="ic" style="background:${c.color}">${c.ic}</span><span><div class="t">${c.n}</div><div class="d">${c.d} · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min${q.real ? '' : ' (aprox.)'}</div></span><span class="p">${pr}</span></button>`; }).join('') + `</div>
+      <button class="btn" id="pedir" ${S.o === S.d ? 'disabled' : ''}>${S.clase !== 'taxi' && modo === 'conductor' ? 'Pedir ofertas de conductores' : 'Pedir ' + CLASES.find(c => c.id === S.clase).n}</button>
+      ${precioInfoHTML(o.loc, 'viaje')}
+      <p class="hint">${S.clase === 'taxi' ? `Taxímetro de ejemplo: bajada de bandera ${clp(TAXI.bajada)} + ${clp(TAXI.cada200)} cada 200 m. El precio final lo marca el taxímetro; los taxis siempre cobran con taxímetro.` : modo === 'conductor' ? `Tarifa de referencia para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min. Cada conductor ofrece su propio precio.` : `Rango calculado con lo que se pagó en viajes parecidos en ${LOC[o.loc].nombre}.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
   } else {
     const veh = R.clase === 'taxi' ? 'taxi' : 'auto';
-    const st = { buscando: [`Buscando el ${veh} libre más cercano…`, 'var(--warn)', true], va: ['Tu conductor va en camino', 'var(--auto)', true], llego: ['Tu conductor llegó a A', 'var(--ok)', false], viaje: ['En viaje hacia B', 'var(--accent)', true], fin: ['Llegaste a tu destino', 'var(--ok)', false] }[R.fase];
+    const st = { buscando: [R.modo === 'conductor' ? 'Pidiendo precio a los conductores cercanos…' : `Buscando el ${veh} libre más cercano…`, 'var(--warn)', true], ofertas: ['Elige una oferta', 'var(--accent)', false], va: ['Tu conductor va en camino', 'var(--auto)', true], llego: ['Tu conductor llegó a A', 'var(--ok)', false], viaje: ['En viaje hacia B', 'var(--accent)', true], fin: ['Llegaste a tu destino', 'var(--ok)', false] }[R.fase];
     h += `<div class="card"><div class="status"><span class="dot ${st[2] ? 'pulse' : ''}" style="background:${st[1]}"></span><div><h3>${st[0]}</h3><div class="hint" id="rideEta"></div></div></div>`;
     if (R.car) h += `<div class="row"><span class="plate">${R.car.patente}</span><span>${R.car.tipo === 'taxi' ? 'Taxi · ' : ''}${esc(R.car.modelo)} · ${esc(R.car.cond)} · ★ ${R.car.nota}</span></div>`;
-    h += `<div class="row" style="justify-content:space-between"><span>${CLASES.find(c => c.id === R.clase).n}</span><span class="mono">${R.clase === 'taxi' ? '~' : ''}${clp(R.precio)}</span></div>`;
+    if (R.fase === 'ofertas') h += `<p class="hint" style="margin:0">Cada conductor puso su precio. Elige el que prefieras; puedes ver su nota y cuánto tarda en llegar.</p><div class="list">${R.ofertas.map(offerRow).join('')}</div>`;
+    else h += `<div class="row" style="justify-content:space-between"><span>${CLASES.find(c => c.id === R.clase).n}${R.modo === 'conductor' ? ' · precio del conductor' : R.modo === 'rango' ? ' · precio estimado' : ''}</span><span class="mono">${R.clase === 'taxi' ? '~' : ''}${clp(R.precio)}</span></div>`;
     if (R.car && R.fase !== 'fin') h += `<div class="row"><button class="btn sm ghost" id="seguirAuto">Seguir en el mapa</button><button class="btn sm ghost" id="compartir">Compartir viaje</button></div>`;
     if (R.fase === 'fin') h += `<div class="row">${[1, 2, 3, 4, 5].map(n => `<button class="chip" data-stars="${n}" aria-label="${n} estrellas">${'★'.repeat(n)}</button>`).join('')}</div><button class="btn" id="nuevo">Nuevo viaje</button>`; else h += `<button class="btn ghost" id="cancelar">Cancelar</button>`;
     h += `</div><p class="hint">Simulación acelerada sobre calles reales. Conductor, patente y vehículo son de ejemplo.</p>`;
@@ -613,17 +689,21 @@ function viewDuenos() {
   <div class="stats"><div class="stat"><div class="v">${T.n}</div><div class="l">Viajes hoy</div></div><div class="stat"><div class="v">${clp(T.bruto)}</div><div class="l">Cobrado a pasajeros</div></div>
     <div class="stat"><div class="v">${clp(T.fee)}</div><div class="l">Cargo plataforma (${PLANES.find(p => p.id === OWNER.plan).n.toLowerCase()})</div></div><div class="stat"><div class="v" style="color:var(--ok)">${clp(T.neto)}</div><div class="l">Te queda</div></div></div>
   <div><h3>Mis vehículos</h3><p class="hint">Activa un auto o un taxi y aparece en el mapa como disponible. Los taxis y colectivos de la zona se suman con su patente de taxi y mantienen su taxímetro.</p></div>
-  <div class="list">${OWNER.vehiculos.map(v => `<div class="veh"><span class="ic" style="width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;background:${v.servicio === 'taxi' ? '#c9a000' : v.servicio === 'viajes' ? 'var(--auto)' : v.servicio === 'interurbano' ? 'var(--bus)' : 'var(--micro)'}">${v.servicio === 'taxi' ? 'TAXI' : v.tipo === 'bus' ? 'BUS' : v.tipo === 'van' ? 'VAN' : 'AUTO'}</span>
-      <span style="min-width:0"><div><span class="plate">${esc(v.patente)}</span> ${esc(v.modelo)}</div><div class="hint">${{ viajes: 'Viajes a pedido', taxi: 'Taxi con taxímetro', urbana: 'Línea de micro urbana', rural: 'Recorrido rural', interurbano: 'Bus interurbano' }[v.servicio]} · ${esc(v.cond)} · ${v.activo ? 'Disponible' : 'Fuera de servicio'}</div></span>
+  <div class="list">${OWNER.vehiculos.map(v => `<div class="veh"><span class="ic" style="width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;background:${v.servicio === 'taxi' ? '#c9a000' : v.servicio === 'viajes' ? 'var(--auto)' : v.servicio === 'interurbano' ? 'var(--bus)' : v.servicio === 'delivery' ? 'var(--moto)' : 'var(--micro)'}">${v.servicio === 'taxi' ? 'TAXI' : v.tipo === 'moto' ? 'MOTO' : v.tipo === 'bus' ? 'BUS' : v.tipo === 'van' ? 'VAN' : 'AUTO'}</span>
+      <span style="min-width:0"><div><span class="plate">${esc(v.patente)}</span> ${esc(v.modelo)}</div><div class="hint">${{ viajes: 'Viajes a pedido', taxi: 'Taxi con taxímetro', urbana: 'Línea de micro urbana', rural: 'Recorrido rural', interurbano: 'Bus interurbano', delivery: 'Delivery de comida' }[v.servicio]} · ${esc(v.cond)} · ${v.activo ? 'Disponible' : 'Fuera de servicio'}</div></span>
       <button class="switch" role="switch" aria-checked="${v.activo}" aria-label="Disponible ${esc(v.patente)}" data-veh="${v.id}"></button></div>`).join('')}</div>
   <details class="card"><summary style="cursor:pointer;font-weight:600">Registrar un vehículo</summary>
-    <form class="form" id="vform"><label>Tipo<select id="vtipo"><option value="auto">Auto</option><option value="van">Van</option><option value="bus">Bus</option></select></label>
+    <form class="form" id="vform"><label>Tipo<select id="vtipo"><option value="auto">Auto</option><option value="moto">Moto</option><option value="van">Van</option><option value="bus">Bus</option></select></label>
       <label>Patente<input id="vpat" required maxlength="8" placeholder="ABCD12"></label>
       <label class="full">Marca, modelo y año<input id="vmod" required placeholder="Kia Rio 2020"></label>
-      <label>Servicio<select id="vserv"><option value="viajes">Viajes a pedido</option><option value="taxi">Taxi local (con taxímetro)</option><option value="urbana">Línea de micro urbana</option><option value="rural">Recorrido rural</option><option value="interurbano">Bus interurbano</option></select></label>
+      <label>Servicio<select id="vserv"><option value="viajes">Viajes a pedido</option><option value="taxi">Taxi local (con taxímetro)</option><option value="delivery">Delivery de comida</option><option value="urbana">Línea de micro urbana</option><option value="rural">Recorrido rural</option><option value="interurbano">Bus interurbano</option></select></label>
       <label>Conductor<input id="vcond" placeholder="Tú"></label>
       <button class="btn sm full" type="submit">Registrar</button></form>
     <p class="hint">En producción se pedirían permiso de circulación, SOAP, revisión técnica y licencia del conductor. Para taxis, además, la inscripción en el Registro Nacional de Transporte Público de Pasajeros.</p></details>
+  <div class="card"><h3>Tu precio</h3><p class="hint" style="margin:0">Mientras tu zona tenga pocos conductores, tú pones el precio y el pasajero o el local elige entre las ofertas. Cuando haya muchos conductores, la app sugiere un rango según lo que se ha pagado en viajes parecidos.</p>
+    <form class="form" id="tform"><label>Bajada fija<input id="tbase" type="number" min="0" step="100" value="${OWNER.tarifa.base}"></label><label>Por km<input id="tkm" type="number" min="0" step="50" value="${OWNER.tarifa.km}"></label>
+      <label>Mínimo por viaje<input id="tmin" type="number" min="0" step="100" value="${OWNER.tarifa.minimo}"></label><label>Ejemplo 3 km<b class="mono" style="color:var(--ink);padding:7px 0">${clp(Math.max(OWNER.tarifa.minimo, r100(OWNER.tarifa.base + OWNER.tarifa.km * 3)))}</b></label>
+      <button class="btn sm full" type="submit">Guardar mi precio</button></form></div>
   <div class="card"><h3>Plan de pago por uso</h3><p class="hint">Sin mensualidad fija. Elige el cobro que te conviene; puedes cambiarlo cada semana.</p>
     <div class="opts">${PLANES.map(p => `<button class="opt" data-plan-o="${p.id}" aria-pressed="${OWNER.plan === p.id}"><span class="ic" style="background:var(--ink);color:var(--surface)">${p.id === 'viaje' ? '%' : p.id === 'dia' ? 'D' : 'H'}</span><span><div class="t">${p.n}</div><div class="d">${p.d}</div></span><span></span></button>`).join('')}</div>
     <h3>Calcula qué plan te conviene</h3>
@@ -635,14 +715,92 @@ function viewDuenos() {
   <p class="hint">Cifras, comisiones y viajes son de ejemplo.</p>`;
 }
 
+/* ============ Delivery para restaurantes (demo) ============ */
+const RESTOS = [
+  { id: 'r1', n: 'Pizzería (ejemplo)', tipo: 'Pizzas', loc: 'casablanca', c: off(CB, 0.18, 0.12) },
+  { id: 'r2', n: 'Sushi (ejemplo)', tipo: 'Sushi', loc: 'casablanca', c: off(CB, -0.38, 0.28) },
+  { id: 'r3', n: 'Sanguchería (ejemplo)', tipo: 'Sándwiches', loc: 'casablanca', c: off(CB, 0.48, -0.32) },
+  { id: 'r4', n: 'Cocinería (ejemplo)', tipo: 'Comida casera', loc: 'casablanca', c: off(CB, -0.22, -0.48) },
+  { id: 'r5', n: 'Empanadas (ejemplo)', tipo: 'Empanadas', loc: 'curacavi', c: off(N.curacavi, 0.1, 0.1) }
+];
+const DTAR = { moto: { base: 1000, km: 350, minimo: 1500, kmh: 32 }, auto: { base: 1400, km: 450, minimo: 2000, kmh: 30 } };
+const TAMANOS = [{ id: 'chico', n: 'Chico', d: 'Una bolsa o caja' }, { id: 'mediano', n: 'Mediano', d: 'Hasta 3 bolsas' }, { id: 'grande', n: 'Grande', d: 'Pedido grande, solo auto' }];
+const DFASES = { buscando: ['Buscando repartidor…', 'var(--warn)', 0], ofertas: ['Elige un repartidor', 'var(--accent)', 0], va: ['Repartidor va a tu local', 'var(--moto)', 1], retira: ['Retirando el pedido', 'var(--ok)', 2], reparto: ['En camino al cliente', 'var(--moto)', 3], entregado: ['Entregado', 'var(--ok)', 4], cancelado: ['Cancelado', 'var(--muted)', 0] };
+const DL = [];
+const dlVt = () => S.dl.tam === 'grande' ? 'auto' : S.dl.vt;
+const restoSel = () => RESTOS.find(r => r.id === S.dl.resto);
+function dlQuote(a, b, vt) { const t = DTAR[vt], rt = cached(a, b), km = rt ? rt.km : dist(a, b) * 1.3; return { km, mins: km / t.kmh * 60 + 3, real: !!rt, precio: Math.max(t.minimo, r100(t.base + t.km * km)) }; }
+function dlActivos() { return DL.filter(p => p.fase !== 'entregado' && p.fase !== 'cancelado'); }
+function dlEta(p) { if (!['va', 'reparto'].includes(p.fase)) return p.fase === 'retira' ? 'El repartidor está en tu local' : '';
+  const rem = Math.max(1, Math.ceil((1 - Math.min(1, p.f)) * p.legKm / DTAR[p.vt].kmh * 60)); return (p.fase === 'va' ? 'Llega a tu local en ' : 'Llega al cliente en ') + rem + ' min'; }
+function viewDelivery() {
+  const D = S.dl, r = restoSel(), vt = dlVt(), act = dlActivos(), hechos = DL.filter(p => p.fase === 'entregado'), modo = modoPrecio(r.loc, 'delivery');
+  if (D.dest) ensureRoute(r.c, D.dest.c);
+  const libres = t => FLEET.filter(v => v.estado === 'libre' && !v.job && v.tipo === t && v.loc === r.loc).length;
+  let h = `<div><h2>Delivery para restaurantes</h2><p class="sub">Tu local pide una moto o un auto cercano, el repartidor retira el pedido y lo lleva al cliente. Lo sigues en el mapa.</p></div>
+  <label class="dlin">Tu local<select id="dlResto">${RESTOS.map(x => `<option value="${x.id}" ${x.id === D.resto ? 'selected' : ''}>${esc(x.n)} · ${esc(x.tipo)} · ${LOC[x.loc].nombre}</option>`).join('')}</select></label>
+  <div class="row"><span class="tag ok">${libres('moto')} motos libres</span><span class="tag ok">${libres('auto')} autos libres</span><span class="tag">${act.length} despachos en curso</span></div>
+  <div class="card"><h3>Nuevo despacho</h3>
+    <div class="field"><span class="pin" style="background:var(--moto)">C</span><div style="min-width:0">${D.dest ? `<b>${esc(D.dest.n)}</b>` : `<span class="hint">${D.pick ? 'Toca el mapa donde está el cliente.' : 'Falta la dirección del cliente.'}</span>`}</div></div>
+    <div class="search"><input id="dq" type="search" autocomplete="off" placeholder="Buscar dirección del cliente…" aria-label="Dirección del cliente"><div id="dqres" class="qres" hidden></div></div>
+    <div class="row"><button class="btn sm ghost" id="dlPick" aria-pressed="${D.pick}">Marcar al cliente en el mapa</button></div>
+    <div><div class="hint" style="margin-bottom:4px">Tamaño del pedido</div><div class="row">${TAMANOS.map(t => `<button class="chip" data-tam="${t.id}" aria-pressed="${D.tam === t.id}" title="${t.d}">${t.n}</button>`).join('')}</div></div>
+    <div class="opts">${['moto', 'auto'].map(t => { const q = D.dest ? dlQuote(r.c, D.dest.c, t) : null, dis = t === 'moto' && D.tam === 'grande';
+      const pr = !q ? '' : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : (g => `${clp(g.lo)}–${clp(g.hi).slice(1)}`)(rangoPrecio(r.loc, 'delivery', q.km, q.precio));
+      return `<button class="opt" data-dvt="${t}" aria-pressed="${vt === t}" ${dis ? 'disabled style="opacity:.45"' : ''}><span class="ic" style="background:${t === 'moto' ? 'var(--moto)' : 'var(--auto)'}">${t === 'moto' ? 'M' : 'A'}</span><span><div class="t">${t === 'moto' ? 'Moto' : 'Auto'}</div><div class="d">${t === 'moto' ? 'Más rápida, pedidos chicos y medianos' : 'Pedidos grandes o con lluvia'}${q ? ` · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min` : ''}</div></span><span class="p">${pr}</span></button>`; }).join('')}</div>
+    <div class="form"><label>Pago del pedido<select id="dlPago"><option value="pagado" ${D.pago === 'pagado' ? 'selected' : ''}>Ya pagado</option><option value="efectivo" ${D.pago === 'efectivo' ? 'selected' : ''}>Cobrar en efectivo</option></select></label>
+      <label>Nota para el repartidor<input id="dlNota" maxlength="80" value="${esc(D.nota)}" placeholder="Depto, timbre…"></label></div>
+    <button class="btn" id="dlPedir" ${D.dest ? '' : 'disabled'} style="background:var(--moto);color:#fff">${modo === 'conductor' ? 'Pedir ofertas de repartidores' : 'Pedir ' + (vt === 'moto' ? 'moto' : 'auto')}</button>
+  </div>
+  ${precioInfoHTML(r.loc, 'delivery')}`;
+  if (DL.length) h += `<div><h3>Despachos de hoy</h3></div><div class="list">${[...DL].reverse().map(dlCard).join('')}</div>`;
+  const gasto = hechos.reduce((s, p) => s + p.precio, 0);
+  h += `<div class="stats"><div class="stat"><div class="v">${hechos.length}</div><div class="l">Entregados hoy</div></div><div class="stat"><div class="v">${clp(gasto)}</div><div class="l">Pagado en despachos</div></div></div>
+  <div class="card"><h3>¿Tienes moto o auto?</h3><p class="hint" style="margin:0">Regístrala en la pestaña Dueños con el servicio "Delivery de comida" y empieza a recibir despachos de los locales cercanos. Pones tu propio precio mientras la zona tenga pocos repartidores.</p><button class="btn sm ghost" id="dlADuenos">Ir a Dueños</button></div>
+  <p class="hint">Locales, repartidores y precios son de ejemplo. El cobro al local se suma al plan de pago por uso.</p>`;
+  return h;
+}
+function dlCard(p) { const st = DFASES[p.fase], vivo = ['va', 'reparto', 'buscando'].includes(p.fase);
+  return `<div class="card" style="background:var(--surface);${S.dl.sel === p.id ? 'border-color:var(--moto)' : ''}">
+    <div class="status"><span class="dot ${vivo ? 'pulse' : ''}" style="background:${st[1]}"></span><div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between"><h3>${st[0]}</h3><span class="mono hint">${p.code}</span></div>
+      <div class="hint">${esc(RESTOS.find(r => r.id === p.resto).n)} → ${esc(p.dest.n)}</div><div class="hint" data-dleta="${p.id}">${dlEta(p)}</div></div></div>
+    ${p.fase !== 'cancelado' ? `<div class="steps">${[1, 2, 3, 4].map(i => `<span class="${st[2] >= i ? 'on' : ''}"></span>`).join('')}</div>` : ''}
+    ${p.fase === 'ofertas' ? `<div class="list">${p.ofertas.map((o, i) => offerRow(o, i).replace('data-oferta=', `data-dloferta="${p.id}|${i}" data-x=`)).join('')}</div>` : ''}
+    ${p.car ? `<div class="row"><span class="plate">${esc(p.car.patente)}</span><span class="hint">${p.car.tipo === 'moto' ? 'Moto' : 'Auto'} · ${esc(p.car.modelo)} · ${esc(p.car.cond)} · ★ ${p.car.nota}</span></div>` : ''}
+    <div class="row" style="justify-content:space-between"><span class="hint">${p.vt === 'moto' ? 'Moto' : 'Auto'} · ${TAMANOS.find(t => t.id === p.tam).n.toLowerCase()} · ${p.pago === 'efectivo' ? 'cobrar en efectivo' : 'ya pagado'}${p.nota ? ' · ' + esc(p.nota) : ''}</span>${p.precio ? `<span class="mono">${clp(p.precio)}</span>` : ''}</div>
+    ${['va', 'retira', 'reparto'].includes(p.fase) ? `<div class="row"><button class="btn sm ghost" data-dlver="${p.id}">Seguir en el mapa</button><button class="btn sm ghost" data-dlcopy="${p.id}">Copiar seguimiento para el cliente</button>${p.fase === 'va' ? `<button class="btn sm ghost" data-dlcancel="${p.id}">Cancelar</button>` : ''}</div>` : ''}
+    ${['buscando', 'ofertas'].includes(p.fase) ? `<div class="row"><button class="btn sm ghost" data-dlcancel="${p.id}">Cancelar</button></div>` : ''}</div>`; }
+function startDelivery() {
+  const D = S.dl, r = restoSel(), vt = dlVt(), q = dlQuote(r.c, D.dest.c, vt), modo = modoPrecio(r.loc, 'delivery');
+  const p = { id: 'd' + Date.now(), code: 'DL-' + Math.random().toString(36).slice(2, 6).toUpperCase(), resto: r.id, loc: r.loc, dest: { ...D.dest }, vt, tam: D.tam, pago: D.pago, nota: D.nota, modo, km: q.km, ref: q.precio,
+    precio: modo === 'rango' ? rangoPrecio(r.loc, 'delivery', q.km, q.precio).med : 0, fase: 'buscando', f: 0 };
+  DL.push(p); S.dl.sel = p.id; S.dl.dest = null; S.dl.nota = ''; render();
+  setTimeout(() => { if (p.fase !== 'buscando') return; const cand = nearbyCars(r.c, modo === 'conductor' ? 3 : 1, vt, r.loc);
+    if (!cand.length) { p.fase = 'cancelado'; S.note = ''; p.nota = `No había ${vt === 'moto' ? 'motos' : 'autos'} libres cerca`; rerender(); return; }
+    if (modo === 'conductor') { p.fase = 'ofertas'; p.ofertas = cand.map(x => ({ v: x.v, eta: Math.max(1, Math.round(x.d * 1.3 / DTAR[vt].kmh * 60)), precio: precioConductor(x.v, q.precio, q.km) })).sort((a, b) => a.precio - b.precio); rerender(); return; }
+    assignDelivery(p, cand[0].v, p.precio); }, 1300);
+}
+async function assignDelivery(p, car, precio) {
+  if (car.estado !== 'libre' || car.job) { p.ofertas = (p.ofertas || []).filter(o => o.v !== car); if (!p.ofertas.length) p.fase = 'cancelado'; rerender(); return; }
+  const r = RESTOS.find(x => x.id === p.resto); p.car = car; p.precio = precio; car.job = p; car.estado = 'asignado'; p.fase = 'va'; p.leg = [car.pos, r.c]; p.legKm = dist(car.pos, r.c) * 1.3; p.f = 0; rerender();
+  const rt = await directions(car.pos, r.c); if (rt && p.fase === 'va' && p.f < 0.05) { p.leg = rt.coords; p.legKm = rt.km; p.f = 0; } }
+function freeCar(p) { if (p.car) { p.car.job = null; p.car.estado = 'libre'; p.car.tgt = randIn(p.car.loc); } }
+function stepDelivery(dt) { for (const p of DL) { if (!['va', 'reparto'].includes(p.fase) || !p.car) continue;
+  p.f += (DTAR[p.vt].kmh * SIM / 3600 * dt) / Math.max(0.05, p.legKm); p.car.pos = along(p.leg, p.f);
+  if (S.dl.follow === p.id) map.jumpTo({ center: ll(p.car.pos) });
+  if (p.f >= 1) { const r = RESTOS.find(x => x.id === p.resto);
+    if (p.fase === 'va') { p.fase = 'retira'; rerender(); setTimeout(() => { if (p.fase !== 'retira') return; const rt = cached(r.c, p.dest.c); p.fase = 'reparto'; p.car.estado = 'ocupado'; p.leg = rt ? rt.coords : [r.c, p.dest.c]; p.legKm = rt ? rt.km : dist(r.c, p.dest.c) * 1.3; p.f = 0; rerender(); }, 2500); }
+    else { p.fase = 'entregado'; freeCar(p); if (S.dl.follow === p.id) S.dl.follow = null; registrarPagado(p.loc, 'delivery', p.km, p.precio); rerender(); } } } }
+function rerender() { const y = view.scrollTop; const a = document.activeElement && document.activeElement.id; if (S.tab === 'delivery' && a && ['dq', 'dlNota'].includes(a)) return; render(); view.scrollTop = y; }
+
 /* ============ Render ============ */
 const tabsEl = document.getElementById('tabs'), locEl = document.getElementById('loc');
 locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}">${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
 locEl.onchange = () => { S.loc = locEl.value; S.selRoute = null; S.selDep = null; const p = POIS.find(p => p.loc === S.loc); if (!S.ride) { S.o = p.id; S.d = (POIS.filter(x => x.loc === S.loc)[1] || p).id; } render(); fitLoc(S.loc); };
 function render() {
   tabsEl.innerHTML = TABS.map(t => `<button class="tab" role="tab" aria-selected="${S.tab === t.id}" data-tab="${t.id}" style="--tc:${t.c}">${t.n}</button>`).join('');
-  view.innerHTML = { viaje: viewViaje, buses: viewBuses, micros: viewMicros, planificar: viewPlan, duenos: viewDuenos }[S.tab]();
-  map.getCanvas().style.cursor = S.tab === 'viaje' && !S.ride ? 'crosshair' : '';
+  view.innerHTML = { viaje: viewViaje, buses: viewBuses, micros: viewMicros, planificar: viewPlan, delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
+  map.getCanvas().style.cursor = (S.tab === 'viaje' && !S.ride) || (S.tab === 'delivery' && S.dl.pick) ? 'crosshair' : '';
   if (S.ticket) drawQR(); drawBase();
 }
 function drawQR() { const c = document.getElementById('qr'); if (!c) return; const x = c.getContext('2d'); let h = 0; for (const ch of S.ticket.code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -655,14 +813,22 @@ tabsEl.addEventListener('click', e => { const b = e.target.closest('[data-tab]')
   if (S.tab === 'buses') fit(INTER.filter(r => routeLocs(r).includes(S.loc)).flatMap(r => r.path), 3);
   else if (S.tab === 'micros') { const ms = MICROS.filter(m => m.loc === S.loc); ms.length ? fit(ms.flatMap(m => m.path), 1.5) : fitLoc(S.loc); }
   else if (S.tab === 'planificar') fit([POI[S.plan.o].c, POI[S.plan.d].c], 2);
+  else if (S.tab === 'delivery') fitLoc(restoSel().loc);
   else fitLoc(S.loc === 'casablanca' || S.tab !== 'viaje' ? S.loc : S.loc); });
 
 view.addEventListener('change', e => { const t = e.target;
   if (t.id === 'selO') { S.o = t.value; S.pick = 'd'; render(); }
   if (t.id === 'selD') { S.d = t.value; S.pick = 'o'; render(); const o = placeOf(S.o), d = placeOf(S.d); fit([o.c, d.c], 1); }
+  if (t.id === 'modoPrecio') { PRECIO.modo = t.value; rerender(); }
+  if (t.id === 'dlResto') { S.dl.resto = t.value; S.dl.dest = null; render(); fitLoc(restoSel().loc); }
+  if (t.id === 'dlPago') S.dl.pago = t.value;
   if (t.id === 'planO' || t.id === 'planD') { S.plan[t.id === 'planO' ? 'o' : 'd'] = t.value; S.plan.sel = 0; render(); fit([POI[S.plan.o].c, POI[S.plan.d].c], 2); } });
 view.addEventListener('input', e => { const t = e.target; const m = { sv: 'viajes', st: 'ticket', sh: 'horas' }[t.id]; if (m) { S.owner[m] = +t.value; const y = view.scrollTop; render(); view.scrollTop = y; document.getElementById(t.id).focus(); } });
-let QRES = [], qt;
+let QRES = [], qt, DQRES = [], dqt;
+view.addEventListener('input', e => { if (e.target.id === 'dlNota') { S.dl.nota = e.target.value; return; } if (e.target.id !== 'dq') return; const q = e.target.value.trim(); clearTimeout(dqt); const box = document.getElementById('dqres');
+  if (q.length < 3) { box.hidden = true; return; }
+  dqt = setTimeout(async () => { DQRES = await searchAddr(q, restoSel().c); const bx = document.getElementById('dqres'); if (!bx) return;
+    bx.innerHTML = DQRES.length ? DQRES.map((r, i) => `<button data-dqi="${i}">${esc(r.n)}</button>`).join('') : '<div class="hint" style="padding:9px 12px">Sin resultados.</div>'; bx.hidden = false; }, 300); });
 view.addEventListener('input', e => { if (e.target.id !== 'q') return; const q = e.target.value.trim(); clearTimeout(qt); const box = document.getElementById('qres');
   if (q.length < 3) { box.hidden = true; return; }
   qt = setTimeout(async () => { const near = placeOf(S.o) ? placeOf(S.o).c : CB; QRES = await searchAddr(q, near); const bx = document.getElementById('qres'); if (!bx) return;
@@ -677,7 +843,7 @@ function useMyLocation() {
     err => { S.note = err.code === 1 ? 'No diste permiso para usar tu ubicación. Puedes marcar el punto en el mapa.' : 'No pudimos obtener tu ubicación. Marca el punto en el mapa.'; render(); },
     { enableHighAccuracy: true, timeout: 10000 }); }
 view.addEventListener('focusin', e => { if (e.target.id === 'selO') S.pick = 'o'; if (e.target.id === 'selD') S.pick = 'd'; });
-view.addEventListener('submit', e => { e.preventDefault(); if (e.target.id !== 'vform') return; const g = id => document.getElementById(id).value.trim();
+view.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'tform') { const g = id => Math.max(0, +document.getElementById(id).value || 0); OWNER.tarifa = { base: g('tbase'), km: g('tkm'), minimo: g('tmin') }; saveOwner(); rerender(); return; } if (e.target.id !== 'vform') return; const g = id => document.getElementById(id).value.trim();
   OWNER.vehiculos.push({ id: 'v' + Date.now(), tipo: g('vtipo'), patente: g('vpat').toUpperCase(), modelo: g('vmod'), servicio: g('vserv'), cond: g('vcond') || 'Tú', activo: true }); saveOwner(); syncOwnerFleet(); render(); });
 view.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const y = view.scrollTop;
   if (b.dataset.clase) { S.clase = b.dataset.clase; render(); }
@@ -695,6 +861,18 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   else if (b.dataset.follow) { const [id, dep, dir] = b.dataset.follow.split('|'); S.follow = { id, dep: +dep, dir: +dir }; followTick(true); }
   else if (b.dataset.plan) { S.plan.sel = +b.dataset.plan; render(); }
   else if (b.id === 'planGo') { const op = planOptions()[S.plan.sel]; if (op.legs[0].color === 'var(--auto)') { S.o = S.plan.o; S.d = op.legs[0].t.startsWith('Auto de') ? S.plan.d : POIS.find(p => op.legs[0].t.includes(p.n)).id; S.tab = 'viaje'; render(); } else { b.textContent = 'Reserva de demostración lista ✓'; b.disabled = true; } return; }
+  else if (b.dataset.oferta != null && S.ride && S.ride.fase === 'ofertas') { const o = S.ride.ofertas[+b.dataset.oferta]; S.ride.precio = o.precio; assignRide(S.ride, o.v); }
+  else if (b.dataset.dqi != null) { const r = DQRES[+b.dataset.dqi]; if (r) { S.dl.dest = { c: r.c, n: r.n }; S.dl.pick = false; render(); fit([restoSel().c, r.c], 0.4); } }
+  else if (b.id === 'dlPick') { S.dl.pick = !S.dl.pick; render(); }
+  else if (b.dataset.tam) { S.dl.tam = b.dataset.tam; render(); }
+  else if (b.dataset.dvt) { S.dl.vt = b.dataset.dvt; render(); }
+  else if (b.id === 'dlPedir') { if (S.dl.dest) startDelivery(); }
+  else if (b.id === 'dlADuenos') { S.tab = 'duenos'; render(); view.scrollTop = 0; return; }
+  else if (b.dataset.dloferta) { const [id, i] = b.dataset.dloferta.split('|'), p = DL.find(x => x.id === id); if (p && p.fase === 'ofertas') { const o = p.ofertas[+i]; assignDelivery(p, o.v, o.precio); } }
+  else if (b.dataset.dlver) { const p = DL.find(x => x.id === b.dataset.dlver); S.dl.sel = p.id; S.dl.follow = p.id; render(); map.flyTo({ center: ll(p.car.pos), zoom: 15.5, duration: 900 }); }
+  else if (b.dataset.dlcancel) { const p = DL.find(x => x.id === b.dataset.dlcancel); freeCar(p); p.fase = 'cancelado'; render(); }
+  else if (b.dataset.dlcopy) { const p = DL.find(x => x.id === b.dataset.dlcopy), t = `Tu pedido de ${RESTOS.find(r => r.id === p.resto).n} va en ${p.car.tipo === 'moto' ? 'moto' : 'auto'} ${p.car.patente} con ${p.car.cond}. Código ${p.code}.`;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { b.textContent = 'Copiado'; }, () => { b.textContent = t; }); return; }
   else if (b.dataset.veh) { const v = OWNER.vehiculos.find(v => v.id === b.dataset.veh); v.activo = !v.activo; saveOwner(); syncOwnerFleet(); render(); }
   else if (b.dataset.planO) { OWNER.plan = b.dataset.planO; saveOwner(); render(); }
   else return;
@@ -703,31 +881,38 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
 /* ============ Simulación ============ */
 function startRide() {
   const o = placeOf(S.o), d = placeOf(S.d), c = CLASES.find(c => c.id === S.clase), q = quote(o.c, d.c, o.loc, c.f);
-  S.ride = { fase: 'buscando', clase: c.id, precio: q.precio, o: o.c, d: d.c }; S.note = ''; render();
-  setTimeout(async () => { if (!S.ride) return; const near = nearbyCars(o.c, 1, c.tipo)[0];
-    if (!near) { S.ride = null; S.note = `No hay ${c.tipo === 'taxi' ? 'taxis' : 'autos'} libres cerca en este momento. Prueba otra opción.`; render(); return; }
-    const R = S.ride; R.car = near.v; near.v.estado = 'asignado'; R.fase = 'va'; R.leg = [near.v.pos, o.c]; R.legKm = dist(near.v.pos, o.c) * 1.3; R.f = 0; render();
-    if (!S.follow) fit([near.v.pos, o.c], 0.5);
-    const rt = await directions(near.v.pos, o.c); if (rt && S.ride === R && R.fase === 'va' && R.f < 0.05) { R.leg = rt.coords; R.legKm = rt.km; R.f = 0; } }, 1400);
+  const modo = c.f === 'taxi' ? 'taxi' : modoPrecio(o.loc, 'viaje');
+  const precio = modo === 'rango' ? r100(rangoPrecio(o.loc, 'viaje', q.km, q.precio).med * c.f) : q.precio;
+  S.ride = { fase: 'buscando', modo, clase: c.id, precio, km: q.km, loc: o.loc, o: o.c, d: d.c }; S.note = ''; render();
+  setTimeout(() => { const R = S.ride; if (!R || R.fase !== 'buscando') return; const cand = nearbyCars(o.c, modo === 'conductor' ? 3 : 1, c.tipo);
+    if (!cand.length) { S.ride = null; S.note = `No hay ${c.tipo === 'taxi' ? 'taxis' : 'autos'} libres cerca en este momento. Prueba otra opción.`; render(); return; }
+    if (modo === 'conductor') { R.fase = 'ofertas'; R.ofertas = cand.map(x => ({ v: x.v, eta: Math.max(1, Math.round(x.d * 1.3 / 30 * 60)), precio: precioConductor(x.v, q.precio, q.km, c.f) })).sort((a, b) => a.precio - b.precio); render(); return; }
+    assignRide(R, cand[0].v); }, 1400);
 }
+async function assignRide(R, car) {
+  if (car.estado !== 'libre' || car.job) { S.note = 'Ese conductor acaba de tomar otro viaje. Elige otra oferta.'; R.ofertas = (R.ofertas || []).filter(o => o.v !== car); if (!R.ofertas.length) S.ride = null; render(); return; }
+  R.car = car; car.estado = 'asignado'; R.fase = 'va'; R.leg = [car.pos, R.o]; R.legKm = dist(car.pos, R.o) * 1.3; R.f = 0; S.note = ''; render();
+  if (!S.follow) fit([car.pos, R.o], 0.5);
+  const rt = await directions(car.pos, R.o); if (rt && S.ride === R && R.fase === 'va' && R.f < 0.05) { R.leg = rt.coords; R.legKm = rt.km; R.f = 0; } }
 function stepRide(dt) { const R = S.ride; if (!R || !R.car || !['va', 'viaje'].includes(R.fase)) return;
   const kmh = R.legKm > 12 ? 70 : 30, boost = R.legKm > 40 ? 4 : 1; R.f += (kmh * SIM * boost / 3600 * dt) / Math.max(0.05, R.legKm);
   R.car.pos = along(R.leg, R.f); const rem = Math.max(0, (1 - R.f) * R.legKm / kmh * 60);
   const eta = document.getElementById('rideEta'); if (eta) eta.textContent = (R.fase === 'va' ? 'Llega a A en ' : 'Llegas a B en ') + Math.max(1, Math.ceil(rem)) + ' min · ' + ((1 - Math.min(1, R.f)) * R.legKm).toFixed(1) + ' km';
   if (S.followCar && R.car) map.jumpTo({ center: ll(R.car.pos) });
   if (R.f >= 1) { if (R.fase === 'va') { R.fase = 'llego'; render(); setTimeout(() => { if (S.ride === R) { R.fase = 'viaje'; const rt = cached(R.o, R.d); R.leg = rt ? rt.coords : [R.o, R.d]; R.legKm = rt ? rt.km : dist(R.o, R.d) * 1.3; R.f = 0; R.car.estado = 'ocupado'; render(); } }, 1500); }
-    else { R.fase = 'fin'; R.car.estado = 'libre'; R.car.tgt = randIn(R.car.loc); S.followCar = false; render(); } } }
-function stepFleet(dt) { for (const v of FLEET) { if (S.ride && S.ride.car === v && S.ride.fase !== 'fin') continue;
+    else { R.fase = 'fin'; R.car.estado = 'libre'; R.car.tgt = randIn(R.car.loc); S.followCar = false; if (R.modo !== 'taxi') registrarPagado(R.loc, 'viaje', R.km, R.precio); render(); } } }
+function stepFleet(dt) { for (const v of FLEET) { if (v.job || (S.ride && S.ride.car === v && S.ride.fase !== 'fin')) continue;
   const dk = dist(v.pos, v.tgt), mv = 28 * SIM / 3600 * dt; if (dk < mv) { v.tgt = randIn(v.loc); if (!v.owned && rnd() < 0.25) v.estado = v.estado === 'libre' ? 'ocupado' : 'libre'; } else v.pos = along([v.pos, v.tgt], mv / dk); } }
 function followTick(force) { if (!S.follow) return; const r = ALLROUTES.find(r => r.id === S.follow.id); const tr = activeTrips(r).find(t => t.dep === S.follow.dep && t.dir === S.follow.dir);
   if (!tr) { S.follow = null; return; } if (force) map.flyTo({ center: ll(tr.pos), zoom: 14, duration: 1000 }); else map.jumpTo({ center: ll(tr.pos) }); }
-map.on('dragstart', () => { S.follow = null; S.followCar = false; });
+map.on('dragstart', () => { S.follow = null; S.followCar = false; S.dl.follow = null; });
 let last = performance.now(), acc = 0, liveAcc = 0;
 function loop(now) { const dt = Math.min(0.25, (now - last) / 1000); last = now; acc += dt; liveAcc += dt;
-  stepFleet(dt); stepRide(dt);
+  stepFleet(dt); stepRide(dt); stepDelivery(dt);
   if (acc > 0.12) { acc = 0; drawOver(); if (S.follow) followTick(false); }
   if (liveAcc > 2) { liveAcc = 0; document.getElementById('clk').textContent = hhmm(nowMin());
     document.querySelectorAll('[data-live]').forEach(n => { n.innerHTML = busLiveRows(ALLROUTES.find(r => r.id === n.dataset.live)); });
+    document.querySelectorAll('[data-dleta]').forEach(n => { const p = DL.find(x => x.id === n.dataset.dleta); if (p) n.textContent = dlEta(p); });
     const nl = document.getElementById('nearList'); if (nl && !S.ride) { const o = placeOf(S.o); nl.innerHTML = nearHTML(o); const nb = document.getElementById('nLibres'); if (nb) nb.textContent = libresTxt(o); } }
   requestAnimationFrame(loop); }
 /* ============ Base de datos (Supabase) ============ */
@@ -739,6 +924,7 @@ async function cargarBD() { const el = document.getElementById('dbState');
     for (const t of tars) { if (t.clase === 'eco' && LOC[t.localidad_id]) LOC[t.localidad_id].tarifa = { base: t.base, km: t.por_km, min: t.por_min, minimo: t.minimo };
       if (t.clase === 'taxi' && t.bajada_bandera) { TAXI.bajada = t.bajada_bandera; TAXI.cada200 = t.por_200m; } }
     locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
+    try { const cp = await sb('config_precio?select=localidad_id,min_conductores,min_pagados&localidad_id=eq.casablanca'); if (cp[0]) { PRECIO.minConductores = cp[0].min_conductores; PRECIO.minPagados = cp[0].min_pagados; } } catch (e) {}
     el.textContent = `Base de datos conectada · ${locs.length} localidades`; el.dataset.ok = '1'; const y = view.scrollTop; render(); view.scrollTop = y;
   } catch (e) { el.textContent = 'Sin conexión a la base de datos, usando datos locales'; } }
 cargarBD();

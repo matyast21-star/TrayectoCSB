@@ -1,4 +1,4 @@
-# Trayecto
+# VAMO by FLUVA (antes "Trayecto")
 
 Prototipo de app web de transporte para Casablanca (Región de Valparaíso, Chile): autos a pedido, taxis locales, buses interurbanos y micros urbanas y rurales en un solo lugar, pensada para sumar Curacaví, Valparaíso, Viña del Mar, Quilpué y Santiago.
 
@@ -40,3 +40,9 @@ Es un sitio estático: abre `public/index.html` en el navegador.
 - `supabase/migrations/` tiene el esquema multi-localidad (PostGIS, RLS, Realtime para posiciones de vehículos).
 - `supabase/seed.sql` carga localidades, tarifas y lugares de ejemplo.
 
+
+## Delivery y precios
+
+- Pestaña **Delivery**: un restaurante elige su local, marca o busca la dirección del cliente, elige moto o auto y tamaño del pedido, y sigue al repartidor (va al local, retira, va al cliente, entrega).
+- **Precio**: mientras una localidad tenga pocos conductores (por defecto menos de 30) o pocos viajes pagados (menos de 40), cada conductor ofrece su precio y el pasajero o el local elige la oferta. Después la app muestra un rango estimado con los percentiles 25 a 75 del valor por km de viajes pagados parecidos. Los taxis siempre cobran con taxímetro.
+- En Supabase: tablas `restaurante`, `pedido_delivery`, `oferta`, `tarifa_conductor`, `config_precio` (umbrales por localidad) y la función `rango_precio(localidad, servicio, km)`.
