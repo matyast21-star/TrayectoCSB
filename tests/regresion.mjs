@@ -31,8 +31,9 @@ await page.goto(BASE); await page.waitForTimeout(1200);
 const ev = f => page.evaluate(f);
 const wait = ms => page.waitForTimeout(ms);
 // Navegación de 6 secciones: Micros y Colectivos están en «Buses y colectivos»; Delivery y Dueños en «Más servicios»
-const GRUPO = { buses: 'locomocion', viaje: 'mas', planificar: 'mas', misviajes: 'mas', colectivos: 'mas', delivery: 'mas', duenos: 'mas', conductor: 'mas', favoritos: 'mas', config: 'mas', avisos: 'mas' };
-const irA = async (p, t) => { const g = GRUPO[t]; await p.click(`#tabs [data-tab=${g || t}]`); if (g) await p.click(`#view [data-tab=${t}]`); };
+const GRUPO = { buses: 'locomocion', viaje: 'mas', planificar: 'mas', misviajes: 'mas', colectivos: 'mas', delivery: 'mas', duenos: 'mas', conductor: 'mas', soy: 'mas', favoritos: 'mas', config: 'mas', avisos: 'mas' };
+const VIA = { duenos: 'soy', conductor: 'soy' }; // dentro de «Soy conductor o dueño de vehículo»
+const irA = async (p, t) => { const g = GRUPO[t]; await p.click(`#tabs [data-tab=${g || t}]`); if (VIA[t]) await p.click(`#view [data-tab=${VIA[t]}]`); if (g) await p.click(`#view [data-tab=${t}]`); };
 const until = async (f, ms = 60000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await ev(f)) return true; await wait(500); } return false; };
 
 await test('Carga la identidad VAMO (logo, kit claro, pestañas con íconos)', async () => {
@@ -137,6 +138,38 @@ await test('Bajo consumo: funciona sin mapa ni librería de mapas', async () => 
 await test('Mapa: solo vistas Calles y Satélite', async () => {
   const v = await page.locator('#styleBar [data-style]').allInnerTexts(); assert(v.join('|') === 'Calles|Satélite', 'vistas: ' + v.join('|'));
   assert(await page.locator('#styleBar [data-3d]').count() === 0, 'sigue la vista 3D'); });
+await test('Conductores: acceso único y registro en 3 pasos con borrador', async () => {
+  await ev(() => { localStorage.removeItem('vamo-registro'); REG = null; });
+  await irA(page, 'soy'); assert(await page.locator('[data-rtipo]').count() === 5, 'no están los 5 tipos');
+  assert(await page.locator('#view .lista [data-tab=mas]').count() === 0 && await page.locator('#tabs [data-tab=mas]').count() === 1, 'navegación');
+  await page.click('[data-rtipo=colectivo]'); assert(await page.locator('#regSig').isDisabled(), 'deja seguir sin patente');
+  assert(await page.locator('.docrow').count() === 5, 'documentos de colectivo');
+  await page.fill('[data-rf=patente]', 'TEST45'); await page.fill('[data-rf=marca]', 'Toyota Prueba'); await page.click('#capMenos');
+  assert(await ev(() => JSON.parse(localStorage.getItem('vamo-registro')).patente === 'TEST45'), 'no guardó el borrador');
+  await page.click('#regSig'); assert(/Santa Isabel/.test(await page.locator('#view').innerText()), 'paso 2 sin puntos de salida');
+  assert(/TEST45/.test(await page.locator('.resumen').innerText()), 'paso 2 vuelve a pedir datos');
+  await page.click('#regSalir'); await irA(page, 'soy'); assert(await page.locator('#regSeguir').count() === 1, 'no ofrece continuar el borrador');
+  await page.click('#regSeguir'); assert(await ev(() => REG.paso === 2), 'no continuó en el paso 2');
+  await page.click('#regSig'); await page.click('[data-rdia="5"]'); await page.click('#regGps'); await page.click('#regSig');
+  assert(await ev(() => S.tab === 'panelcond' && !REG && OWNER.vehiculos.some(v => v.patente === 'TEST45' && v.tipoV === 'colectivo' && v.cap === 3 && v.verif === 'en_revision' && v.dias[5] === 1)), 'no terminó el registro'); });
+await test('Conductores: colectivo sin verificar no puede ofrecer servicio', async () => {
+  assert(await page.locator('#pIniciar').isDisabled(), 'permite iniciar sin verificar');
+  assert(await ev(() => !FLEET.some(f => f.owned && f.patente === 'TEST45')), 'aparece a pasajeros sin verificar');
+  await page.click('#pDemo'); assert(/demostración/.test(await page.locator('.estado-pill').innerText()), 'la demo no se marca');
+  await page.click('#pMas'); assert(await ev(() => SES[S.panelVid].cupos === 3), 'cupos pasaron la capacidad');
+  await page.click('#pCompleto'); assert(await ev(() => SES[S.panelVid].cupos === 0 && SES[S.panelVid].completo), 'no quedó completo');
+  await page.click('#pSalida'); await page.click('#pFin'); assert(await ev(() => !SES[S.panelVid].activo), 'no finalizó'); });
+await test('Conductores: bus y auto muestran solo sus campos', async () => {
+  await irA(page, 'soy'); await page.click('[data-rtipo=bus]'); assert(await ev(() => REG.cap === 44), 'capacidad de bus');
+  await page.fill('[data-rf=patente]', 'BUSX12'); await page.fill('[data-rf=marca]', 'Bus prueba'); await page.click('#regSig');
+  assert(await page.locator('select[data-rf=recorrido]').count() === 1 && !/Santa Isabel/.test(await page.locator('#view').innerText()), 'campos de bus');
+  await page.click('#regSalir'); await ev(() => { REG = null; saveReg(); });
+  await irA(page, 'soy'); await page.click('[data-rtipo=auto]'); await page.fill('[data-rf=patente]', 'AUTO12'); await page.fill('[data-rf=marca]', 'Auto prueba');
+  await page.click('#regSig'); assert(await page.locator('[data-rcat]').count() === 3, 'faltan categorías'); await page.click('#regSig'); await page.click('#regSig');
+  assert(await page.locator('#pIniciar').isEnabled(), 'auto particular no puede iniciar'); await page.click('#pIniciar');
+  assert(/JORNADA/.test(await page.locator('#pFin').innerText()), 'no está en jornada'); await page.click('#pFin');
+  await page.click('#view .back'); await page.click('[data-tab=misvehiculos]'); assert(await page.locator('[data-pveh]').count() >= 5, 'mis vehículos incompleto');
+  await ev(() => { OWNER.vehiculos = OWNER.vehiculos.filter(v => !['TEST45', 'AUTO12'].includes(v.patente)); saveOwner(); syncOwnerFleet(); }); });
 await test('Tema claro / oscuro', async () => {
   await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'dark'), 'no pasó a oscuro'); await page.click('#tema');
   assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a claro'); });
