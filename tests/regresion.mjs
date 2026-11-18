@@ -115,6 +115,9 @@ await test('Bajo consumo: funciona sin mapa ni librería de mapas', async () => 
   assert(!reqs.some(u => /maplibre|openfreemap|tile/i.test(u)), 'cargó el mapa: ' + reqs.filter(u => /maplibre|tile/.test(u)).join(' '));
   assert((await l.locator('#view').innerText()).includes('Qué hay hacia'), 'Inicio no funciona sin mapa');
   await l.goto(BASE + '?lite=0'); await l.waitForTimeout(300); assert(await l.evaluate(() => !document.documentElement.classList.contains('lite')), 'no volvió al modo normal'); await l.close(); });
+await test('Mapa: solo vistas Calles y Satélite', async () => {
+  const v = await page.locator('#styleBar [data-style]').allInnerTexts(); assert(v.join('|') === 'Calles|Satélite', 'vistas: ' + v.join('|'));
+  assert(await page.locator('#styleBar [data-3d]').count() === 0, 'sigue la vista 3D'); });
 await test('Tema claro / oscuro', async () => {
   await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'light'), 'no pasó a claro'); await page.click('#tema');
   assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a oscuro'); });
