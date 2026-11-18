@@ -69,6 +69,20 @@ await test('Dueños: registrar vehículo, fijar precio y elegir plan', async () 
   await ev(() => { OWNER.vehiculos = OWNER.vehiculos.filter(v => v.patente !== 'TEST12'); saveOwner(); syncOwnerFleet(); }); });
 await test('Filtros por tipo de transporte', async () => {
   await page.click('[data-f=taxi]'); assert(await ev(() => S.filtro.taxi === false), 'no filtró'); await page.click('[data-f=taxi]'); assert(await ev(() => S.filtro.taxi), 'no volvió'); });
+await test('Cada pestaña muestra solo sus vehículos', async () => {
+  // Sin teselas en las pruebas: se capturan los datos que se enviarían al mapa
+  await ev(() => { window.__src = {}; window.__gs = map.getSource; window.__mr = mapReady; mapReady = true;
+    map.getSource = id => ({ setData: d => { __src[id] = d; } }); });
+  const kinds = () => ev(() => { drawBase(); return [...new Set(__src.vehicles.features.map(f => f.properties.kind))].sort().join(','); });
+  await page.click('[data-tab=viaje]'); await page.waitForTimeout(300); let k = await kinds();
+  assert(!/bus|micro/.test(k), 'en Pedir viaje aparecen buses/micros: ' + k);
+  assert(await ev(() => __src.routes.features.every(f => f.properties.op === 0)), 'en Pedir viaje se ven recorridos de buses');
+  await page.click('[data-tab=buses]'); await page.waitForTimeout(300); k = await kinds();
+  assert(!/auto|taxi|moto|micro/.test(k), 'en Buses aparecen autos: ' + k);
+  await page.click('[data-tab=micros]'); await page.waitForTimeout(300); k = await kinds();
+  assert(!/auto|taxi|moto|bus/.test(k), 'en Micros aparecen otros: ' + k);
+  await page.click('[data-tab=planificar]'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 5, 'Planificar debería mostrar todos los filtros');
+  await ev(() => { delete map.getSource; mapReady = __mr; }); await page.click('[data-tab=viaje]'); });
 await test('Tema claro / oscuro', async () => {
   await page.click('#tema'); assert(await ev(() => document.documentElement.dataset.theme === 'light'), 'no pasó a claro'); await page.click('#tema');
   assert(await ev(() => !document.documentElement.dataset.theme), 'no volvió a oscuro'); });

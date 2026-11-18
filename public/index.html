@@ -178,6 +178,7 @@ tr.best td{color:var(--ok);font-weight:600}
 .legend b{width:9px;height:9px;border-radius:50%;display:inline-block}
 .clock{z-index:2;position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:12px;background:var(--glass);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;display:flex;gap:8px;align-items:center}
 svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var(--land);stroke-width:calc(var(--sw,0.01) * 1px);stroke-linejoin:round}
+.filtros[hidden]{display:none}
 .filtros{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:92px;display:flex;flex-wrap:wrap;gap:5px;z-index:2;max-width:calc(100% - 70px)}
 .fchip{display:flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--c) 70%,transparent);color:var(--ink);background:var(--glass);backdrop-filter:blur(6px);border-radius:999px;padding:4px 10px 4px 8px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 0 10px color-mix(in srgb,var(--c) 30%,transparent)}
 .fchip svg{color:var(--c)}
@@ -490,7 +491,7 @@ let mapStyle = document.documentElement.dataset.theme === 'light' ? 'calles' : '
 try { const s = localStorage.getItem('trayecto-style'); if (STYLES[s]) mapStyle = s; } catch (e) {}
 const NOOP_CANVAS = { style: {} };
 const map = mapboxgl ? new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, maxPitch: 75 })
-  : new Proxy({}, { get: (t, k) => k === 'getCanvas' ? () => NOOP_CANVAS : k === 'getZoom' ? () => 13 : () => {} });
+  : new Proxy({}, { get: (t, k) => k in t ? t[k] : k === 'getCanvas' ? () => NOOP_CANVAS : k === 'getZoom' ? () => 13 : () => {} });
 if (mapboxgl) {
   map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
@@ -552,6 +553,9 @@ function fit(coords, padKm = 1) {
 const fitRegion = () => fit(Object.values(N), 3);
 const fitLoc = id => { const R = LOC[id].radio + 0.4; fit([off(N[id], -R, -R), off(N[id], R, R)], 0); };
 
+// Cada pestaña muestra solo los vehículos que le sirven, para no congestionar el mapa
+const VIS = { viaje: ['auto', 'taxi'], buses: ['bus'], micros: ['micro'], delivery: ['moto', 'auto'], planificar: ['auto', 'taxi', 'moto', 'bus', 'micro'], duenos: ['auto', 'taxi', 'moto'] };
+const ver = k => !!S.filtro[k] && (VIS[S.tab] || VIS.planificar).includes(k);
 const planRouteIds = () => S.tab === 'planificar' ? (planOptions()[S.plan.sel] || { legs: [] }).legs.map(l => l.route).filter(Boolean) : [];
 function drawBase() {
   if (!mapReady) return;
@@ -559,9 +563,9 @@ function drawBase() {
   const feats = [], stops = [];
   for (const r of ALLROUTES) {
     const sel = S.selRoute === r.id || pr.includes(r.id);
-    const op = !S.filtro[r.kind] && !sel ? 0 : sel ? 1 : S.selRoute || S.tab === 'planificar' ? 0.15 : focus ? (r.kind === focus ? 0.9 : 0.15) : 0.45;
+    const op = !ver(r.kind) && !sel ? 0 : sel ? 1 : S.selRoute || S.tab === 'planificar' ? 0.15 : focus ? (r.kind === focus ? 0.9 : 0.15) : 0.45;
     feats.push(line(r.path, { id: r.id, sel, op, tipo: r.tipo || 'inter', color: r.kind === 'bus' ? COL.bus : COL.micro }));
-    if (sel || (focus && r.kind === focus && !S.selRoute)) for (const p of r.paradas) stops.push(point(POI[p].c, { name: POI[p].n, color: r.kind === 'bus' ? COL.bus : COL.micro }));
+    if (sel || (focus && r.kind === focus && !S.selRoute && ver(r.kind))) for (const p of r.paradas) stops.push(point(POI[p].c, { name: POI[p].n, color: r.kind === 'bus' ? COL.bus : COL.micro }));
   }
   map.getSource('routes').setData(fc(feats)); map.getSource('stops').setData(fc(stops));
   const op = S.tab === 'planificar' ? planOptions()[S.plan.sel] : null;
@@ -573,12 +577,12 @@ function drawOver() {
   const v = [];
   for (const r of ALLROUTES) for (const tr of activeTrips(r)) {
     const sel = S.selRoute === r.id;
-    if (!S.filtro[r.kind]) continue;
+    if (!ver(r.kind) && !sel) continue;
     v.push(point(tr.pos, { kind: r.kind, icon: r.kind, color: r.kind === 'bus' ? COL.bus : COL.micro, stroke: '#ffffff', owned: false, hl: false, ...(sel || S.tab === 'buses' && r.kind === 'bus' || S.tab === 'micros' && r.kind === 'micro' ? { label: r.id + ' · ' + hhmm(tr.dep) } : {}),
       info: `<b>${esc(r.nombre)}</b><br>Salió ${hhmm(tr.dep)} · va por ${esc(nearPlace(tr.pos).n)}<br>Llega ${hhmm(tr.eta)}<br><small style="color:#525C86">Posición programada según horario de ejemplo, no GPS.</small>` }));
   }
   for (const c of FLEET) { const mine = S.ride && S.ride.car === c && S.ride.fase !== 'fin';
-    if (!S.filtro[c.tipo] && !mine && !(c.job && S.tab === 'delivery')) continue;
+    if (!ver(c.tipo) && !mine && !(c.job && S.tab === 'delivery')) continue;
     const libre = c.estado === 'libre';
     const dlj = c.job && S.tab === 'delivery';
     v.push(point(c.pos, { kind: c.tipo, icon: !libre && !mine && !dlj ? 'ocupado' : c.tipo, color: !libre && !mine && !dlj ? COL.ocupado : c.tipo === 'taxi' ? COL.taxi : c.tipo === 'moto' ? COL.moto : COL.auto, stroke: c.tipo === 'taxi' ? '#111111' : c.owned ? COL.ink : '#ffffff', owned: !!c.owned || c.tipo === 'taxi', hl: !!mine,
@@ -889,7 +893,7 @@ temaBtn.onclick = () => { const claro = document.documentElement.dataset.theme !
 pintarTema();
 const FILTROS = [['auto', 'Autos'], ['taxi', 'Taxis'], ['moto', 'Motos'], ['bus', 'Buses'], ['micro', 'Micros']];
 const filtrosEl = document.getElementById('filtros');
-function renderFiltros() { filtrosEl.innerHTML = FILTROS.map(([k, n]) => `<button class="fchip" data-f="${k}" aria-pressed="${!!S.filtro[k]}" style="--c:${COL[k]}">${UI.icono(k, 15)}${n}</button>`).join(''); }
+function renderFiltros() { const fs = FILTROS.filter(([k]) => (VIS[S.tab] || VIS.planificar).includes(k)); filtrosEl.hidden = fs.length < 2; filtrosEl.innerHTML = fs.map(([k, n]) => `<button class="fchip" data-f="${k}" aria-pressed="${!!S.filtro[k]}" style="--c:${COL[k]}">${UI.icono(k, 15)}${n}</button>`).join(''); }
 filtrosEl.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; S.filtro[b.dataset.f] = !S.filtro[b.dataset.f];
   try { localStorage.setItem('vamo-filtro', JSON.stringify(S.filtro)); } catch (er) {} renderFiltros(); drawBase(); });
 renderFiltros();
@@ -904,7 +908,7 @@ function render() {
   tabsEl.innerHTML = TABS.map(t => `<button class="tab" role="tab" aria-selected="${S.tab === t.id}" data-tab="${t.id}" style="--tc:${t.c}">${UI.icono(t.i, 16)}<span class="tl">${t.n}</span><span class="ts">${t.s}</span></button>`).join('');
   view.innerHTML = { viaje: viewViaje, buses: viewBuses, micros: viewMicros, planificar: viewPlan, delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
   map.getCanvas().style.cursor = (S.tab === 'viaje' && !S.ride) || (S.tab === 'delivery' && S.dl.pick) ? 'crosshair' : '';
-  if (S.ticket) drawQR(); drawBase();
+  if (S.ticket) drawQR(); renderFiltros(); drawBase();
 }
 function drawQR() { const c = document.getElementById('qr'); if (!c) return; const x = c.getContext('2d'); let h = 0; for (const ch of S.ticket.code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const ink = '#0B0F24', bg = '#ffffff';
