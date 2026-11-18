@@ -147,6 +147,7 @@ h3{font-family:var(--f-display);font-weight:700;font-size:14px;margin:0}
 .form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
 .form input,.form select{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
 .form .full{grid-column:1/-1}
+.form label{min-width:0}.form select,.form input{width:100%}
 input[type=range]{width:100%;accent-color:var(--accent)}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
@@ -185,6 +186,7 @@ svg text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var
 .vchip svg{color:var(--c)}
 .st{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
 .st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.st.oficial{--c:var(--ok)} .st.estimado{--c:#C084FC} .st.sinhorario{--c:var(--muted)}
 .st.disponible{--c:var(--ok)} .st.ocupado{--c:var(--muted)} .st.ruta{--c:var(--amarillo)} .st.vivo{--c:var(--fucsia)} .st.programado{--c:var(--bus)} .st.simulado{--c:var(--muted)} .st.comunidad{--c:var(--turquesa)}
 .panel{background:linear-gradient(180deg,var(--surface),var(--bg))}
 .card{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
@@ -321,7 +323,7 @@ const SEG = {
 };
 const ROADS = Object.values(SEG);
 
-const INTER = [
+let INTER = [ // respaldo local: la app usa la base de datos (recorrido_publico) cuando hay conexión
   { id: 'I1', nombre: 'Casablanca – Valparaíso', path: SEG.cb_valpo, paradas: ['cb-term', 'va-term'], min: 40, precio: 1800, cada: 20, primero: 360, ultimo: 1320, op: 'Operador de ejemplo A' },
   { id: 'I2', nombre: 'Casablanca – Viña del Mar', path: SEG.cb_vina, paradas: ['cb-term', 'vi-term'], min: 45, precio: 1900, cada: 30, primero: 370, ultimo: 1300, op: 'Operador de ejemplo A' },
   { id: 'I3', nombre: 'Casablanca – Santiago (Pajaritos y Terminal Sur)', path: [...SEG.stgo_cb].reverse(), paradas: ['cb-term', 'cu-term', 'st-paj', 'st-sur'], min: 75, precio: 3800, cada: 30, primero: 330, ultimo: 1290, op: 'Operador de ejemplo B' },
@@ -332,17 +334,25 @@ const INTER = [
   { id: 'I7', nombre: 'Viña del Mar – Quilpué', path: SEG.vina_quil, paradas: ['vi-term', 'qu-centro'], min: 30, precio: 900, cada: 15, primero: 360, ultimo: 1380, op: 'Operador de ejemplo D' }
 ];
 const pc = id => POI[id].c;
-const MICROS = [
+let MICROS = [
   { id: 'L1', nombre: 'Línea 1 · Norte – Sur', loc: 'casablanca', tipo: 'urbana', path: ['cb-norte', 'cb-hosp', 'cb-plaza', 'cb-term', 'cb-sur'].map(pc), paradas: ['cb-norte', 'cb-hosp', 'cb-plaza', 'cb-term', 'cb-sur'], min: 14, precio: 500, cada: 12, primero: 400, ultimo: 1290 },
   { id: 'L2', nombre: 'Línea 2 · Circunvalación', loc: 'casablanca', tipo: 'urbana', path: ['cb-plaza', 'cb-liceo', 'cb-sur', 'cb-r68', 'cb-estadio', 'cb-norte', 'cb-hosp', 'cb-plaza'].map(pc), paradas: ['cb-plaza', 'cb-liceo', 'cb-sur', 'cb-r68', 'cb-estadio', 'cb-norte', 'cb-hosp'], min: 22, precio: 500, cada: 20, primero: 410, ultimo: 1260 },
   { id: 'R1', nombre: 'Rural · Casablanca – Quintay', loc: 'casablanca', tipo: 'rural', path: SEG.cb_quintay, paradas: ['cb-plaza', 'cb-quintay'], min: 35, precio: 1200, cada: 90, primero: 420, ultimo: 1200 },
   { id: 'R2', nombre: 'Rural · Casablanca – Las Dichas', loc: 'casablanca', tipo: 'rural', path: SEG.cb_dichas, paradas: ['cb-plaza', 'cb-dichas'], min: 20, precio: 900, cada: 120, primero: 430, ultimo: 1150 }
 ];
-const ALLROUTES = [...INTER.map(r => ({ ...r, kind: 'bus' })), ...MICROS.map(r => ({ ...r, kind: 'micro' }))];
+let ALLROUTES = [];
+let RUTAS_FUENTE = 'local';
+function buildRoutes() { for (const r of [...INTER, ...MICROS]) { r.th = r.th || 'programado'; r.fuente = r.fuente || 'Horario de ejemplo (no oficial)'; }
+  ALLROUTES = [...INTER.map(r => ({ ...r, kind: 'bus' })), ...MICROS.map(r => ({ ...r, kind: 'micro' }))]; }
+buildRoutes();
+// Origen del horario: oficial (operador), programado (Fluva), estimado (calculado), sin_horario
+const TH = { oficial: ['Horario oficial', 'oficial'], programado: ['Programado', 'programado'], estimado: ['Estimado', 'estimado'], sin_horario: ['Sin horario confirmado', 'sinhorario'] };
+const thBadge = r => `<span class="st ${TH[r.th || 'programado'][1]}">${TH[r.th || 'programado'][0]}</span>`;
+const SIN_EST = 'Sin estimación disponible';
 const routeLocs = r => [...new Set(r.paradas.map(p => POI[p].loc))];
 
 /* ============ Horarios y posición en vivo (derivada del horario) ============ */
-function departures(r) { const out = []; for (let t = r.primero; t <= r.ultimo; t += r.cada) out.push(t); return out; }
+function departures(r) { const out = []; if (!r.cada || r.primero == null) return out; for (let t = r.primero; t <= r.ultimo; t += r.cada) out.push(t); return out; }
 function nextDeps(r, n = 5) { const t = nowMin(); return departures(r).filter(d => d >= t - 0.5).slice(0, n); }
 function activeTrips(r) { // ida y vuelta
   const t = nowMin(), out = [];
@@ -452,6 +462,7 @@ const offerRow = (o, i) => `<button class="offer" data-oferta="${i}"><span class
 /* ============ Estado ============ */
 const S = { note: '', followCar: false, loc: 'casablanca', tab: 'viaje', pick: 'o', o: 'cb-plaza', d: 'cb-term', custom: {}, clase: 'eco',
   ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 },
+  bq: { o: '', d: '' },
   filtro: (() => { const d = { auto: true, taxi: true, moto: true, bus: true, micro: true }; try { return { ...d, ...JSON.parse(localStorage.getItem('vamo-filtro') || '{}') }; } catch (e) { return d; } })(),
   dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
 const TABS = [{ id: 'viaje', n: 'Pedir viaje', s: 'Viaje', i: 'auto', c: 'var(--turquesa)' }, { id: 'buses', n: 'Buses', s: 'Buses', i: 'bus', c: 'var(--amarillo)' }, { id: 'micros', n: 'Micros', s: 'Micros', i: 'micro', c: 'var(--micro)' }, { id: 'planificar', n: 'Planificar', s: 'Rutas', i: 'rutas', c: 'var(--accent)' }, { id: 'delivery', n: 'Delivery', s: 'Delivery', i: 'delivery', c: 'var(--moto)' }, { id: 'duenos', n: 'Dueños', s: 'Dueños', i: 'duenos', c: 'var(--fucsia)' }];
@@ -663,17 +674,21 @@ function viewViaje() {
 }
 
 function busLiveRows(r) { const trips = activeTrips(r);
-  if (!trips.length) return '<div class="hint">Ningún bus en ruta en este momento.</div>';
+  if (!r.cada) return `<div class="hint">${SIN_EST}. No mostramos buses de este recorrido en el mapa hasta que la comunidad los confirme.</div>`;
+  if (!trips.length) return '<div class="hint">Según el horario, ningún bus debería estar en ruta ahora.</div>';
   return trips.map(t => { const from = t.dir === 1 ? 'ida' : 'vuelta'; return `<div><span class="dot pulse" style="background:${r.kind === 'bus' ? 'var(--bus)' : 'var(--micro)'};margin:0"></span><span class="mono">${hhmm(t.dep)}</span> (${from}) va por <b>${esc(nearPlace(t.pos).n)}</b> · llega ${hhmm(t.eta)} <button class="chip" data-follow="${r.id}|${t.dep}|${t.dir}">Seguir</button></div>`; }).join(''); }
 
 function routeCard(r) {
   const sel = S.selRoute === r.id, color = r.kind === 'bus' ? 'var(--bus)' : 'var(--micro)', nx = nextDeps(r, 5);
-  let h = `<button class="route" data-route="${r.id}" aria-pressed="${sel}" style="--rc:${color}"><div class="h"><span class="row"><span class="code">${r.id}</span><b>${esc(r.nombre)}</b></span><span class="mono">${clp(r.precio)}</span></div>
-    <div class="hint">${r.op ? esc(r.op) + ' · ' : ''}${r.min} min · cada ${r.cada} min · ${hhmm(r.primero)}–${hhmm(r.ultimo)}</div>
-    <div class="row"><span class="tag">${activeTrips(r).length} en ruta</span><span class="hint">Próxima salida: <b class="mono">${nx.length ? hhmm(nx[0]) : 'mañana ' + hhmm(r.primero)}</b></span></div></button>`;
+  const horario = r.cada ? `cada ${r.cada} min · ${hhmm(r.primero)}–${hhmm(r.ultimo)}` : r.freqAprox ? `cada ~${r.freqAprox} min (estimado)` : 'sin horario confirmado';
+  let h = `<button class="route" data-route="${r.id}" data-th="${r.th}" aria-pressed="${sel}" style="--rc:${color}"><div class="h"><span class="row"><span class="code">${r.id}</span><b>${esc(r.nombre)}</b></span><span class="mono">${clp(r.precio)}</span></div>
+    <div class="hint">${r.op ? esc(r.op) + ' · ' : ''}${r.min} min de viaje · ${horario}</div>
+    <div class="row">${thBadge(r)}${r.cada ? `<span class="tag">${activeTrips(r).length} en ruta según horario</span><span class="hint">Próxima salida: <b class="mono">${nx.length ? hhmm(nx[0]) : 'mañana ' + hhmm(r.primero)}</b></span>` : `<span class="hint">${SIN_EST}</span>`}</div></button>`;
   if (sel) {
-    h += `<div class="card" style="--rc:${color}"><h3>¿Dónde van ahora?</h3><div class="live" data-live="${r.id}">${busLiveRows(r)}</div>
-      <h3>Próximas salidas</h3><div class="chips">${nx.map(t => `<button class="chip ${S.selDep === t ? 'sel' : ''}" data-dep="${t}">${hhmm(t)}</button>`).join('') || '<span class="hint">No quedan salidas hoy.</span>'}</div>`;
+    if (!r.cada) { h += `<div class="card" style="--rc:${color}"><h3>${r.th === 'estimado' ? 'Frecuencia estimada' : 'Sin horario confirmado'}</h3><p class="hint" style="margin:0">${esc(r.desc || '')} ${SIN_EST} para la llegada a los paraderos.</p>
+      <p class="hint" style="margin:0">Paraderos: ${r.paradas.map(p => esc(POI[p] ? POI[p].n : p)).join(' → ')}</p>${favBtnR(r)}</div>`; return h; }
+    h += `<div class="card" style="--rc:${color}"><h3>¿Dónde van ahora?</h3><p class="hint" style="margin:0">Posición calculada con el horario ${r.th === 'oficial' ? 'oficial' : 'programado (ejemplo, no oficial)'}, no con GPS.</p><div class="live" data-live="${r.id}">${busLiveRows(r)}</div>
+      <h3>Próximas salidas</h3><div class="chips">${nx.map(t => `<button class="chip ${S.selDep === t ? 'sel' : ''}" data-dep="${t}">${hhmm(t)}</button>`).join('') || '<span class="hint">No quedan salidas hoy.</span>'}</div>${favBtnR(r)}`;
     if (r.kind === 'bus') { const cupos = S.selDep != null ? 8 + Math.floor((S.selDep * 7 + r.precio) % 30) : null;
       h += S.selDep != null ? `<div class="row" style="justify-content:space-between"><span>Salida ${hhmm(S.selDep)} · <b>${cupos}</b> asientos libres de 44</span><button class="btn sm" id="comprar">Comprar ${clp(r.precio)}</button></div>` : '<p class="hint">Elige una salida para ver asientos y comprar.</p>';
       if (S.ticket && S.ticket.r === r.id) h += `<div class="ticket"><div><div class="eyebrow">Pasaje de demostración, no válido</div><h3>${esc(r.nombre)}</h3><div class="mono">Sale ${hhmm(S.ticket.dep)} · Asiento ${S.ticket.asiento}</div><div class="mono hint">${S.ticket.code}</div></div><canvas id="qr" width="21" height="21" aria-label="Código del pasaje"></canvas></div>`; }
@@ -682,16 +697,33 @@ function routeCard(r) {
   return h;
 }
 function viewBuses() {
-  const rs = INTER.filter(r => routeLocs(r).includes(S.loc)).map(r => ({ ...r, kind: 'bus' }));
-  return `<div><h2>Buses interurbanos</h2><p class="sub">Salidas desde y hacia ${LOC[S.loc].nombre}, con la posición de cada bus en ruta.</p></div>
-    <div class="list">${rs.map(routeCard).join('') || '<p class="hint">Sin recorridos cargados para esta localidad.</p>'}</div>
-    <p class="hint">Recorridos, horarios, precios y operadores son de ejemplo. En producción, cada operador los carga y sus buses envían GPS desde la app de conductor.</p>`;
+  const B = S.bq, buscando = B.o && B.d && B.o !== B.d;
+  let rs = INTER.filter(r => routeLocs(r).includes(S.loc)).map(r => ({ ...r, kind: 'bus' }));
+  if (buscando) rs = INTER.filter(r => r.paradas.includes(B.o) && r.paradas.includes(B.d)).map(r => ({ ...r, kind: 'bus' }));
+  const paraderos = [...new Set(INTER.flatMap(r => r.paradas))].filter(id => POI[id]).sort((a, b) => POI[a].n.localeCompare(POI[b].n, 'es'));
+  const opt = sel => `<option value="">Cualquiera</option>` + LOCALIDADES.map(l => { const ps = paraderos.filter(id => POI[id].loc === l.id); return ps.length ? `<optgroup label="${l.nombre}">${ps.map(id => `<option value="${id}" ${id === sel ? 'selected' : ''}>${esc(POI[id].n)}</option>`).join('')}</optgroup>` : ''; }).join('');
+  const favs = FAV.paraderos.filter(id => POI[id]), frec = frecuentes().filter(id => ALLROUTES.some(r => r.id === id));
+  return `<div><h2>Buses interurbanos</h2><p class="sub">Salidas desde y hacia ${LOC[S.loc].nombre}. Cada recorrido indica si su horario es oficial, programado, estimado o no confirmado.</p></div>
+    <div class="card"><h3>¿De dónde a dónde?</h3>
+      <div class="form"><label>Origen<select id="bqO">${opt(B.o)}</select></label><label>Destino<select id="bqD">${opt(B.d)}</select></label></div>
+      <div class="row">${B.o ? `<button class="btn sm ghost" data-favp="${B.o}" aria-pressed="${FAV.paraderos.includes(B.o)}">${UI.icono('estrella', 14)} ${FAV.paraderos.includes(B.o) ? 'Paradero favorito' : 'Guardar paradero de origen'}</button>` : ''}${B.o || B.d ? '<button class="btn sm ghost" id="bqSwap">Invertir</button><button class="btn sm ghost" id="bqClear">Limpiar</button>' : ''}</div>
+      ${favs.length ? `<div class="row"><span class="hint">Favoritos:</span>${favs.map(id => `<button class="chip" data-bqo="${id}">${UI.icono('estrella', 12)} ${esc(POI[id].n)}</button>`).join('')}</div>` : ''}
+      ${frec.length ? `<div class="row"><span class="hint">Frecuentes:</span>${frec.map(id => `<button class="chip" data-route="${id}">${id}</button>`).join('')}</div>` : ''}</div>
+    ${buscando ? `<p class="hint" style="margin:0">${rs.length} recorrido${rs.length === 1 ? '' : 's'} entre ${esc(POI[B.o].n)} y ${esc(POI[B.d].n)}.</p>` : ''}
+    <div class="list">${rs.map(routeCard).join('') || (buscando ? '<p class="hint">Ningún recorrido cargado une esos dos paraderos.</p>' : '<p class="hint">Sin recorridos cargados para esta localidad.</p>')}</div>
+    <p class="hint">${RUTAS_FUENTE === 'bd' ? 'Recorridos cargados desde la base de datos de VAMO.' : 'Sin conexión: se muestran recorridos guardados en la app.'} Horarios, precios y operadores son de ejemplo, no oficiales.</p>`;
 }
+/* Favoritos y frecuentes (en este dispositivo; se sincronizarán con la cuenta en la etapa 3) */
+let FAV = { paraderos: [], recorridos: [] }, FREC = {};
+try { FAV = { ...FAV, ...JSON.parse(localStorage.getItem('vamo-favoritos') || '{}') }; FREC = JSON.parse(localStorage.getItem('vamo-frecuentes') || '{}'); } catch (e) {}
+const saveFav = () => { try { localStorage.setItem('vamo-favoritos', JSON.stringify(FAV)); localStorage.setItem('vamo-frecuentes', JSON.stringify(FREC)); } catch (e) {} };
+const frecuentes = () => Object.entries(FREC).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
+const favBtnR = r => `<div class="row"><button class="btn sm ghost" data-favr="${r.id}" aria-pressed="${FAV.recorridos.includes(r.id)}">${UI.icono('estrella', 14)} ${FAV.recorridos.includes(r.id) ? 'Recorrido favorito' : 'Guardar recorrido'}</button></div>`;
 function viewMicros() {
-  const rs = MICROS.filter(r => r.loc === S.loc).map(r => ({ ...r, kind: 'micro' }));
+  const rs = MICROS.filter(r => r.loc === S.loc).map(r => ({ ...r, kind: 'micro' })).sort((a, b) => FAV.recorridos.includes(b.id) - FAV.recorridos.includes(a.id));
   return `<div><h2>Micros locales y rurales</h2><p class="sub">Líneas urbanas y rurales de ${LOC[S.loc].nombre}.</p></div>
     <div class="list">${rs.map(routeCard).join('') || `<div class="card"><h3>${LOC[S.loc].nombre} aún no tiene líneas cargadas</h3><p class="hint">El modelo de datos ya soporta esta localidad: basta con que un operador registre sus líneas, paradas y horarios desde la pestaña Dueños.</p></div>`}</div>
-    <p class="hint">Líneas de ejemplo. Las rurales (línea punteada) unen Casablanca con sectores como Quintay y Las Dichas.</p>`;
+    <p class="hint">Líneas y horarios de ejemplo, no oficiales. Las rurales (línea punteada) unen Casablanca con sectores como Quintay y Las Dichas.</p>`;
 }
 
 /* Planificador multimodal */
@@ -862,7 +894,7 @@ filtrosEl.addEventListener('click', e => { const b = e.target.closest('[data-f]'
   try { localStorage.setItem('vamo-filtro', JSON.stringify(S.filtro)); } catch (er) {} renderFiltros(); drawBase(); });
 renderFiltros();
 document.getElementById('legend').innerHTML = `<div class="lrow">${[['auto', 'Auto libre'], ['taxi', 'Taxi libre'], ['moto', 'Moto delivery'], ['bus', 'Bus'], ['micro', 'Micro'], ['ocupado', 'Ocupado']].map(([k, n]) => `<span><img alt="" src="${UI.svgUrl(UI.pin(k, 26))}">${n}</span>`).join('')}</div>
-  <div class="lrow src"><span class="st programado">Programado</span>buses y micros según horario de ejemplo <span class="st simulado">Simulado</span>autos, taxis y motos de demo</div>`;
+  <div class="lrow src"><span class="st programado">Programado</span>bus o micro ubicado según su horario <span class="st estimado">Estimado</span><span class="st sinhorario">Sin horario confirmado</span>sin posición en el mapa <span class="st simulado">Simulado</span>autos, taxis y motos de demo</div>`;
 
 /* ============ Render ============ */
 const tabsEl = document.getElementById('tabs'), locEl = document.getElementById('loc');
@@ -891,6 +923,7 @@ view.addEventListener('change', e => { const t = e.target;
   if (t.id === 'selO') { S.o = t.value; S.pick = 'd'; render(); }
   if (t.id === 'selD') { S.d = t.value; S.pick = 'o'; render(); const o = placeOf(S.o), d = placeOf(S.d); fit([o.c, d.c], 1); }
   if (t.id === 'modoPrecio') { PRECIO.modo = t.value; rerender(); }
+  if (t.id === 'bqO' || t.id === 'bqD') { S.bq[t.id === 'bqO' ? 'o' : 'd'] = t.value; S.selRoute = null; rerender(); const ps = [S.bq.o, S.bq.d].filter(Boolean).map(id => POI[id].c); if (ps.length) fit(ps, 2); }
   if (t.id === 'dlResto') { S.dl.resto = t.value; S.dl.dest = null; render(); fitLoc(restoSel().loc); }
   if (t.id === 'dlPago') S.dl.pago = t.value;
   if (t.id === 'planO' || t.id === 'planD') { S.plan[t.id === 'planO' ? 'o' : 'd'] = t.value; S.plan.sel = 0; render(); fit([POI[S.plan.o].c, POI[S.plan.d].c], 2); } });
@@ -926,7 +959,12 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   else if (b.id === 'compartir') { const t = `Voy en ${S.ride.car.tipo === 'taxi' ? 'taxi' : 'auto'} ${S.ride.car.patente} (${S.ride.car.modelo}), conductor ${S.ride.car.cond}.`; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { b.textContent = 'Copiado ✓'; }, () => { b.textContent = t; }); return; }
   else if (b.dataset.stars) { view.querySelectorAll('[data-stars]').forEach(x => x.classList.toggle('sel', x === b)); return; }
   else if (b.id === 'cancelar' || b.id === 'nuevo') { if (S.ride && S.ride.car) S.ride.car.estado = 'libre'; S.ride = null; S.followCar = false; render(); }
-  else if (b.dataset.route) { const id = b.dataset.route; S.selRoute = S.selRoute === id ? null : id; S.selDep = null; S.follow = null; render(); if (S.selRoute) fit(ALLROUTES.find(r => r.id === id).path, 1.5); }
+  else if (b.dataset.favp) { const id = b.dataset.favp; FAV.paraderos = FAV.paraderos.includes(id) ? FAV.paraderos.filter(x => x !== id) : [...FAV.paraderos, id]; saveFav(); render(); }
+  else if (b.dataset.favr) { const id = b.dataset.favr; FAV.recorridos = FAV.recorridos.includes(id) ? FAV.recorridos.filter(x => x !== id) : [...FAV.recorridos, id]; saveFav(); render(); }
+  else if (b.dataset.bqo) { S.bq.o = b.dataset.bqo; render(); }
+  else if (b.id === 'bqSwap') { S.bq = { o: S.bq.d, d: S.bq.o }; render(); }
+  else if (b.id === 'bqClear') { S.bq = { o: '', d: '' }; render(); }
+  else if (b.dataset.route) { const id = b.dataset.route; if (S.selRoute !== id) { FREC[id] = (FREC[id] || 0) + 1; saveFav(); } S.selRoute = S.selRoute === id ? null : id; S.selDep = null; S.follow = null; render(); if (S.selRoute) fit(ALLROUTES.find(r => r.id === id).path, 1.5); }
   else if (b.dataset.dep) { S.selDep = +b.dataset.dep; render(); }
   else if (b.id === 'comprar') { const r = ALLROUTES.find(r => r.id === S.selRoute); S.ticket = { r: r.id, dep: S.selDep, asiento: 1 + Math.floor(Math.random() * 44), code: 'TR-' + r.id + '-' + hhmm(S.selDep).replace(':', '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase() }; render(); }
   else if (b.dataset.follow) { const [id, dep, dir] = b.dataset.follow.split('|'); S.follow = { id, dep: +dep, dir: +dir }; followTick(true); }
@@ -996,8 +1034,24 @@ async function cargarBD() { const el = document.getElementById('dbState');
       if (t.clase === 'taxi' && t.bajada_bandera) { TAXI.bajada = t.bajada_bandera; TAXI.cada200 = t.por_200m; } }
     locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
     try { const cp = await sb('config_precio?select=localidad_id,min_conductores,min_pagados&localidad_id=eq.casablanca'); if (cp[0]) { PRECIO.minConductores = cp[0].min_conductores; PRECIO.minPagados = cp[0].min_pagados; } } catch (e) {}
-    el.textContent = `Base de datos conectada · ${locs.length} localidades`; el.dataset.ok = '1'; const y = view.scrollTop; render(); view.scrollTop = y;
+    try { await cargarRecorridos(); } catch (e) { console.warn('Recorridos: usando respaldo local', e); }
+    el.textContent = `Base de datos conectada · ${locs.length} localidades${RUTAS_FUENTE === 'bd' ? ' · ' + ALLROUTES.length + ' recorridos' : ''}`; el.dataset.ok = '1'; const y = view.scrollTop; render(); view.scrollTop = y;
   } catch (e) { el.textContent = 'Sin conexión a la base de datos, usando datos locales'; } }
+const aMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+async function cargarRecorridos() {
+  const [lugares, rutas] = await Promise.all([sb('lugar_publico?select=id,localidad_id,nombre,tipo,lat,lon'), sb('recorrido_publico?select=*&order=orden')]);
+  for (const l of lugares) { if (!LOC[l.localidad_id]) continue; const c = [l.lat, l.lon];
+    if (POI[l.id]) { POI[l.id].c = c; POI[l.id].n = l.nombre; } else { const p = { id: l.id, n: l.nombre, loc: l.localidad_id, c }; POIS.push(p); POI[l.id] = p; } }
+  const inter = [], micros = [];
+  for (const r of rutas) { if (!r.trazado || !r.trazado.length) continue;
+    const paradas = r.paradas.filter(p => !p.sentido || p.sentido === 'ida').map(p => p.lugar).filter(id => POI[id]); if (!paradas.length) continue;
+    const h = r.horarios.find(x => x.sentido === 'ida') || r.horarios[0];
+    const o = { id: r.id, nombre: r.nombre, path: r.trazado.map(([lon, lat]) => [lat, lon]), paradas, min: r.duracion_min, precio: r.precio, op: r.operador_nombre, desc: r.descripcion,
+      th: r.tipo_horario, fuente: (h && h.fuente) || r.fuente_horario, freqAprox: r.frecuencia_aprox_min, reportes: r.permite_reportes, loc: r.localidad_id,
+      ...(h && r.tipo_horario !== 'sin_horario' ? { cada: h.cada, primero: aMin(h.primera), ultimo: aMin(h.ultima) } : {}) };
+    if (r.tipo === 'interurbano') inter.push(o); else micros.push({ ...o, tipo: r.tipo === 'urbano' ? 'urbana' : 'rural' }); }
+  if (!inter.length && !micros.length) return;
+  INTER = inter; MICROS = micros; RUTAS_FUENTE = 'bd'; buildRoutes(); drawBase(); }
 cargarBD();
 document.getElementById('clk').textContent = hhmm(nowMin());
 render();

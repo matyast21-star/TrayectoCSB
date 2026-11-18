@@ -47,7 +47,7 @@ await test('Pedir viaje: rango estimado según viajes pagados', async () => {
   await ev(() => { PRECIO.modo = 'rango'; S.clase = 'eco'; render(); }); assert(/–/.test(await page.locator('[data-clase=eco] .p').innerText()), 'no muestra rango');
   await page.click('#pedir'); assert(await until(() => S.ride && S.ride.fase === 'va', 5000), 'no asignó'); await page.click('#cancelar'); await ev(() => { PRECIO.modo = 'auto'; render(); }); });
 await test('Buses: ver salidas y comprar pasaje con QR', async () => {
-  await page.click('[data-tab=buses]'); await page.locator('[data-route]').first().click(); await wait(300);
+  await page.click('[data-tab=buses]'); await page.locator('[data-route][data-th=programado]').first().click(); await wait(300);
   const dep = page.locator('[data-dep]').first(); assert(await dep.count(), 'no hay salidas'); await dep.click(); await page.click('#comprar'); await wait(300);
   assert(await ev(() => !!S.ticket && !!document.getElementById('qr')), 'no se emitió el pasaje'); });
 await test('Micros: lista de líneas urbanas y rurales', async () => {
@@ -77,6 +77,34 @@ await test('Celular: barra inferior y sin desborde horizontal', async () => {
   const m = await browser.newPage({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
   assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); await m.close(); });
+// ---- Recorridos desde la base de datos (respuestas simuladas con tests/fixtures/bd.json) ----
+const FIX = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'bd.json'), 'utf8'));
+const bd = await browser.newPage({ viewport: { width: 1300, height: 860 } }); bd.on('pageerror', e => errors.push('bd: ' + e.message));
+await bd.route(/\/rest\/v1\//, r => { const t = new URL(r.request().url()).pathname.split('/').pop(); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIX[t] || []) }); });
+await bd.goto(BASE); await bd.waitForTimeout(1500);
+const bev = f => bd.evaluate(f);
+await test('Base de datos: carga recorridos y paraderos desde Supabase', async () => {
+  assert(await bev(() => RUTAS_FUENTE === 'bd'), 'no usó la base'); assert(await bev(() => ALLROUTES.length === 4), 'cantidad de recorridos distinta: ' + await bev(() => ALLROUTES.length));
+  assert(/4 recorridos/.test(await bd.locator('#dbState').innerText()), 'el estado no indica los recorridos'); });
+await test('Rótulos de horario: programado, estimado y sin horario confirmado', async () => {
+  await bd.click('[data-tab=buses]'); const txt = await bd.locator('#view').innerText();
+  for (const w of ['Programado', 'Estimado', 'Sin horario confirmado', 'Sin estimación disponible']) assert(txt.includes(w), 'falta: ' + w); });
+await test('Recorrido sin horario: no inventa buses ni salidas', async () => {
+  assert(await bev(() => activeTrips(ALLROUTES.find(r => r.id === 'C1')).length === 0 && departures(ALLROUTES.find(r => r.id === 'C1')).length === 0), 'generó posiciones');
+  await bd.click('[data-route=C1]'); assert(await bd.locator('[data-dep]').count() === 0, 'mostró salidas'); assert(await bd.locator('#comprar').count() === 0, 'permitió comprar'); });
+await test('Recorrido programado: buses según horario y compra de pasaje', async () => {
+  await bd.click('[data-route=I1]'); assert(await bev(() => activeTrips(ALLROUTES.find(r => r.id === 'I1')).length > 0), 'sin buses programados');
+  await bd.locator('[data-dep]').first().click(); await bd.click('#comprar'); assert(await bev(() => !!S.ticket), 'no compró'); });
+await test('Búsqueda por origen y destino', async () => {
+  await bd.selectOption('#bqO', 'cb-term'); await bd.selectOption('#bqD', 'va-term'); await bd.waitForTimeout(200);
+  const ids = await bd.locator('button.route').evaluateAll(b => b.map(x => x.dataset.route).sort()); assert(ids.join() === 'C2,I1', 'resultado: ' + ids.join());
+  await bd.click('#bqSwap'); assert(await bev(() => S.bq.o === 'va-term'), 'no invirtió'); });
+await test('Paraderos favoritos y recorridos frecuentes', async () => {
+  await bd.selectOption('#bqO', 'cb-term'); await bd.click('[data-favp=cb-term]'); assert(await bev(() => FAV.paraderos.includes('cb-term')), 'no guardó favorito');
+  assert(await bd.locator('[data-bqo=cb-term]').count() === 1, 'no muestra el favorito'); assert(await bev(() => frecuentes().includes('I1')), 'no registró frecuente'); });
+await test('Micros desde la base', async () => { await bd.click('[data-tab=micros]'); assert(await bd.locator('[data-route=L1]').count() === 1, 'falta L1'); });
+await bd.close();
+
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
 await browser.close(); if (server) server.close();
