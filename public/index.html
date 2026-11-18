@@ -383,9 +383,7 @@ const FONT = ['Noto Sans Regular'], FONTB = ['Noto Sans Bold'];
 
 function setupLayers() {
   mapReady = false;
-  if (!map.getSource('dem')) map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Relieve: Mapzen Terrain Tiles' });
-  map.setTerrain(is3D ? { source: 'dem', exaggeration: 1.5 } : null);
-  if (is3D && map.getSource('openmaptiles') && !map.getLayer('edificios')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.75 } }); } catch (e) {} }
+  apply3D();
   for (const id of ['routes', 'stops', 'vehicles', 'ride', 'pins', 'plan']) if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: fc([]) });
   const dark = mapStyle === 'noche' || mapStyle === 'satelite';
   const halo = dark ? '#0b1416' : '#ffffff', txt = dark ? '#f1f5f5' : '#14232a';
@@ -411,7 +409,13 @@ const popup = mapboxgl ? new mapboxgl.Popup({ closeButton: false, offset: 12 }) 
 map.on('click', 'vehicles', e => { const p = e.features[0].properties; if (p.info) { popup.setLngLat(e.lngLat).setHTML(`<div style="font:13px/1.4 Inter,system-ui,sans-serif;color:#14232a">${p.info}</div>`).addTo(map); e.preventDefault(); } });
 
 function setStyle(k) { if (k === mapStyle && !arguments[1]) return; mapStyle = k; try { localStorage.setItem('trayecto-style', k); } catch (e) {} mapReady = false; map.setStyle(STYLES[k].url, { diff: false }); renderStyleBar(); }
-function set3D(on) { is3D = on; map.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 800 }); mapReady = false; map.setStyle(STYLES[mapStyle].url, { diff: false }); renderStyleBar(); }
+function apply3D() {
+  try { if (!map.getSource('dem')) map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Relieve: Mapzen Terrain Tiles' });
+    map.setTerrain(is3D ? { source: 'dem', exaggeration: 1.4 } : null); } catch (e) { console.warn('Terreno 3D no disponible', e); }
+  if (map.getLayer('edificios')) map.removeLayer('edificios');
+  if (is3D && map.getSource('openmaptiles')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.75 } }, map.getLayer('routes-casing') ? 'routes-casing' : undefined); } catch (e) {} }
+}
+function set3D(on) { is3D = on; if (mapReady) apply3D(); map.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 800 }); renderStyleBar(); }
 function renderStyleBar() { document.getElementById('styleBar').innerHTML = Object.entries(STYLES).map(([k, s]) => `<button data-style="${k}" aria-pressed="${k === mapStyle}">${s.n}</button>`).join('') + `<button data-3d="1" aria-pressed="${is3D}">3D</button><button data-region="1" title="Ver toda la región">Región</button>`; }
 document.getElementById('styleBar').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.style) setStyle(b.dataset.style); else if (b.dataset['3d']) set3D(!is3D); else if (b.dataset.region) fitRegion(); });
 renderStyleBar();
