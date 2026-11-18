@@ -335,6 +335,8 @@ let INTER = [ // respaldo local: la app usa la base de datos (recorrido_publico)
   { id: 'I7', nombre: 'Viña del Mar – Quilpué', path: SEG.vina_quil, paradas: ['vi-term', 'qu-centro'], min: 30, precio: 900, cada: 15, primero: 360, ultimo: 1380, op: 'Operador de ejemplo D' }
 ];
 const pc = id => POI[id].c;
+// Micros desactivadas por decisión del usuario (18-11-2026). Los datos no se borran; basta poner true para volver a mostrarlas.
+const MICROS_ACTIVAS = false;
 let MICROS = [
   { id: 'L1', nombre: 'Línea 1 · Norte – Sur', loc: 'casablanca', tipo: 'urbana', path: ['cb-norte', 'cb-hosp', 'cb-plaza', 'cb-term', 'cb-sur'].map(pc), paradas: ['cb-norte', 'cb-hosp', 'cb-plaza', 'cb-term', 'cb-sur'], min: 14, precio: 500, cada: 12, primero: 400, ultimo: 1290 },
   { id: 'L2', nombre: 'Línea 2 · Circunvalación', loc: 'casablanca', tipo: 'urbana', path: ['cb-plaza', 'cb-liceo', 'cb-sur', 'cb-r68', 'cb-estadio', 'cb-norte', 'cb-hosp', 'cb-plaza'].map(pc), paradas: ['cb-plaza', 'cb-liceo', 'cb-sur', 'cb-r68', 'cb-estadio', 'cb-norte', 'cb-hosp'], min: 22, precio: 500, cada: 20, primero: 410, ultimo: 1260 },
@@ -343,7 +345,7 @@ let MICROS = [
 ];
 let ALLROUTES = [];
 let RUTAS_FUENTE = 'local';
-function buildRoutes() { for (const r of [...INTER, ...MICROS]) { r.th = r.th || 'programado'; r.fuente = r.fuente || 'Horario de ejemplo (no oficial)'; }
+function buildRoutes() { if (!MICROS_ACTIVAS) MICROS = []; for (const r of [...INTER, ...MICROS]) { r.th = r.th || 'programado'; r.fuente = r.fuente || 'Horario de ejemplo (no oficial)'; }
   ALLROUTES = [...INTER.map(r => ({ ...r, kind: 'bus' })), ...MICROS.map(r => ({ ...r, kind: 'micro' }))]; }
 buildRoutes();
 // Origen del horario: oficial (operador), programado (Fluva), estimado (calculado), sin_horario
@@ -466,7 +468,7 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'viaje', pick: '
   bq: { o: '', d: '' },
   filtro: (() => { const d = { auto: true, taxi: true, moto: true, bus: true, micro: true }; try { return { ...d, ...JSON.parse(localStorage.getItem('vamo-filtro') || '{}') }; } catch (e) { return d; } })(),
   dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
-const TABS = [{ id: 'viaje', n: 'Pedir viaje', s: 'Viaje', i: 'auto', c: 'var(--turquesa)' }, { id: 'buses', n: 'Buses', s: 'Buses', i: 'bus', c: 'var(--amarillo)' }, { id: 'micros', n: 'Micros', s: 'Micros', i: 'micro', c: 'var(--micro)' }, { id: 'planificar', n: 'Planificar', s: 'Rutas', i: 'rutas', c: 'var(--accent)' }, { id: 'delivery', n: 'Delivery', s: 'Delivery', i: 'delivery', c: 'var(--moto)' }, { id: 'duenos', n: 'Dueños', s: 'Dueños', i: 'duenos', c: 'var(--fucsia)' }];
+const TABS = [{ id: 'viaje', n: 'Pedir viaje', s: 'Viaje', i: 'auto', c: 'var(--turquesa)' }, { id: 'buses', n: 'Buses', s: 'Buses', i: 'bus', c: 'var(--amarillo)' }, { id: 'planificar', n: 'Planificar', s: 'Rutas', i: 'rutas', c: 'var(--accent)' }, { id: 'delivery', n: 'Delivery', s: 'Delivery', i: 'delivery', c: 'var(--moto)' }, { id: 'duenos', n: 'Dueños', s: 'Dueños', i: 'duenos', c: 'var(--fucsia)' }];
 const placeOf = id => POI[id] || S.custom[id];
 
 /* ============ Mapa real (Mapbox GL) ============ */
@@ -482,12 +484,10 @@ function rasterStyle(tiles, maxzoom, attribution, labels) {
 }
 const STYLES = {
   calles: { n: 'Calles', url: 'https://tiles.openfreemap.org/styles/liberty' },
-  relieve: { n: 'Relieve', url: rasterStyle('https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 17, 'Mapa: © OpenTopoMap (CC-BY-SA) · © colaboradores de OpenStreetMap') },
-  satelite: { n: 'Satélite', url: rasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 19, 'Imágenes: Esri, Maxar, Earthstar Geographics', 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}') },
-  claro: { n: 'Solo calles', url: 'https://tiles.openfreemap.org/styles/positron' },
-  noche: { n: 'Noche', url: 'https://tiles.openfreemap.org/styles/dark' }
+  satelite: { n: 'Satélite', url: rasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 19, 'Imágenes: Esri, Maxar, Earthstar Geographics', 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}') }
 };
-let mapStyle = document.documentElement.dataset.theme === 'light' ? 'calles' : 'noche', is3D = false, mapReady = false;
+// Solo dos vistas de mapa: Calles y Satélite
+let mapStyle = 'calles', is3D = false, mapReady = false;
 try { const s = localStorage.getItem('trayecto-style'); if (STYLES[s]) mapStyle = s; } catch (e) {}
 const NOOP_CANVAS = { style: {} };
 const map = mapboxgl ? new mapboxgl.Map({ container: 'map', style: STYLES[mapStyle].url, center: ll(CB), zoom: 13.4, maxPitch: 75 })
@@ -541,7 +541,7 @@ function apply3D() {
   if (is3D && map.getSource('openmaptiles')) { try { map.addLayer({ id: 'edificios', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-color': mapStyle === 'noche' ? '#2a3a55' : '#d6d2c8', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.75 } }, map.getLayer('routes-casing') ? 'routes-casing' : undefined); } catch (e) {} }
 }
 function set3D(on) { is3D = on; if (mapReady) apply3D(); map.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 800 }); renderStyleBar(); }
-function renderStyleBar() { document.getElementById('styleBar').innerHTML = Object.entries(STYLES).map(([k, s]) => `<button data-style="${k}" aria-pressed="${k === mapStyle}">${s.n}</button>`).join('') + `<button data-3d="1" aria-pressed="${is3D}">3D</button><button data-region="1" title="Ver toda la región">Región</button>`; }
+function renderStyleBar() { document.getElementById('styleBar').innerHTML = Object.entries(STYLES).map(([k, s]) => `<button data-style="${k}" aria-pressed="${k === mapStyle}">${s.n}</button>`).join('') + `<button data-region="1" title="Ver toda la región">Región</button>`; }
 document.getElementById('styleBar').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.style) setStyle(b.dataset.style); else if (b.dataset['3d']) set3D(!is3D); else if (b.dataset.region) fitRegion(); });
 renderStyleBar();
 
@@ -890,15 +890,15 @@ const temaBtn = document.getElementById('tema');
 function pintarTema() { const claro = document.documentElement.dataset.theme === 'light'; temaBtn.innerHTML = UI.icono(claro ? 'luna' : 'sol', 18); temaBtn.setAttribute('aria-label', claro ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro');
   document.querySelector('meta[name=theme-color]').content = claro ? '#FFFFFF' : '#0B0F24'; }
 temaBtn.onclick = () => { const claro = document.documentElement.dataset.theme !== 'light'; if (claro) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;
-  try { localStorage.setItem('vamo-tema', claro ? 'claro' : 'oscuro'); } catch (e) {} pintarTema(); if ((claro && mapStyle === 'noche') || (!claro && mapStyle === 'calles')) setStyle(claro ? 'calles' : 'noche'); };
+  try { localStorage.setItem('vamo-tema', claro ? 'claro' : 'oscuro'); } catch (e) {} pintarTema(); };
 pintarTema();
-const FILTROS = [['auto', 'Autos'], ['taxi', 'Taxis'], ['moto', 'Motos'], ['bus', 'Buses'], ['micro', 'Micros']];
+const FILTROS = [['auto', 'Autos'], ['taxi', 'Taxis'], ['moto', 'Motos'], ['bus', 'Buses']];
 const filtrosEl = document.getElementById('filtros');
 function renderFiltros() { const fs = FILTROS.filter(([k]) => (VIS[S.tab] || VIS.planificar).includes(k)); filtrosEl.hidden = fs.length < 2; filtrosEl.innerHTML = fs.map(([k, n]) => `<button class="fchip" data-f="${k}" aria-pressed="${!!S.filtro[k]}" style="--c:${COL[k]}">${UI.icono(k, 15)}${n}</button>`).join(''); }
 filtrosEl.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; S.filtro[b.dataset.f] = !S.filtro[b.dataset.f];
   try { localStorage.setItem('vamo-filtro', JSON.stringify(S.filtro)); } catch (er) {} renderFiltros(); drawBase(); });
 renderFiltros();
-document.getElementById('legend').innerHTML = `<div class="lrow">${[['auto', 'Auto libre'], ['taxi', 'Taxi libre'], ['moto', 'Moto delivery'], ['bus', 'Bus'], ['micro', 'Micro'], ['ocupado', 'Ocupado']].map(([k, n]) => `<span><img alt="" src="${UI.svgUrl(UI.pin(k, 26))}">${n}</span>`).join('')}</div>
+document.getElementById('legend').innerHTML = `<div class="lrow">${[['auto', 'Auto libre'], ['taxi', 'Taxi libre'], ['moto', 'Moto delivery'], ['bus', 'Bus'], ['ocupado', 'Ocupado']].map(([k, n]) => `<span><img alt="" src="${UI.svgUrl(UI.pin(k, 26))}">${n}</span>`).join('')}</div>
   <div class="lrow src"><span class="st programado">Programado</span>bus o micro ubicado según su horario <span class="st estimado">Estimado</span><span class="st sinhorario">Sin horario confirmado</span>sin posición en el mapa <span class="st simulado">Simulado</span>autos, taxis y motos de demo</div>`;
 
 /* ============ Render ============ */
