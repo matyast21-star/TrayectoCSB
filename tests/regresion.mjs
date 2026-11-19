@@ -143,7 +143,7 @@ await test('Conductores: acceso único y registro en 3 pasos con borrador', asyn
   await irA(page, 'soy'); assert(await page.locator('[data-rtipo]').count() === 5, 'no están los 5 tipos');
   assert(await page.locator('#view .lista [data-tab=mas]').count() === 0 && await page.locator('#tabs [data-tab=mas]').count() === 1, 'navegación');
   await page.click('[data-rtipo=colectivo]'); assert(await page.locator('#regSig').isDisabled(), 'deja seguir sin patente');
-  assert(await page.locator('.docrow').count() === 5, 'documentos de colectivo');
+  assert(await page.locator('.docrow').count() === (await ev(() => FLOTA.on) ? 6 : 5), 'documentos de colectivo');
   await page.fill('[data-rf=patente]', 'TEST45'); await page.fill('[data-rf=marca]', 'Toyota Prueba'); await page.click('#capMenos');
   assert(await ev(() => JSON.parse(localStorage.getItem('vamo-registro')).patente === 'TEST45'), 'no guardó el borrador');
   await page.click('#regSig'); assert(/Santa Isabel/.test(await page.locator('#view').innerText()), 'paso 2 sin puntos de salida');
@@ -230,6 +230,53 @@ await test('Paraderos favoritos y recorridos frecuentes', async () => {
   assert(await bd.locator('[data-bqo=cb-term]').count() === 1, 'no muestra el favorito'); assert(await bev(() => frecuentes().includes('I1')), 'no registró frecuente'); });
 await test('Micros de la base no se muestran', async () => { assert(await bev(() => !ALLROUTES.some(r => r.id === 'L1')), 'aparece L1'); });
 await bd.close();
+
+// ---- Conductores conectados a VAMO (Supabase simulado en memoria) ----
+const fl = await browser.newPage({ viewport: { width: 390, height: 844 } }); fl.on('pageerror', e => errors.push('flota: ' + e.message));
+const LLAMADAS = []; const VEH = { id: 'aaaaaaaa-1111-2222-3333-444444444444', tipo: 'auto', patente: 'ABCD12', marca_modelo: 'Toyota Yaris', capacidad: 4, estado_verificacion: 'borrador', en_pausa: false, recorrido_id: null, zona: 'Casablanca urbano', categoria: 'eco' };
+let sesionActiva = null;
+await fl.route(/supabase\.co\/(auth|rest|storage)\//, r => { const u = new URL(r.request().url()), m = r.request().method(), path = u.pathname, perfil = r.request().headers()['accept-profile'];
+  let body = r.request().postData(); try { body = body ? JSON.parse(body) : null; } catch (e) {}
+  LLAMADAS.push({ m, path: path.replace(/^\/(rest|auth)\/v1\//, ''), q: u.search, body });
+  const ok = d => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) });
+  if (path.endsWith('/auth/v1/signup')) return ok({ access_token: 'tok', refresh_token: 'ref', expires_in: 3600, user: { id: 'u1111111-0000-0000-0000-000000000000' } });
+  if (perfil !== 'flota') return ok([]);
+  const t = path.split('/').pop();
+  if (t === 'propietario') return ok(m === 'POST' ? [{ id: 'p1' }] : []);
+  if (t === 'vehiculo') return ok(m === 'GET' ? (u.search.includes('propietario') && LLAMADAS.some(l => l.path === 'vehiculo' && l.m === 'POST') ? [VEH] : []) : [VEH]);
+  if (t === 'sesion_servicio') return ok(sesionActiva ? [sesionActiva] : []);
+  if (t === 'iniciar_servicio') { sesionActiva = { id: 'sid-1', vehiculo_id: VEH.id, cupos: null, completo: false, sentido: null, consentimiento_gps_en: body.acepta_gps ? 'x' : null }; return ok('sid-1'); }
+  if (t === 'finalizar_servicio') { sesionActiva = null; return ok(null); }
+  if (t === 'enviar_a_revision') return ok(['soap']);
+  if (t === 'es_admin') return ok(false);
+  if (t === 'en_servicio') return ok([{ sesion_id: 's9', vehiculo_id: 'v9', tipo: 'colectivo', patente: 'XYZW12', capacidad: 4, sentido: 'Hacia Valparaíso', cupos: 2, completo: false, inicio: new Date().toISOString(), salida_informada: null, retraso_min: 0, lat: null }]);
+  return ok([]); });
+await fl.goto(BASE); await fl.waitForTimeout(1000);
+const fev = f => fl.evaluate(f);
+await test('Conectado: el registro guarda el vehículo en VAMO con identidad anónima', async () => {
+  assert(await fev(() => FLOTA.on), 'FLOTA no está activo en el sitio local');
+  await fev(() => { OWNER.vehiculos = []; REG = { ...nuevoReg('auto'), patente: 'abcd12', marca: 'Toyota Yaris', paso: 3 }; terminarRegistro(); });
+  await fl.waitForFunction(() => OWNER.vehiculos[0] && OWNER.vehiculos[0].rid, null, { timeout: 5000 });
+  const post = LLAMADAS.find(l => l.path === 'vehiculo' && l.m === 'POST'); assert(post && post.body.patente === 'ABCD12' && post.body.propietario_id === 'p1', 'no envió el vehículo: ' + JSON.stringify(post && post.body));
+  assert(LLAMADAS.some(l => l.path === 'signup'), 'no creó la identidad anónima');
+  assert(await fl.locator('#view [data-tab=documentos]').count() === 1, 'falta el botón Documentos'); });
+await test('Conectado: iniciar servicio pide permiso de ubicación y usa el servidor', async () => {
+  assert(await fl.locator('#pGpsQ').getAttribute('aria-checked') === 'false', 'la ubicación viene activada sin permiso');
+  await fl.click('#pIniciar'); await fl.waitForFunction(() => SES[S.panelVid] && SES[S.panelVid].rsid === 'sid-1', null, { timeout: 5000 });
+  const ini = LLAMADAS.find(l => l.path === 'rpc/iniciar_servicio'); assert(ini && ini.body.acepta_gps === false && ini.body.v === 'aaaaaaaa-1111-2222-3333-444444444444', 'parámetros: ' + JSON.stringify(ini && ini.body));
+  assert(/No estás compartiendo tu ubicación/.test(await fl.locator('#panelGps').innerText()), 'el indicador no es honesto');
+  await fl.click('#pFin'); await fl.waitForTimeout(300); assert(LLAMADAS.some(l => l.path === 'rpc/finalizar_servicio' && l.body.s === 'sid-1'), 'no finalizó en el servidor'); });
+await test('Conectado: documentos requeridos y envío a revisión', async () => {
+  await fl.click('#view [data-tab=documentos]'); await fl.waitForSelector('#docEnviar');
+  assert(await fl.locator('#view input[data-doc]').count() === 4, 'documentos de auto distintos de 4');
+  assert(await fl.locator('#docEnviar').isDisabled(), 'permite enviar sin documentos'); });
+await test('Conectado: colectivos informados por conductores, sin inventar', async () => {
+  await fl.evaluate(() => ir('colectivos')); await fl.waitForTimeout(500);
+  const txt = await fl.locator('#view').innerText(); assert(/2 de 4 cupos/.test(txt) && /Informado por el conductor/.test(txt), 'no muestra el colectivo en servicio'); });
+await test('Conectado: código de invitación y administrar', async () => {
+  await fl.evaluate(() => ir('soy')); assert(await fl.locator('#invCod').count() === 1, 'falta el campo de código');
+  await fl.evaluate(() => ir('gestion')); await fl.waitForSelector('#gInvitar'); assert(await fl.locator('#gPausa').count() === 1, 'falta suspender servicio'); });
+await fl.close();
 
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
