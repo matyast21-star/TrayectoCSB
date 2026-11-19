@@ -1251,7 +1251,9 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
     if (b.id === 'pIniciar' && FLOTA.on && v.rid) { iniciarRemoto(v, s); return; }
     Object.assign(s, { activo: true, demo: b.id === 'pDemo' || !puedeServir(v), inicio: hhmm(nowMin()), cupos: v.cap || TIPOS_V[tipoDe(v)].cap, completo: false, salida: null, retraso: 0, sentido: s.sentido || 'Hacia Valparaíso' }); saveSes(); render(); return; }
   if (b.id === 'pFin') { const s = ses(), sid = !s.demo && s.rsid; s.activo = false; s.demo = false; s.rsid = null; saveSes(); gpsDetener(); render(); if (FLOTA.on && sid) remoto('finalizar_servicio', { s: sid }, 'Servicio finalizado. Tu ubicación dejó de compartirse.').catch(() => {}); return; }
-  const rs = (fn, args) => { const s = ses(); if (FLOTA.on && s.rsid && !s.demo) remoto(fn, { s: s.rsid, ...args }).catch(() => {}); };
+  const rs = (fn, args) => { const s = ses(); if (!FLOTA.on || !s.rsid || s.demo) return; // en orden y, para los cupos, solo el último valor
+    if (fn === 'actualizar_cupos') { clearTimeout(FL.tCupos); FL.tCupos = setTimeout(() => { FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, n: s.cupos })).catch(() => {}); }, 500); return; }
+    FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, ...args })).catch(() => {}); };
   if (b.id === 'pMenos' || b.id === 'pMas') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid), s = ses(); s.cupos = Math.max(0, Math.min(v.cap || 4, s.cupos + (b.id === 'pMas' ? 1 : -1))); s.completo = s.cupos === 0; saveSes(); render(); rs('actualizar_cupos', { n: s.cupos }); return; }
   if (b.id === 'pCompleto') { const s = ses(); s.completo = !s.completo; if (s.completo) s.cupos = 0; saveSes(); render(); rs('marcar_completo', { si: s.completo }); return; }
   if (b.id === 'pSalida') { const s = ses(); s.salida = hhmm(nowMin()); saveSes(); render(); rs('informar_salida', { retraso: 0 }); return; }
