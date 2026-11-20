@@ -14,6 +14,7 @@
 <script src="ui/avisos.js"></script>
 <script src="ui/admin-horarios.js"></script>
 <script src="ui/rendimiento.js"></script>
+<script src="ui/push.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
 /* Modo de bajo consumo: sin mapa ni librería de mapas (?lite=1 lo activa, ?lite=0 lo desactiva) */
@@ -1141,7 +1142,9 @@ function alertaHTML() { const al = AVISOS.alerta(), mia = al && al.origen === S.
     <label class="campo">Dónde subes<select id="alAbordaje"><option value="">Punto de salida de cada servicio</option>${pts.map(p => `<option value="${p.id}" ${al.abordaje === p.id ? 'selected' : ''}>${esc(p.n)}${p.ver === false ? ' (por verificar)' : ''}</option>`).join('')}</select></label>
     <label class="campo">Anticipación<select id="alAnticip">${[5, 10, 15, 20, 30].map(m => `<option value="${m}" ${al.anticip === m ? 'selected' : ''}>${m} minutos antes</option>`).join('')}</select></label>
     <div class="opciones">${[['bus', 'Buses'], ['colectivo', 'Colectivos']].map(([m, n]) => `<button class="opcion" data-almodo="${m}" aria-pressed="${al.modos.includes(m)}">${n}</button>`).join('')}</div>
-    <p class="hint" style="margin:0">${sil ? 'Silenciada hasta las ' + new Date(al.silencio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'Vence en ' + (quedan >= 60 ? Math.floor(quedan / 60) + ' h ' + (quedan % 60) + ' min' : quedan + ' min')}. Funciona con VAMO abierto; los avisos con la app cerrada vendrán después.</p>
+    <p class="hint" style="margin:0">${sil ? 'Silenciada hasta las ' + new Date(al.silencio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'Vence en ' + (quedan >= 60 ? Math.floor(quedan / 60) + ' h ' + (quedan % 60) + ' min' : quedan + ' min')}. ${PUSH.activo() ? 'También te avisamos con VAMO cerrado, si el teléfono tiene conexión y el sistema lo permite.' : 'Te avisamos mientras VAMO esté abierto.'}</p>
+    ${PUSH.activo() ? '<button class="btn sm ghost" id="alPushOff">No avisarme con VAMO cerrado</button>' : PUSH.soportado() && PUSH.permiso() !== 'denied' ? '<button class="btn sm" id="alPush">🔔 Avisarme también con VAMO cerrado</button><p class="hint" style="margin:0">Te pediremos permiso de notificaciones solo al tocar este botón.</p>' : ''}
+    ${PUSH.aviso() ? `<p class="hint" style="margin:0">${esc(PUSH.aviso())}</p>` : ''}
     <div class="row"><button class="btn sm ghost" id="alSil">${sil ? 'Reactivar avisos' : 'Silenciar 30 min'}</button><button class="btn sm ghost" id="alCancel">Cancelar alerta</button></div></div>`; }
 function viewLocomocion() {
   if (!LOC[S.dest] || S.dest === S.loc) S.dest = destinos()[0].id;
@@ -1189,17 +1192,22 @@ async function tickAvisos() { if (document.hidden) return;
 setInterval(tickAvisos, 15000);
 function activarAlerta(extra = {}) { const al = AVISOS.crearAlerta({ origen: S.loc, destino: S.dest, ...extra }); ALT.ev = [];
   mostrarAvisos([{ texto: `🔔 Te avisaremos sobre ${LOC[al.origen].nombre} → ${LOC[al.destino].nombre} mientras VAMO esté abierto.` }]);
+  if (PUSH.activo()) PUSH.subirAlerta(al).then(id => { if (id) AVISOS.actualizarAlerta({ srv: id }); }).catch(() => {});
   if (S.tab !== 'locomocion') ir('locomocion'); else refrescarVista(); setTimeout(tickAvisos, 300); }
-document.addEventListener('click', e => { const b = e.target.closest('#emAbrir,#avisame,#alertaVer,#atVer,#atSil,#atX,#alSil,#alCancel,[data-almodo],[data-avsal],[data-irdest],[data-fecha],[data-verruta]'); if (!b) return;
+const syncAlerta = () => { const al = AVISOS.alerta(); if (al && al.srv && PUSH.activo()) PUSH.subirAlerta(al).catch(() => {}); };
+document.addEventListener('click', e => { const b = e.target.closest('#emAbrir,#avisame,#alertaVer,#atVer,#atSil,#atX,#alSil,#alCancel,#alPush,#alPushOff,[data-almodo],[data-avsal],[data-irdest],[data-fecha],[data-verruta]'); if (!b) return;
   const t = document.getElementById('avisoToast');
   if (b.id === 'emAbrir' || b.id === 'alertaVer') { if (S.tab !== 'locomocion') ir('locomocion'); else view.scrollTop = 0; return; }
   if (b.id === 'avisame') { activarAlerta(); return; }
   if (b.dataset.avsal) { activarAlerta({ salida: +b.dataset.avsal, salidaTxt: b.dataset.avsaltxt }); return; }
   if (b.id === 'atX') { if (t) t.hidden = true; return; }
   if (b.id === 'atVer') { if (t) t.hidden = true; const al = AVISOS.alerta(); if (al) { if (LOC[al.origen] && al.origen !== S.loc) { locEl.value = al.origen; S.loc = al.origen; } setDest(al.destino); S.fecha = null; } ir('locomocion'); return; }
-  if (b.id === 'atSil' || b.id === 'alSil') { const al = AVISOS.alerta(); if (al) AVISOS.actualizarAlerta({ silencio: al.silencio > Date.now() ? 0 : Date.now() + 30 * 60000 }); if (t && b.id === 'atSil') t.hidden = true; refrescarVista(); return; }
-  if (b.id === 'alCancel') { AVISOS.cancelarAlerta(); refrescarVista(); return; }
-  if (b.dataset.almodo) { const al = AVISOS.alerta(); if (al) { const m = b.dataset.almodo, ms = al.modos.includes(m) ? al.modos.filter(x => x !== m) : [...al.modos, m]; if (ms.length) AVISOS.actualizarAlerta({ modos: ms }); } refrescarVista(); return; }
+  if (b.id === 'atSil' || b.id === 'alSil') { const al = AVISOS.alerta(); if (al) AVISOS.actualizarAlerta({ silencio: al.silencio > Date.now() ? 0 : Date.now() + 30 * 60000 }); syncAlerta(); if (t && b.id === 'atSil') t.hidden = true; refrescarVista(); return; }
+  if (b.id === 'alCancel') { const al = AVISOS.alerta(); if (al && al.srv) PUSH.cancelarAlerta(al.srv); AVISOS.cancelarAlerta(); refrescarVista(); return; }
+  if (b.id === 'alPush') { b.disabled = true; (async () => { try { await PUSH.suscribir(); const al = AVISOS.alerta(); if (al) { const id = await PUSH.subirAlerta(al); if (id) AVISOS.actualizarAlerta({ srv: id }); }
+      mostrarAvisos([{ texto: '🔔 Listo: también te avisaremos con VAMO cerrado. Depende de la conexión y del sistema del teléfono.' }]); } catch (er) { mostrarAvisos([{ texto: traducir(er) }]); } refrescarVista(); })(); return; }
+  if (b.id === 'alPushOff') { (async () => { const al = AVISOS.alerta(); if (al && al.srv) await PUSH.cancelarAlerta(al.srv); AVISOS.actualizarAlerta({ srv: null }); await PUSH.desactivar(); refrescarVista(); })(); return; }
+  if (b.dataset.almodo) { const al = AVISOS.alerta(); if (al) { const m = b.dataset.almodo, ms = al.modos.includes(m) ? al.modos.filter(x => x !== m) : [...al.modos, m]; if (ms.length) { AVISOS.actualizarAlerta({ modos: ms }); syncAlerta(); } } refrescarVista(); return; }
   if (b.dataset.irdest) { const d = b.dataset.irdest; if (d === 'zona') { S.dest = S.loc; ir('viaje'); return; }
     if (!setDest(d)) return; S.destElegido = true; S.fecha = null; render(); consultarAlt(); cargarReportes(d); const c = compatVista(); if (c) fit(ALLROUTES.filter(r => c.has(r.id)).flatMap(r => r.path), 2); return; }
   if (b.dataset.fecha) { S.fecha = b.dataset.fecha === hoyISO() ? null : b.dataset.fecha; consultarAlt(); refrescarVista(); return; }
@@ -1208,8 +1216,8 @@ document.addEventListener('click', e => { const b = e.target.closest('#emAbrir,#
 document.addEventListener('change', e => { const t = e.target;
   if (t.id === 'fechaSel' && t.value) { S.fecha = t.value === hoyISO() ? null : t.value; consultarAlt(); refrescarVista(); }
   if (t.id === 'desdeSel') { locEl.value = t.value; locEl.onchange(); if (S.destElegido && S.dest !== S.loc) { consultarAlt(); cargarReportes(S.dest); } }
-  if (t.id === 'alAbordaje') { AVISOS.actualizarAlerta({ abordaje: t.value || null }); refrescarVista(); try { drawOver(); } catch (er) {} }
-  if (t.id === 'alAnticip') { AVISOS.actualizarAlerta({ anticip: +t.value }); refrescarVista(); } });
+  if (t.id === 'alAbordaje') { AVISOS.actualizarAlerta({ abordaje: t.value || null }); syncAlerta(); refrescarVista(); try { drawOver(); } catch (er) {} }
+  if (t.id === 'alAnticip') { AVISOS.actualizarAlerta({ anticip: +t.value }); syncAlerta(); refrescarVista(); } });
 function viewMapa() {
   return `<div><h2>Mapa</h2><p class="sub">Vehículos y recorridos en el mapa. Los autos y taxis son simulados; los buses siguen horarios de ejemplo.</p></div>
     <div class="row"><button class="btn sm ghost" data-tab="locomocion">Ver locomoción en lista</button><button class="btn sm ghost" data-tab="viaje">Pedir un viaje</button></div>
@@ -1334,7 +1342,7 @@ function soyConectado() { pedirSync();
   return `${msgHTML()}<div class="card"><h3>Tengo un código de invitación</h3><p class="hint" style="margin:0">Si un dueño te autorizó a conducir su vehículo, ingresa el código que te dio.</p>
       <div class="row"><input id="invCod" maxlength="8" placeholder="Ej.: 4F7A2C9B" autocapitalize="characters" style="text-transform:uppercase;flex:1"><button class="btn sm" id="invOk">Usar código</button></div></div>
     ${FL.admin ? `<button class="btn secundario" data-tab="revision">Revisar documentos (equipo VAMO)</button><button class="btn secundario" data-tab="adminhor">Horarios y operadores (equipo VAMO)</button>` : ''}
-    <p class="hint">Versión de desarrollo conectada a VAMO. No necesitas correo ni contraseña: este teléfono recibe una identidad propia al guardar tu primer vehículo o usar un código.${FLOTA.uid() ? ` Identificador: <span class="mono">${FLOTA.uid().slice(0, 8)}</span>` : ''}</p>`; }
+    <p class="hint">${FLOTA.entorno === 'desarrollo' ? 'Versión de desarrollo conectada a VAMO.' : 'Conectado a VAMO.'} No necesitas correo ni contraseña: este teléfono recibe una identidad propia al guardar tu primer vehículo o usar un código.${FLOTA.uid() ? ` Identificador: <span class="mono">${FLOTA.uid().slice(0, 8)}</span>` : ''}</p>`; }
 function viewRegistro() {
   if (!REG) return `<div class="vacio">${UI.icono('auto', 30)}<h3>Elige primero tu vehículo</h3><button class="btn sm" data-tab="soy">Elegir vehículo</button></div>`;
   const R = REG, T = TIPOS_V[R.tipo], titulos = ['Mi vehículo', 'Mi servicio', 'Mi disponibilidad'];
@@ -1418,7 +1426,7 @@ function viewPanelCond() {
   if (FLOTA.on && !activo) h += red ? `<div class="grid2"><button class="btn secundario" data-tab="documentos">Documentos</button>${v.rol === 'dueno' ? '<button class="btn secundario" data-tab="gestion">Administrar</button>' : ''}</div><button class="btn secundario" data-tab="rendimiento">${UI.icono('planificar', 16)} Mi rendimiento: km, gastos y mantenciones</button>`
     : `<button class="btn secundario" id="pSubir">Guardar en VAMO</button><p class="hint" style="margin:0;text-align:center">Este vehículo está solo en este teléfono.</p>`;
   return h + `${v.rol === 'conductor' ? '' : '<button class="btn sm ghost" id="pEditar" style="align-self:center">Configurar mi vehículo</button>'}
-    ${red ? `<p class="hint">${v.rol === 'conductor' ? 'Conduces este vehículo con autorización del dueño. ' : ''}Conectado a VAMO (versión de desarrollo). Solo una persona a la vez puede tener este vehículo en servicio.</p>`
+    ${red ? `<p class="hint">${v.rol === 'conductor' ? 'Conduces este vehículo con autorización del dueño. ' : ''}Conectado a VAMO${FLOTA.entorno === 'desarrollo' ? ' (versión de desarrollo)' : ''}. Solo una persona a la vez puede tener este vehículo en servicio.</p>`
       : '<p class="hint"><b>Prototipo:</b> el servicio se guarda solo en este teléfono y no se publica a pasajeros. Con las cuentas (etapas 2 a 5) quedará en VAMO con permisos de dueño y conductor.</p>'}`;
 }
 function viewMisVehiculos() {

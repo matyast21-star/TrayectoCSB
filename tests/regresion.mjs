@@ -313,8 +313,8 @@ await pc.close();
 
 // ---- Avisos de locomoción: horarios reales + vehículos en vivo (Supabase simulado; hora fija 14:40 de un viernes en Chile) ----
 const ALTF = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'alternativas.json'), 'utf8'));
-const avc = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Santiago' }); await avc.addInitScript(PASAJERO);
-await avc.addInitScript(() => { try { const f = Notification.requestPermission; Notification.requestPermission = (...a) => { window.__permisosPedidos = (window.__permisosPedidos || 0) + 1; return f.apply(Notification, a); }; } catch (e) {} });
+const avc = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Santiago', permissions: ['notifications'] }); await avc.addInitScript(PASAJERO);
+await avc.addInitScript(() => { try { Object.defineProperty(Notification, 'permission', { get: () => 'default' }); } catch (e) {} try { const f = Notification.requestPermission; Notification.requestPermission = (...a) => { window.__permisosPedidos = (window.__permisosPedidos || 0) + 1; return f.apply(Notification, a); }; } catch (e) {} });
 const av = await avc.newPage(); av.on('pageerror', e => errors.push('avisos: ' + e.message));
 await av.clock.setFixedTime(new Date('2026-11-20T17:40:00Z'));
 const RPCS = [], ESCRITURAS = []; const ahoraISO = () => new Date('2026-11-20T17:39:00Z').toISOString();
@@ -357,7 +357,8 @@ await test('Avísame: alerta en la app sin pedir permisos y sin repetir avisos',
   assert(await avUntil(() => { const t = document.getElementById('avisoToast'); return t && !t.hidden && /Próximo Mira-Sur programado a las 14:50/.test(t.innerText); }), 'no avisó la próxima salida: ' + await aev(() => (document.getElementById('avisoToast') || {}).innerText));
   const n = await aev(() => (ALT.historial || []).length); await aev(() => tickAvisos()); await av.waitForTimeout(400);
   assert(await aev(() => (ALT.historial || []).length) === n, 'repitió avisos');
-  assert(await aev(() => window.__permisosPedidos || 0) === 0, 'pidió permiso de notificaciones'); });
+  assert(await aev(() => window.__permisosPedidos || 0) === 0, 'pidió permiso de notificaciones');
+  assert(await av.locator('#alPush').count() === 1 && /solo al tocar este botón/.test(await av.locator('#view').innerText()), 'falta la opción de avisos con VAMO cerrado'); });
 await test('Brander de regreso: sin horarios inventados', async () => {
   await aev(() => { S.loc = 'casablanca'; setDest('quilpue'); S.destElegido = true; consultarAlt(); render(); });
   assert(await avUntil(() => /pendiente/i.test(document.getElementById('view').innerText) && /Brander/.test(document.getElementById('view').innerText)), 'no muestra Brander pendiente');

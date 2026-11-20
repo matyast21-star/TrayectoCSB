@@ -1,10 +1,14 @@
 /* VAMO · Cliente de la base de conductores y dueños (esquema «flota» de Supabase).
-   Solo se activa en el sitio de desarrollo (y en pruebas locales). En producción la app sigue usando
-   su modo local hasta que la migración se apruebe y se aplique allí.
+   Desarrollo y producción usan proyectos de Supabase separados. En producción requiere haber
+   aplicado antes el SQL de producción (esquema flota) y activado el inicio de sesión anónimo.
    Inicio de sesión anónimo: el teléfono recibe una identidad propia sin pedir correo ni SMS. */
 window.FLOTA = (() => {
-  const on = /^(desarrollo\.|localhost$|127\.0\.0\.1$)/.test(location.hostname);
-  const URL_ = 'https://fryjiahvhjtuizgvtxtn.supabase.co', KEY = 'sb_publishable_EgtcjP_pcOBKVCo9PPXdGg_u2-2oJnG';
+  // Desarrollo (y pruebas locales) usa «vamo-desarrollo»; el sitio de producción usa su propio proyecto.
+  const dev = /^(desarrollo\.|localhost$|127\.0\.0\.1$)/.test(location.hostname);
+  const prod = /^(trayectocsb\.pages\.dev|vamo\.cl|www\.vamo\.cl)$/.test(location.hostname);
+  const on = dev || prod, entorno = dev ? 'desarrollo' : prod ? 'produccion' : 'otro';
+  const URL_ = prod ? 'https://yktziqqggiyhasifvvdb.supabase.co' : 'https://fryjiahvhjtuizgvtxtn.supabase.co';
+  const KEY = prod ? 'sb_publishable_M6szJFH4KE_d-rWSLf28Gg_RAUefnJW' : 'sb_publishable_EgtcjP_pcOBKVCo9PPXdGg_u2-2oJnG';
   const BUCKET = 'documentos-vehiculo';
   let ses = null; try { ses = JSON.parse(localStorage.getItem('vamo-auth') || 'null'); } catch (e) {}
   const guardar = () => { try { ses ? localStorage.setItem('vamo-auth', JSON.stringify(ses)) : localStorage.removeItem('vamo-auth'); } catch (e) {} };
@@ -48,5 +52,5 @@ window.FLOTA = (() => {
     if (!r.ok) throw new Error(await leerError(r));
     const j = await r.json(); return URL_ + '/storage/v1' + (j.signedURL || j.signedUrl);
   }
-  return { on, URL: URL_, KEY, uid: () => (ses && ses.user ? ses.user.id : null), conSesion: () => !!ses, sesion, pedir, rpc, rpcPub, subir, verArchivo };
+  return { on, entorno, URL: URL_, KEY, uid: () => (ses && ses.user ? ses.user.id : null), conSesion: () => !!ses, sesion, pedir, rpc, rpcPub, subir, verArchivo };
 })();
