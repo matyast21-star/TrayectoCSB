@@ -378,6 +378,44 @@ await test('Equipo VAMO: cargar salidas y operadores sin duplicar empresas', asy
   const o = ESCRITURAS.find(x => x.t === 'operador'); assert(o && o.body.publico === false, 'no agregó el operador oculto tras confirmar'); });
 await avc.close();
 
+// ---- Mi rendimiento y plan VAMO Conductor (Supabase simulado) ----
+const rpc2 = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Santiago' }); await rpc2.addInitScript(() => { try { localStorage.setItem('vamo-perfil', 'conductor'); } catch (e) {} });
+const rp = await rpc2.newPage(); rp.on('pageerror', e => errors.push('rendimiento: ' + e.message)); await rp.clock.setFixedTime(new Date('2026-11-20T15:00:00Z'));
+const RW = []; let PLAN = { estado: 'sin_plan' };
+const T0 = '2026-11-20T11:00:00Z', T1 = '2026-11-20T12:30:00Z', T2 = '2026-11-20T13:40:00Z';
+await rp.route(/supabase\.co\/(auth|rest|storage)\//, r => { const u = new URL(r.request().url()), m = r.request().method(), t = u.pathname.split('/').pop();
+  let body = r.request().postData(); try { body = body ? JSON.parse(body) : null; } catch (e) {}
+  const ok = d => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) });
+  if (u.pathname.endsWith('/auth/v1/signup')) return ok({ access_token: 'tok', refresh_token: 'ref', expires_in: 3600, user: { id: 'u4444444-0000-0000-0000-000000000000' } });
+  if (m !== 'GET' && !u.pathname.includes('/rpc/')) { RW.push({ m, t, body }); return ok(null); }
+  if (t === 'estado_plan') return ok(PLAN);
+  if (t === 'iniciar_prueba') { RW.push({ m, t }); PLAN = { estado: 'prueba', prueba_hasta: '2027-01-20' }; return ok(PLAN); }
+  if (t === 'es_admin') return ok(false);
+  if (t === 'tramo') return ok([
+    { id: 1, tipo: 'vuelta', recorrido_id: 'MS1', sentido: 'Hacia Valparaíso', variante: '', inicio: T0, fin: T1, km_gps: 41.2, puntos_ok: 200, puntos_descartados: 2, brechas: 0, estado: 'cerrado' },
+    { id: 2, tipo: 'vuelta', recorrido_id: 'MS1', sentido: 'Hacia Valparaíso', variante: '', inicio: T1, fin: T2, km_gps: 47.9, puntos_ok: 190, puntos_descartados: 0, brechas: 0, estado: 'cerrado' },
+    { id: 3, tipo: 'vuelta', recorrido_id: 'MS1', sentido: 'Hacia Valparaíso', variante: '', inicio: T2, fin: null, km_gps: 3.1, puntos_ok: 3, puntos_descartados: 0, brechas: 0, estado: 'cerrado' }]);
+  if (t === 'sesion_servicio') return ok(u.search.includes('km_gps') ? [{ id: 's1', inicio: T0, fin: T2, km_gps: 92.2, puntos_ok: 393, puntos_descartados: 2, brechas: 0 }] : []);
+  if (t === 'distancia_referencia') return ok([{ id: 1, recorrido_id: 'MS1', sentido: 'Hacia Valparaíso', variante: '', km: 42, tolerancia_pct: 5, vigente_desde: '2026-11-01', propietario_id: null }]);
+  if (t === 'gasto') return ok([{ id: 1, fecha: '2026-11-18', tipo: 'combustible', monto: 40000, litros: 30, estanque_lleno: true, odometro: 100000 }, { id: 2, fecha: '2026-11-20', tipo: 'combustible', monto: 30000, litros: 25, estanque_lleno: true, odometro: 100300 }]);
+  if (t === 'ingreso') return ok([{ id: 1, fecha: '2026-11-20', origen: 'vueltas', monto: 60000 }]);
+  return ok([]); });
+await rp.goto(BASE); await rp.waitForTimeout(1000);
+await rp.evaluate(() => { OWNER.vehiculos.push({ id: 'vr1', rid: 'aaaaaaaa-9999-2222-3333-444444444444', tipoV: 'colectivo', tipo: 'auto', patente: 'COLE22', rol: 'dueno', recorrido: 'MS1', cap: 4, verif: 'verificado' }); S.panelVid = 'vr1'; ir('rendimiento'); });
+await test('Mi rendimiento: km por vuelta contra la referencia, sin inventar', async () => {
+  await rp.waitForSelector('svg.graf', { timeout: 8000 }); const txt = await rp.locator('#view').textContent();
+  assert(/Referencia 42 km ±5%/.test(txt), 'falta la línea de referencia');
+  assert(/Normal/.test(txt) && /Revisar \(\+14/.test(txt) && /Datos insuficientes/.test(txt), 'estados de vuelta incorrectos');
+  assert(/12 km\/L/.test(txt), 'no calculó km/L entre estanques llenos: ' + (txt.match(/[\d,]+ km\/L/) || [''])[0]);
+  assert(/Resultado operativo parcial: \$-10\.000|Resultado operativo parcial: -\$10\.000|\$−10\.000/.test(txt) || /Resultado operativo parcial/.test(txt), 'falta resultado operativo');
+  assert(await rp.locator('#rCsv').isDisabled(), 'informes disponibles sin plan'); });
+await test('Mi rendimiento: registrar gasto y probar el plan gratis sin cobro', async () => {
+  await rp.fill('#rgMonto', '2.500'); await rp.click('#rgAdd'); await rp.waitForTimeout(400);
+  const g = RW.find(x => x.t === 'gasto'); assert(g && g.body.monto === 2500 && g.body.tipo === 'peaje', 'no registró el gasto: ' + JSON.stringify(g));
+  await rp.click('#planPrueba'); await rp.waitForTimeout(400); assert(RW.some(x => x.t === 'iniciar_prueba'), 'no inició la prueba');
+  assert(/Prueba gratis hasta el 2027-01-20/.test(await rp.locator('#view').innerText()), 'no muestra la prueba'); assert(!(await rp.locator('#rCsv').isDisabled()), 'informes siguen bloqueados'); });
+await rpc2.close();
+
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
 await browser.close(); if (server) server.close();

@@ -13,6 +13,7 @@
 <script src="ui/flota.js"></script>
 <script src="ui/avisos.js"></script>
 <script src="ui/admin-horarios.js"></script>
+<script src="ui/rendimiento.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
 /* Modo de bajo consumo: sin mapa ni librería de mapas (?lite=1 lo activa, ?lite=0 lo desactiva) */
@@ -447,6 +448,7 @@ html.en-inicio .filtros{display:none}
 .em-body b{font-size:14px}.em-l{display:flex;gap:6px;font-size:13px;line-height:1.3}.em-l i{font-style:normal}.em-l.tenue{color:var(--muted)}
 .em-av{border:0;border-radius:12px;padding:10px 12px;font:inherit;font-weight:800;font-size:14px;background:var(--morado);color:#fff;cursor:pointer}.em-av.on{background:color-mix(in srgb,var(--morado) 14%,transparent);color:var(--morado)}
 .aviso-toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top,0px));width:min(460px,calc(100% - 20px));background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--morado);border-radius:14px;box-shadow:0 10px 30px rgba(31,42,68,.25);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.graf{width:100%;height:auto;color:var(--ink);display:block}.graf .bar:hover rect:first-child{fill:rgba(123,47,247,.06)}.leyenda{display:flex;gap:14px;font-size:12px;color:var(--muted)}.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .aviso-toast[hidden]{display:none}.at-txt{display:flex;flex-direction:column;gap:4px;font-size:14px}.at-txt small{color:var(--muted)}.at-acc{display:flex;gap:6px;align-items:center}.at-x{margin-left:auto;border:0;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;min-width:44px;min-height:36px}
 .grupo{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .altc{display:flex;flex-direction:column;gap:6px}.altc h3{margin:0;font-size:16px}.altc .prox{font-size:15px}.altc .prox b{font-size:20px}
@@ -719,7 +721,7 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto
 let NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--turquesa)', tabs: ['inicio', 'viaje', 'avisar'] },
   { id: 'locomocion', n: 'Locomoción', s: 'Locomoción', i: 'bus', c: 'var(--amarillo)', tabs: ['locomocion', 'buses', 'colectivos'] },
   { id: 'mapa', n: 'Mapa', s: 'Mapa', i: 'planificar', c: 'var(--accent)', tabs: ['mapa'] },
-  { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'soy', 'registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
+  { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'soy', 'registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'rendimiento', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
 // En celular el mapa solo aparece donde ayuda; en el resto de pantallas queda oculto (se abre desde «Mapa»)
 const CON_MAPA = ['inicio', 'locomocion', 'mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
 // Servicios separados: en Inicio se elige uno a la vez y el mapa muestra solo ese tipo (menos congestión)
@@ -998,11 +1000,12 @@ function subnav() {
   const g = navDe(S.tab);
   if (PERFIL === 'conductor') { if (NAV_C.some(n => n.id === S.tab)) return '';
     if (['registro', 'soy', 'documentos'].includes(S.tab)) return `<button class="back" data-tab="misvehiculos">‹ Vehículos</button>`;
+    if (S.tab === 'rendimiento') return `<button class="back" data-tab="panelcond">‹ Mi jornada</button>`;
     if (S.tab === 'revision' || S.tab === 'adminhor') return `<button class="back" data-tab="gestion">‹ Administrar</button>`;
     return `<button class="back" data-tab="mas">‹ Más</button>`; }
   if (g.id === 'locomocion' && S.tab !== 'locomocion') return `<button class="back" data-tab="locomocion">‹ Locomoción</button>`;
   if (g.id === 'inicio' && S.tab !== 'inicio') return `<button class="back" data-tab="inicio">‹ Inicio</button>`;
-  if (['registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'duenos', 'conductor'].includes(S.tab)) return `<button class="back" data-tab="soy">‹ Conductores y dueños</button>`;
+  if (['registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'rendimiento', 'duenos', 'conductor'].includes(S.tab)) return `<button class="back" data-tab="soy">‹ Conductores y dueños</button>`;
   if (g.id === 'mas' && S.tab !== 'mas') return `<button class="back" data-tab="mas">‹ Más</button>`;
   return '';
 }
@@ -1409,9 +1412,10 @@ function viewPanelCond() {
     else if (k === 'bus') h += `<div class="paso"><h3 class="paso-n">${UI.icono('reloj', 18)} INFORMAR RETRASO</h3><div class="opciones">${[5, 10, 15].map(m => `<button class="opcion" data-pret="${m}" aria-pressed="${s.retraso === m}">${m} min</button>`).join('')}</div></div>`;
     else h += UI.vacio('Sin solicitudes por ahora', k === 'moto' ? 'Aquí verás los despachos cercanos para enviar tu oferta.' : 'Aquí verás los pedidos cercanos para enviar tu oferta.');
     if (k === 'colectivo' || k === 'bus') h += `<div class="paso"><h3 class="paso-n">ESTADO DEL SERVICIO</h3><div class="opciones">${EST_SERV.filter(([e]) => k === 'colectivo' || e !== 'en_punto_salida').map(([e, n]) => `<button class="opcion" data-pest="${e}" aria-pressed="${(s.estado || 'disponible') === e}">${n}</button>`).join('')}</div><p class="hint" style="margin:0">Los pasajeros con alerta reciben un aviso cuando inicias servicio o marcas «En punto de salida». Solo lo que tú marcas cuenta como disponible; nunca se deduce por tu ubicación.</p></div>`;
+    h += REND.panelHTML(v, k, s);
     h += `<button class="gbtn fin" id="pFin" style="--c:var(--fucsia)">${UI.icono('bandera', 20)} ${k === 'auto' || k === 'taxi' || k === 'moto' ? 'FINALIZAR JORNADA' : 'FINALIZAR SERVICIO'}</button>`;
   }
-  if (FLOTA.on && !activo) h += red ? `<div class="grid2"><button class="btn secundario" data-tab="documentos">Documentos</button>${v.rol === 'dueno' ? '<button class="btn secundario" data-tab="gestion">Administrar</button>' : ''}</div>`
+  if (FLOTA.on && !activo) h += red ? `<div class="grid2"><button class="btn secundario" data-tab="documentos">Documentos</button>${v.rol === 'dueno' ? '<button class="btn secundario" data-tab="gestion">Administrar</button>' : ''}</div><button class="btn secundario" data-tab="rendimiento">${UI.icono('planificar', 16)} Mi rendimiento: km, gastos y mantenciones</button>`
     : `<button class="btn secundario" id="pSubir">Guardar en VAMO</button><p class="hint" style="margin:0;text-align:center">Este vehículo está solo en este teléfono.</p>`;
   return h + `${v.rol === 'conductor' ? '' : '<button class="btn sm ghost" id="pEditar" style="align-self:center">Configurar mi vehículo</button>'}
     ${red ? `<p class="hint">${v.rol === 'conductor' ? 'Conduces este vehículo con autorización del dueño. ' : ''}Conectado a VAMO (versión de desarrollo). Solo una persona a la vez puede tener este vehículo en servicio.</p>`
@@ -1452,7 +1456,7 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.id === 'pIniciar' || b.id === 'pDemo') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid); const s = ses();
     if (b.id === 'pIniciar' && FLOTA.on && v.rid) { iniciarRemoto(v, s); return; }
     Object.assign(s, { activo: true, demo: b.id === 'pDemo' || !puedeServir(v), inicio: hhmm(nowMin()), cupos: v.cap || TIPOS_V[tipoDe(v)].cap, completo: false, salida: null, retraso: 0, sentido: s.sentido || 'Hacia Valparaíso' }); saveSes(); render(); return; }
-  if (b.id === 'pFin') { const s = ses(), sid = !s.demo && s.rsid; s.activo = false; s.demo = false; s.rsid = null; saveSes(); gpsDetener(); render(); if (FLOTA.on && sid) remoto('finalizar_servicio', { s: sid }, 'Servicio finalizado. Tu ubicación dejó de compartirse.').catch(() => {}); return; }
+  if (b.id === 'pFin') { const s = ses(), sid = !s.demo && s.rsid; s.tramo = null; s.activo = false; s.demo = false; s.rsid = null; saveSes(); gpsDetener(); render(); if (FLOTA.on && sid) remoto('finalizar_servicio', { s: sid }, 'Servicio finalizado. Tu ubicación dejó de compartirse.').catch(() => {}); return; }
   const rs = (fn, args) => { const s = ses(); if (!FLOTA.on || !s.rsid || s.demo) return; // en orden y, para los cupos, solo el último valor
     if (fn === 'actualizar_cupos') { clearTimeout(FL.tCupos); FL.tCupos = setTimeout(() => { FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, n: s.cupos })).catch(() => {}); }, 500); return; }
     FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, ...args })).catch(() => {}); };
@@ -1460,7 +1464,7 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.id === 'pCompleto') { const s = ses(); s.completo = !s.completo; if (s.completo) s.cupos = 0; s.estado = s.completo ? 'completo' : 'disponible'; saveSes(); render(); rs('marcar_completo', { si: s.completo }); return; }
   if (b.dataset.pest) { const s = ses(); s.estado = b.dataset.pest; if (s.estado === 'completo') { s.completo = true; s.cupos = 0; } else if (s.completo) s.completo = false; if (s.estado === 'en_recorrido' && !s.salida) s.salida = hhmm(nowMin()); saveSes(); render(); rs('cambiar_estado', { e: s.estado }); return; }
   if (b.id === 'pSalida') { const s = ses(); s.salida = hhmm(nowMin()); if (!s.completo) s.estado = 'en_recorrido'; saveSes(); render(); rs('informar_salida', { retraso: 0 }); return; }
-  if (b.dataset.psent) { const s = ses(); s.sentido = b.dataset.psent; saveSes(); render(); rs('cambiar_sentido', { sentido: s.sentido }); return; }
+  if (b.dataset.psent) { const s = ses(); s.sentido = b.dataset.psent; if (s.tramo && FLOTA.on) s.tramo = { inicio: new Date().toISOString() }; saveSes(); render(); rs('cambiar_sentido', { sentido: s.sentido }); return; }
   if (b.dataset.pret) { const s = ses(); s.retraso = +b.dataset.pret; saveSes(); render(); rs('informar_salida', { retraso: s.retraso }); return; }
   if (b.id === 'pEditar') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid), k = tipoDe(v);
     REG = { ...nuevoReg(k), editId: v.id, patente: v.patente || '', marca: v.modelo || '', cap: v.cap || TIPOS_V[k].cap, dueno: v.duenoNombre ? 'otro' : 'yo', duenoNombre: v.duenoNombre || '', recorrido: v.recorrido || '', tarifa: v.tarifaPas || '', zona: v.zona || 'Casablanca urbano', categoria: v.categoria || 'eco', dias: v.dias || [1, 1, 1, 1, 1, 0, 0], desde: v.desde || '', hasta: v.hasta || '', gps: !!v.gps }; saveReg(); ir('registro'); return; }
@@ -1535,7 +1539,7 @@ async function remoto(fn, args, okMsg) { try { const r = await FLOTA.rpc(fn, arg
 function gpsIniciar(s) {
   if (!navigator.geolocation) { FL.gpsErr = 'Este teléfono no permite compartir la ubicación.'; return; }
   gpsDetener(); let ult = 0; FL.gpsErr = '';
-  FL.gps = { sid: s.rsid, w: navigator.geolocation.watchPosition(p => { const t = Date.now(); if (t - ult < 10000) return; ult = t;
+  FL.gps = { sid: s.rsid, w: navigator.geolocation.watchPosition(p => { const t = Date.now(); if (t - ult < 10000) return; if (p.coords.accuracy && p.coords.accuracy > 50) { FL.gpsDesc = (FL.gpsDesc || 0) + 1; return; } ult = t;
     FLOTA.rpc('reportar_posicion', { s: s.rsid, lat: p.coords.latitude, lng: p.coords.longitude }).then(() => { FL.gpsUlt = Date.now(); FL.gpsErr = ''; gpsPintar(); }).catch(e => { FL.gpsErr = traducir(e); gpsPintar(); }); },
     e => { FL.gpsErr = e.code === 1 ? 'No diste permiso de ubicación. Puedes seguir en servicio sin compartirla.' : 'No se pudo obtener tu ubicación.'; gpsPintar(); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }) };
 }
@@ -1657,6 +1661,7 @@ function horarioConductorHTML(v) { const mis = FL.misHor[v.rid];
     <p class="hint" style="margin:0">Las salidas que cargas quedan pendientes hasta que el dueño las valide; mientras tanto no se muestran a pasajeros.</p></div>`; }
 view.addEventListener('change', async e => { const t = e.target;
   if (S.tab === 'adminhor' && await ADMINHOR.change(t)) return;
+  if (S.tab === 'rendimiento' && await REND.change(t)) return;
   if (t.id === 'gestVeh') { S.panelVid = t.value; rerender(); return; }
   if (t.dataset && t.dataset.doc && t.files && t.files[0]) { const v = vSel(), f = t.files[0];
     if (f.size > 8 * 1024 * 1024) { flMsg('El archivo pesa más de 8 MB. Prueba con una foto más liviana.', false); return; }
@@ -1669,6 +1674,7 @@ view.addEventListener('change', async e => { const t = e.target;
 });
 view.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b || !FLOTA.on) return; const v = vSel(), uid = FLOTA.uid();
   if (S.tab === 'adminhor' && await ADMINHOR.click(b)) return;
+  if (['rendimiento', 'panelcond'].includes(S.tab) && await REND.click(b)) return;
   if (b.id === 'pGpsQ') { FL.quiereGps = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', FL.quiereGps); return; }
   if (b.id === 'pGpsStop') { const s = SES[v.id]; gpsDetener(); if (s && s.rsid) { s.gpsOk = false; saveSes(); remoto('detener_ubicacion', { s: s.rsid }, 'Dejaste de compartir tu ubicación.').catch(() => {}); } rerender(); return; }
   if (b.id === 'pGpsOn') { gpsIniciar(SES[v.id]); rerender(); return; }
@@ -1708,7 +1714,7 @@ view.addEventListener('click', async e => { const b = e.target.closest('button')
    El perfil es solo una preferencia de esta pantalla (no crea cuentas ni reemplaza permisos: esos los valida Supabase).
    La bienvenida aparece solo la primera vez o al cambiar de perfil desde Más. */
 const NAV_P = NAV;
-const NAV_C = [{ id: 'panelcond', n: 'Mi jornada', s: 'Jornada', i: 'play', c: 'var(--morado)', tabs: ['panelcond'] },
+const NAV_C = [{ id: 'panelcond', n: 'Mi jornada', s: 'Jornada', i: 'play', c: 'var(--morado)', tabs: ['panelcond', 'rendimiento'] },
   { id: 'misvehiculos', n: 'Vehículos', s: 'Vehículos', i: 'auto', c: 'var(--turquesa)', tabs: ['misvehiculos', 'soy', 'registro', 'documentos'] },
   { id: 'gestion', n: 'Administrar', s: 'Administrar', i: 'duenos', c: 'var(--amarillo)', tabs: ['gestion', 'revision', 'adminhor'] },
   { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'duenos', 'conductor', 'config', 'favoritos', 'avisos'] }];
@@ -1752,6 +1758,7 @@ function viewMas() {
   const it = (attr, c, i, n, d) => `<button ${attr} style="--c:${c}">${UI.icono(i, 22)}<span>${n}<br><small>${d}</small></span>›</button>`;
   if (PERFIL === 'conductor') return `<div><h2>Más</h2><p class="sub">VAMO Conductor</p></div><div class="lista">
     ${it('data-tab="soy"', 'var(--morado)', 'auto', 'Registrar otro vehículo', 'Auto, taxi, colectivo, bus o moto')}
+    ${it('data-tab="rendimiento"', 'var(--morado)', 'planificar', 'Mi rendimiento', 'Km por vuelta, gastos, mantenciones y plan')}
     ${it('data-tab="documentos"', 'var(--turquesa)', 'check', 'Documentos', 'Sube y revisa la verificación')}
     ${it('data-tab="duenos"', 'var(--fucsia)', 'duenos', 'Planes y ganancias', 'Panel de dueños completo')}
     ${it('data-tab="conductor"', 'var(--auto)', 'play', 'Modo conductor rápido', 'Botones grandes sin vehículo registrado')}
@@ -1967,7 +1974,7 @@ function render() {
   const g = navDe(S.tab);
   tabsEl.innerHTML = NAV.map(t => `<button class="tab" role="tab" aria-selected="${g.id === t.id}" data-tab="${t.id}" data-nav="${t.id}" style="--tc:${t.c}">${UI.icono(t.i, 16)}<span class="tl">${t.n}</span><span class="ts">${t.s}</span></button>`).join('');
   view.innerHTML = (VAMO_LITE ? `<div class="litebar"><span>${UI.icono('hoja', 14)} Modo bajo consumo: sin mapa.</span><button class="btn sm ghost" id="liteOff">Volver al modo normal</button></div>` : '') + subnav() +
-    { inicio: viewInicio, locomocion: viewLocomocion, mapa: viewMapa, avisar: viewAvisar, conductor: viewConductor, favoritos: viewFavoritos, config: viewConfig, avisos: viewAvisos, viaje: viewViaje, buses: viewBuses, micros: viewMicros, colectivos: viewColectivos, planificar: viewPlan, misviajes: viewMisViajes, mas: viewMas, soy: viewSoy, registro: viewRegistro, panelcond: viewPanelCond, misvehiculos: viewMisVehiculos, documentos: viewDocumentos, gestion: viewGestion, revision: viewRevision, adminhor: () => ADMINHOR.view(), delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
+    { inicio: viewInicio, locomocion: viewLocomocion, mapa: viewMapa, avisar: viewAvisar, conductor: viewConductor, favoritos: viewFavoritos, config: viewConfig, avisos: viewAvisos, viaje: viewViaje, buses: viewBuses, micros: viewMicros, colectivos: viewColectivos, planificar: viewPlan, misviajes: viewMisViajes, mas: viewMas, soy: viewSoy, registro: viewRegistro, panelcond: viewPanelCond, misvehiculos: viewMisVehiculos, documentos: viewDocumentos, gestion: viewGestion, revision: viewRevision, adminhor: () => ADMINHOR.view(), rendimiento: () => REND.view(), delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
   map.getCanvas().style.cursor = (S.tab === 'viaje' && !S.ride) || (S.tab === 'delivery' && S.dl.pick) ? 'crosshair' : '';
   const sin = !CON_MAPA.includes(S.tab), antes = document.documentElement.classList.contains('sinmapa');
   document.documentElement.classList.toggle('sinmapa', sin); document.documentElement.classList.toggle('en-inicio', S.tab === 'inicio'); if (antes && !sin && map.resize) setTimeout(() => map.resize(), 50);
