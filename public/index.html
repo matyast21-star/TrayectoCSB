@@ -414,6 +414,14 @@ html.lite .panel{border-right:0}
 .cupos.chico{justify-content:flex-start}.cupos.chico button{width:48px;height:48px;font-size:24px}.cupos.chico output{font-size:26px;min-width:44px}
 .docrow{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
 label.btn{display:inline-flex;align-items:center;cursor:pointer}
+.bienv{position:fixed;inset:0;z-index:2000;background:var(--bg,#fff);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.bienv-c{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.bienv-marca{display:flex;justify-content:center;transform:scale(1.4);margin:18px 0 6px}
+.bienv h2{margin:10px 0 2px}
+.perfil-op{display:flex;align-items:center;gap:14px;text-align:left;padding:18px 16px;border-radius:18px;border:2px solid color-mix(in srgb,var(--c) 45%,var(--line));background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:84px}
+.perfil-op:hover,.perfil-op:focus-visible{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--surface))}
+.perfil-op .vi{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);flex-shrink:0}
+.perfil-op span:nth-child(2){flex:1;display:flex;flex-direction:column;gap:3px}.perfil-op b{font-size:18px}.perfil-op small{color:var(--muted);font-size:13px}
 .aviso-fl{padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;border:1px solid currentColor}.aviso-fl.ok{color:var(--ok)}.aviso-fl.err{color:#B91C1C}.docrow span:first-child{flex:1}
 .resumen{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);font-size:13px}.resumen span{flex:1}.resumen svg{color:var(--ok)}
 .dias{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.dias button{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
@@ -683,7 +691,7 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto
   dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
 // Navegación principal (6 secciones). Cada sección agrupa pestañas internas, sin quitar ninguna función.
 // VAMO Express: barra de 4 secciones. Cada sección agrupa pantallas internas; ninguna función se elimina.
-const NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--turquesa)', tabs: ['inicio', 'viaje', 'avisar'] },
+let NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--turquesa)', tabs: ['inicio', 'viaje', 'avisar'] },
   { id: 'locomocion', n: 'Locomoción', s: 'Locomoción', i: 'bus', c: 'var(--amarillo)', tabs: ['locomocion', 'buses', 'colectivos'] },
   { id: 'mapa', n: 'Mapa', s: 'Mapa', i: 'planificar', c: 'var(--accent)', tabs: ['mapa'] },
   { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'soy', 'registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
@@ -960,6 +968,10 @@ function avisoEjemplos() {
 }
 function subnav() {
   const g = navDe(S.tab);
+  if (PERFIL === 'conductor') { if (NAV_C.some(n => n.id === S.tab)) return '';
+    if (['registro', 'soy', 'documentos'].includes(S.tab)) return `<button class="back" data-tab="misvehiculos">‹ Vehículos</button>`;
+    if (S.tab === 'revision') return `<button class="back" data-tab="gestion">‹ Administrar</button>`;
+    return `<button class="back" data-tab="mas">‹ Más</button>`; }
   if (g.id === 'locomocion' && S.tab !== 'locomocion') return `<button class="back" data-tab="locomocion">‹ Locomoción</button>`;
   if (g.id === 'inicio' && S.tab !== 'inicio') return `<button class="back" data-tab="inicio">‹ Inicio</button>`;
   if (['registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'duenos', 'conductor'].includes(S.tab)) return `<button class="back" data-tab="soy">‹ Conductores y dueños</button>`;
@@ -1159,7 +1171,7 @@ function viewRegistro() {
     else if (R.tipo === 'moto') h += campo('zona', 'Zona de reparto', 'Casablanca urbano') + `<p class="hint">Recibirás despachos de locales cercanos con el sistema de ofertas actual.</p>`;
     else h += `${R.tipo === 'auto' ? `<div class="campo">Categoría<div class="seg">${[['eco', 'Económico'], ['xl', 'XL (hasta 7)'], ['comp', 'Compartido']].map(([k, n]) => `<button data-rcat="${k}" aria-pressed="${R.categoria === k}">${n}</button>`).join('')}</div></div>` : ''}
       ${campo('zona', 'Zona de servicio', 'Casablanca urbano')}
-      <p class="hint">${R.tipo === 'taxi' ? 'Cobras con taxímetro, como hoy.' : 'Pones tu propio precio con el sistema de ofertas actual; lo ajustas en «Editar mi vehículo».'}</p>`;
+      <p class="hint">${R.tipo === 'taxi' ? 'Cobras con taxímetro, como hoy.' : 'Pones tu propio precio con el sistema de ofertas actual; lo ajustas en «Configurar mi vehículo».'}</p>`;
     h += `<div class="card"><h3>Conductores autorizados</h3><div class="docrow"><span><b>Tú</b> (dueño y conductor)</span></div>${FLOTA.on ? '<p class="hint" style="margin:0">Al terminar, invitas a otros conductores desde «Administrar».</p>' : '<button class="btn sm ghost" disabled title="Se habilita con las cuentas">+ Invitar a otro conductor</button>'}<p class="hint" style="margin:0">Cada conductor invitado solo podrá usar los vehículos que le asignes.</p></div>`;
   } else {
     h += `<div class="campo">¿Qué días trabajas normalmente?<div class="dias">${DIAS.map((d, i) => `<button data-rdia="${i}" aria-pressed="${!!R.dias[i]}">${d}</button>`).join('')}</div></div>
@@ -1200,7 +1212,7 @@ function viewPanelCond() {
     <div class="stats3"><div class="stat"><div class="v">${cap}</div><div class="l">Capacidad total</div></div><div class="stat"><div class="v">—</div><div class="l">Asientos disponibles</div></div><div class="stat"><div class="v">0</div><div class="l">Reservados</div></div></div>
     <p class="hint" style="margin:-6px 0 0">Reservas de asientos desactivadas hasta tener inventario confirmado.</p>${FLOTA.on && v.rid && v.rol === 'conductor' && v.recorrido ? horarioConductorHTML(v) : ''}`;
   else if (k === 'colectivo') h += `<div class="campo">Dirección<div class="seg">${['Hacia Valparaíso', 'Hacia Casablanca'].map(x => `<button data-psent="${x}" aria-pressed="${(s && s.sentido || 'Hacia Valparaíso') === x}">${x}</button>`).join('')}</div></div>`;
-  else h += `<div class="card"><div class="row" style="justify-content:space-between"><span class="hint">Servicio</span><b>${k === 'taxi' ? 'Taxi · taxímetro' : k === 'moto' ? 'Reparto en moto' : 'Auto · precio propio'}</b></div><div class="row" style="justify-content:space-between"><span class="hint">Zona</span><b>${esc(v.zona || 'Casablanca urbano')}</b></div></div>`;
+  h += resumenPanel(v, k, s, activo, r);
   if (red) h = h.replace('<div style="display:flex', msgHTML() + '<div style="display:flex');
   h += red && !(s && s.demo) ? gpsHTML(v, s || {}, activo) : `<div class="ubic" id="panelGps" data-u="${activo ? 'pendiente' : 'off'}"><i aria-hidden="true"></i><span>${activo ? '<b>Ubicación: aún no se comparte.</b> En la demostración no se usa el GPS.' : '<b>GPS apagado.</b> Se pedirá tu permiso al iniciar.'}</span></div>`;
   if (!activo) {
@@ -1215,7 +1227,7 @@ function viewPanelCond() {
   }
   if (FLOTA.on && !activo) h += red ? `<div class="grid2"><button class="btn secundario" data-tab="documentos">Documentos</button>${v.rol === 'dueno' ? '<button class="btn secundario" data-tab="gestion">Administrar</button>' : ''}</div>`
     : `<button class="btn secundario" id="pSubir">Guardar en VAMO</button><p class="hint" style="margin:0;text-align:center">Este vehículo está solo en este teléfono.</p>`;
-  return h + `${v.rol === 'conductor' ? '' : '<button class="btn sm ghost" id="pEditar" style="align-self:center">Editar mi vehículo</button>'}
+  return h + `${v.rol === 'conductor' ? '' : '<button class="btn sm ghost" id="pEditar" style="align-self:center">Configurar mi vehículo</button>'}
     ${red ? `<p class="hint">${v.rol === 'conductor' ? 'Conduces este vehículo con autorización del dueño. ' : ''}Conectado a VAMO (versión de desarrollo). Solo una persona a la vez puede tener este vehículo en servicio.</p>`
       : '<p class="hint"><b>Prototipo:</b> el servicio se guarda solo en este teléfono y no se publica a pasajeros. Con las cuentas (etapas 2 a 5) quedará en VAMO con permisos de dueño y conductor.</p>'}`;
 }
@@ -1402,7 +1414,8 @@ function viewGestion() {
   const v = propios.find(x => x.id === S.panelVid) || propios[0]; S.panelVid = v.id;
   const g = FL.gest[v.rid], k = tipoDe(v); if (!g) { cargarGestion(v); return `<div><h2>Administrar</h2><p class="hint">Cargando…</p></div>`; }
   let h = `<div><h2>Administrar</h2><p class="sub">Lo configuras una vez; tus conductores solo eligen el vehículo e inician.</p></div>
-    <label class="vselect" style="--c:${TIPOS_V[k].c}">${UI.icono(TIPOS_V[k].i, 18)}<select id="gestVeh" aria-label="Vehículo">${propios.map(x => `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${TIPOS_V[tipoDe(x)].n} · ${esc(x.patente)}</option>`).join('')}</select></label>${msgHTML()}`;
+    <label class="vselect" style="--c:${TIPOS_V[k].c}">${UI.icono(TIPOS_V[k].i, 18)}<select id="gestVeh" aria-label="Vehículo">${propios.map(x => `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${TIPOS_V[tipoDe(x)].n} · ${esc(x.patente)}</option>`).join('')}</select></label>${msgHTML()}
+    <div class="card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span><b>Recorrido, capacidad y disponibilidad</b><br><small class="hint">${v.cap} ${k === 'moto' ? 'bultos' : 'asientos'} · ${(v.dias || []).map((d, i) => d ? DIAS[i] : '').join('') || 'sin días'}${v.desde ? ' · ' + v.desde + '–' + (v.hasta || '') : ''}</small></span><button class="btn sm ghost" id="pEditar">Configurar</button></div></div>`;
   h += `<div class="card"><h3>Conductores autorizados</h3><div class="docrow"><span><b>Tú</b> (dueño)</span><span class="tag ok">Puede conducir</span></div>
     ${g.cond.map(c => `<div class="docrow"><span>Conductor ${esc(c.usuario_id.slice(0, 4).toUpperCase())}</span>${c.activo ? `<span class="tag ok">Activo</span><button class="btn sm ghost" data-quitar="${c.usuario_id}">Quitar</button>` : '<span class="tag">Quitado</span>'}</div>`).join('')}
     ${g.inv.map(i => `<div class="docrow"><span>Código <b class="mono" style="font-size:18px;letter-spacing:2px">${esc(i.codigo)}</b></span><span class="hint">vence ${new Date(i.vence).toLocaleDateString('es-CL')}</span><button class="btn sm ghost" data-invdel="${esc(i.codigo)}">Anular</button></div>`).join('')}
@@ -1411,7 +1424,7 @@ function viewGestion() {
     <label class="campo">Aviso para pasajeros (opcional)<input id="gAviso" maxlength="200" placeholder="Ej.: Sin servicio por mantención hasta el lunes"></label><p class="hint" style="margin:0">Al suspender se cierra el servicio en curso y se suspenden las salidas programadas.</p></div>`;
   if (k === 'bus') {
     const r = RV(INTER).find(x => x.id === v.recorrido) || ALLROUTES.find(x => x.id === v.recorrido);
-    h += `<div class="card"><h3>Horarios por día</h3>${!v.recorrido ? '<p class="hint" style="margin:0">Asigna un recorrido en «Editar mi vehículo» para cargar horarios.</p>' : `<div class="hint">${esc(r ? r.nombre : v.recorrido)}</div>
+    h += `<div class="card"><h3>Horarios por día</h3>${!v.recorrido ? '<p class="hint" style="margin:0">Asigna un recorrido en «Configurar mi vehículo» para cargar horarios.</p>' : `<div class="hint">${esc(r ? r.nombre : v.recorrido)}</div>
       <div class="dias">${DIAS.map((d, i) => `<button data-gdia="${i}" aria-pressed="${FL.dia === i}">${d}</button>`).join('')}</div>
       ${g.hor.filter(x => x.dia_semana === FL.dia).map(x => `<div class="docrow"><span class="mono">${x.salida.slice(0, 5)}</span>${x.validado ? '<span class="tag ok">Validado</span>' : `<span class="tag warn">Pendiente (cargado por conductor)</span><button class="btn sm" data-hval="${x.id}">Validar</button>`}<button class="btn sm ghost" data-hdel="${x.id}">Quitar</button></div>`).join('') || '<p class="hint" style="margin:0">Sin salidas este día.</p>'}
       <div class="row"><input type="time" id="gHora" aria-label="Hora de salida"><button class="btn sm" id="gHoraAdd">Agregar salida</button></div>
@@ -1502,8 +1515,60 @@ view.addEventListener('click', async e => { const b = e.target.closest('button')
   if (b.dataset.ssusp) return gestionar(FLOTA.pedir(`salida_programada?id=eq.${b.dataset.ssusp}`, { method: 'PATCH', body: { estado: 'suspendida' } }), 'Salida suspendida.');
 });
 
+/* ============ Acceso rápido: VAMO Pasajero y VAMO Conductor ============
+   El perfil es solo una preferencia de esta pantalla (no crea cuentas ni reemplaza permisos: esos los valida Supabase).
+   La bienvenida aparece solo la primera vez o al cambiar de perfil desde Más. */
+const NAV_P = NAV;
+const NAV_C = [{ id: 'panelcond', n: 'Mi jornada', s: 'Jornada', i: 'play', c: 'var(--morado)', tabs: ['panelcond'] },
+  { id: 'misvehiculos', n: 'Vehículos', s: 'Vehículos', i: 'auto', c: 'var(--turquesa)', tabs: ['misvehiculos', 'soy', 'registro', 'documentos'] },
+  { id: 'gestion', n: 'Administrar', s: 'Administrar', i: 'duenos', c: 'var(--amarillo)', tabs: ['gestion', 'revision'] },
+  { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'duenos', 'conductor', 'config', 'favoritos', 'avisos'] }];
+let PERFIL = null; try { PERFIL = localStorage.getItem('vamo-perfil'); } catch (e) {}
+if (PERFIL !== 'pasajero' && PERFIL !== 'conductor') PERFIL = null;
+const tieneVehiculo = () => OWNER.vehiculos.some(v => v.tipoV || v.rid); // registrados con el asistente (no los de ejemplo)
+const inicioConductor = () => tieneVehiculo() ? 'panelcond' : 'soy';
+function aplicarPerfil(p) { PERFIL = p; NAV = p === 'conductor' ? NAV_C : NAV_P; document.documentElement.dataset.perfil = p || ''; }
+function elegirPerfil(p) {
+  try { localStorage.setItem('vamo-perfil', p); } catch (e) {}
+  aplicarPerfil(p); const b = document.getElementById('bienv'); if (b) b.remove();
+  ir(p === 'conductor' ? inicioConductor() : 'inicio');
+}
+function mostrarBienvenida() {
+  if (document.getElementById('bienv')) return;
+  const op = (p, ic, c, t, d) => `<button class="perfil-op" data-elegir-perfil="${p}" style="--c:${c}"><span class="vi">${UI.icono(ic, 30)}</span><span><b>${t}</b><small>${d}</small></span>›</button>`;
+  document.body.insertAdjacentHTML('beforeend', `<div id="bienv" class="bienv" role="dialog" aria-modal="true" aria-labelledby="bienvT"><div class="bienv-c">
+    <div class="bienv-marca">${UI.marca()}</div><p class="hint" style="margin:0">Tu viaje comienza aquí.</p>
+    <h2 id="bienvT">¿Cómo vas a usar VAMO?</h2>
+    ${op('pasajero', 'ubicacion', 'var(--turquesa)', 'Soy pasajero', 'Mapa, locomoción y viajes. Sin registro.')}
+    ${op('conductor', 'auto', 'var(--morado)', 'Soy conductor', 'Tu vehículo, disponibilidad y jornada.')}
+    <p class="hint">Lo recordaremos en este teléfono. Puedes cambiarlo cuando quieras desde «Más».</p></div></div>`);
+  const b = document.querySelector('#bienv [data-elegir-perfil]'); if (b) b.focus();
+}
+document.addEventListener('click', e => { const b = e.target.closest("[data-elegir-perfil],[data-cambiar-perfil]"); if (!b) return;
+  if (b.dataset.elegirPerfil) elegirPerfil(b.dataset.elegirPerfil); else mostrarBienvenida(); });
+aplicarPerfil(PERFIL);
+if (PERFIL === 'conductor') S.tab = inicioConductor();
+// Panel diario: lo esencial del vehículo en una tarjeta
+function resumenPanel(v, k, s, activo, r) {
+  const fila = (a, b) => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="hint">${a}</span><b style="text-align:right">${b}</b></div>`;
+  const recorrido = k === 'bus' ? null : k === 'colectivo' ? 'Casablanca ⇄ Valparaíso' : esc(v.zona || 'Casablanca urbano');
+  const tarifa = k === 'taxi' ? 'Taxímetro' : k === 'colectivo' ? (+v.tarifaPas > 0 ? clp(+v.tarifaPas) + ' por pasajero' : 'Sin configurar')
+    : k === 'bus' ? (r ? clp(r.precio) + (r.ejemplo ? ' (ejemplo)' : '') : 'Según recorrido') : `Base ${clp(OWNER.tarifa.base)} + ${clp(OWNER.tarifa.km)}/km`;
+  const cap = v.cap || TIPOS_V[k].cap, unidad = k === 'moto' ? 'bultos' : 'pasajeros';
+  return `<div class="card">${recorrido ? fila(k === 'colectivo' ? 'Recorrido' : 'Zona', recorrido) : ''}${k === 'colectivo' && activo && s.salida ? fila('Salida informada', s.salida) : ''}
+    ${fila('Tarifa', tarifa)}${fila(k === 'colectivo' && activo ? 'Cupos disponibles' : 'Capacidad', k === 'colectivo' && activo ? `${s.cupos} de ${cap}` : `${cap} ${unidad}`)}
+    ${k === 'auto' || k === 'moto' ? fila('Servicio', k === 'moto' ? 'Reparto en moto' : 'Auto · precio propio') : ''}</div>`;
+}
 function viewMas() {
   const it = (attr, c, i, n, d) => `<button ${attr} style="--c:${c}">${UI.icono(i, 22)}<span>${n}<br><small>${d}</small></span>›</button>`;
+  if (PERFIL === 'conductor') return `<div><h2>Más</h2><p class="sub">VAMO Conductor</p></div><div class="lista">
+    ${it('data-tab="soy"', 'var(--morado)', 'auto', 'Registrar otro vehículo', 'Auto, taxi, colectivo, bus o moto')}
+    ${it('data-tab="documentos"', 'var(--turquesa)', 'check', 'Documentos', 'Sube y revisa la verificación')}
+    ${it('data-tab="duenos"', 'var(--fucsia)', 'duenos', 'Planes y ganancias', 'Panel de dueños completo')}
+    ${it('data-tab="conductor"', 'var(--auto)', 'play', 'Modo conductor rápido', 'Botones grandes sin vehículo registrado')}
+    ${it('data-tab="config"', 'var(--muted)', 'filtro', 'Configuración', 'Tema y bajo consumo')}
+    ${it('data-cambiar-perfil="pasajero"', 'var(--turquesa)', 'ubicacion', 'Cambiar a VAMO Pasajero', 'Mapa, locomoción y viajes')}
+  </div><p class="hint">Cambiar de perfil no crea otra cuenta: tus vehículos y permisos siguen siendo los mismos.</p>`;
   return `<div><h2>Más</h2></div><div class="lista">
     ${it('data-tab="viaje"', 'var(--auto)', 'auto', 'Pedir un viaje', 'Auto o taxi')}
     ${it('data-tab="planificar"', 'var(--accent)', 'rutas', 'Planificador', '¿Cómo llego? Combina buses, autos y caminata')}
@@ -1514,6 +1579,7 @@ function viewMas() {
     ${it('data-tab="favoritos"', 'var(--amarillo)', 'estrella', 'Favoritos', 'Destinos, paraderos y recorridos')}
     ${it('data-tab="avisos"', 'var(--fucsia)', 'campana', 'Notificaciones', 'Alertas por destino')}
     ${it('data-tab="config"', 'var(--muted)', 'filtro', 'Configuración', 'Tema, bajo consumo y ejemplos')}
+    ${it('data-cambiar-perfil="conductor"', 'var(--morado)', 'play', 'Cambiar a VAMO Conductor', 'Tu vehículo, disponibilidad y jornada')}
   </div>`;
 }
 /* Favoritos y frecuentes (en este dispositivo; se sincronizarán con la cuenta en la etapa 3) */
@@ -1904,6 +1970,7 @@ async function cargarRecorridos() {
   if (!inter.length && !micros.length) return;
   INTER = inter; MICROS = micros; RUTAS_FUENTE = 'bd'; buildRoutes(); drawBase(); }
 cargarBD();
+if (!PERFIL) mostrarBienvenida();
 document.getElementById('clk').textContent = hhmm(nowMin());
 render();
 requestAnimationFrame(loop);

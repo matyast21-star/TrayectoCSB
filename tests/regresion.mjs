@@ -24,7 +24,11 @@ async function test(name, fn) { try { await fn(); results.push(['ok', name]); } 
 const assert = (c, m) => { if (!c) throw new Error(m); };
 
 const browser = await chromium.launch();
+// Las pruebas existentes entran como pasajero (la bienvenida se prueba aparte, con un teléfono nuevo)
+const PASAJERO = () => { try { if (!localStorage.getItem('vamo-perfil')) localStorage.setItem('vamo-perfil', 'pasajero'); } catch (e) {} };
+const nuevaPag = async o => { const p = await browser.newPage(o); await p.addInitScript(PASAJERO); return p; };
 const ctx = await browser.newContext({ viewport: { width: 1300, height: 860 } });
+await ctx.addInitScript(PASAJERO);
 const page = await ctx.newPage(); const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto(BASE); await page.waitForTimeout(1200);
@@ -130,7 +134,7 @@ await test('Mis viajes: pasaje comprado', async () => { await irA(page, 'misviaj
 await test('Configuración: tema, bajo consumo y ejemplos', async () => { await irA(page, 'config');
   for (const id of ['#cfgTema', '#liteBtn', '#ejToggle']) assert(await page.locator(id).count() === 1, 'falta ' + id); });
 await test('Bajo consumo: funciona sin mapa ni librería de mapas', async () => {
-  const l = await browser.newPage({ viewport: { width: 390, height: 844 } }); const reqs = []; l.on('request', r => reqs.push(r.url())); l.on('pageerror', e => errors.push('lite: ' + e.message));
+  const l = await nuevaPag({ viewport: { width: 390, height: 844 } }); const reqs = []; l.on('request', r => reqs.push(r.url())); l.on('pageerror', e => errors.push('lite: ' + e.message));
   await l.goto(BASE + '?lite=1'); await l.waitForTimeout(800);
   assert(await l.evaluate(() => document.documentElement.classList.contains('lite') && getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa sigue visible');
   assert(!reqs.some(u => /maplibre|openfreemap|tile/i.test(u)), 'cargó el mapa: ' + reqs.filter(u => /maplibre|tile/.test(u)).join(' '));
@@ -198,7 +202,7 @@ await test('Locomoción: tarjetas distinguen el origen del dato', async () => {
   await irA(page, 'locomocion'); await ev(() => { setDest('valparaiso'); S.lf = 'todos'; render(); }); assert(await page.locator('#view .tarjeta .fuente').count() >= 2, 'faltan etiquetas de fuente'); });
 await test('Cambio de localidad', async () => { await page.selectOption('#loc', 'curacavi'); assert(await ev(() => S.loc === 'curacavi'), 'no cambió'); await page.selectOption('#loc', 'casablanca'); });
 await test('Celular: barra inferior y sin desborde horizontal', async () => {
-  const m = await browser.newPage({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
+  const m = await nuevaPag({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
   assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no se ve en Inicio');
   await m.click('#tabs [data-tab=locomocion]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa se ve en Locomoción');
@@ -206,7 +210,7 @@ await test('Celular: barra inferior y sin desborde horizontal', async () => {
   await m.close(); });
 // ---- Recorridos desde la base de datos (respuestas simuladas con tests/fixtures/bd.json) ----
 const FIX = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'bd.json'), 'utf8'));
-const bd = await browser.newPage({ viewport: { width: 1300, height: 860 } }); bd.on('pageerror', e => errors.push('bd: ' + e.message));
+const bd = await nuevaPag({ viewport: { width: 1300, height: 860 } }); bd.on('pageerror', e => errors.push('bd: ' + e.message));
 await bd.route(/\/rest\/v1\//, r => { const t = new URL(r.request().url()).pathname.split('/').pop(); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIX[t] || []) }); });
 await bd.goto(BASE); await bd.waitForTimeout(1500);
 const bev = f => bd.evaluate(f);
@@ -233,7 +237,7 @@ await test('Micros de la base no se muestran', async () => { assert(await bev(()
 await bd.close();
 
 // ---- Conductores conectados a VAMO (Supabase simulado en memoria) ----
-const fl = await browser.newPage({ viewport: { width: 390, height: 844 } }); fl.on('pageerror', e => errors.push('flota: ' + e.message));
+const fl = await nuevaPag({ viewport: { width: 390, height: 844 } }); fl.on('pageerror', e => errors.push('flota: ' + e.message));
 const LLAMADAS = []; const VEH = { id: 'aaaaaaaa-1111-2222-3333-444444444444', tipo: 'auto', patente: 'ABCD12', marca_modelo: 'Toyota Yaris', capacidad: 4, estado_verificacion: 'borrador', en_pausa: false, recorrido_id: null, zona: 'Casablanca urbano', categoria: 'eco' };
 let sesionActiva = null;
 await fl.route(/supabase\.co\/(auth|rest|storage)\//, r => { const u = new URL(r.request().url()), m = r.request().method(), path = u.pathname, perfil = r.request().headers()['accept-profile'];
@@ -280,6 +284,30 @@ await test('Conectado: código de invitación y administrar', async () => {
   await fl.evaluate(() => ir('soy')); assert(await fl.locator('#invCod').count() === 1, 'falta el campo de código');
   await fl.evaluate(() => ir('gestion')); await fl.waitForSelector('#gInvitar'); assert(await fl.locator('#gPausa').count() === 1, 'falta suspender servicio'); });
 await fl.close();
+
+// ---- Acceso rápido: Soy pasajero / Soy conductor (teléfono nuevo, sin perfil guardado) ----
+const pc = await browser.newContext({ viewport: { width: 390, height: 844 } }); const pf = await pc.newPage(); pf.on('pageerror', e => errors.push('perfil: ' + e.message));
+await pf.goto(BASE); await pf.waitForTimeout(800);
+const pev = f => pf.evaluate(f), navTxt = () => pf.locator('#tabs .tab .tl').allInnerTexts().then(x => x.join('|'));
+await test('Bienvenida: solo la primera vez, con las dos opciones', async () => {
+  assert(await pf.locator('#bienv').isVisible(), 'no aparece la bienvenida'); assert(await pf.locator('#bienv [data-elegir-perfil]').count() === 2, 'no son 2 perfiles');
+  assert(await pf.locator('#bienv .vamo-v').count() >= 1, 'falta el logo'); });
+await test('Soy conductor: sin vehículo abre el registro y barra de conductor', async () => {
+  await pf.click('[data-elegir-perfil=conductor]'); assert(await pf.locator('#bienv').count() === 0, 'la bienvenida no se cerró');
+  assert(await pev(() => S.tab === 'soy') && await pf.locator('[data-rtipo]').count() === 5, 'no abrió el registro con 5 tipos');
+  assert(await navTxt() === 'Mi jornada|Vehículos|Administrar|Más', 'barra: ' + await navTxt());
+  await pev(() => { REG = { ...nuevoReg('colectivo'), patente: 'PERF12', marca: 'Prueba', tarifa: '2000', paso: 3 }; terminarRegistro(); });
+  const txt = await pf.locator('#view').innerText();
+  for (const w of ['Tarifa', 'Capacidad', 'INICIAR SERVICIO', 'Configurar mi vehículo']) assert(txt.includes(w), 'panel sin: ' + w); });
+await test('Perfil recordado: al volver abre directo el panel, sin bienvenida', async () => {
+  await pf.reload(); await pf.waitForTimeout(800); assert(await pf.locator('#bienv').count() === 0, 'volvió a pedir el perfil');
+  assert(await pev(() => S.tab === 'panelcond'), 'no abrió el panel: ' + await pev(() => S.tab)); });
+await test('Cambiar de perfil desde Más, sin perder vehículos', async () => {
+  await pf.click('#tabs [data-tab=mas]'); await pf.click('[data-cambiar-perfil]'); await pf.click('[data-elegir-perfil=pasajero]');
+  assert(await pev(() => S.tab === 'inicio') && await navTxt() === 'Inicio|Locomoción|Mapa|Más', 'no volvió a pasajero');
+  assert(await pf.locator('#view .accion').count() === 3 && await pf.locator('#destQ').count() === 1, 'Inicio de pasajero cambió');
+  assert(await pev(() => OWNER.vehiculos.some(v => v.patente === 'PERF12') && localStorage.getItem('vamo-perfil') === 'pasajero'), 'perdió el vehículo o el perfil'); });
+await pc.close();
 
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
