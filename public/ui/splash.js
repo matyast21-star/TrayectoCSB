@@ -34,7 +34,7 @@
   .sp-mapa .rutas path{fill:none;stroke:#00E5D6;stroke-width:2.2;filter:url(#spBrillo)}
   .sp-centro{position:relative;display:flex;flex-direction:column;align-items:center;width:min(74vw,320px)}
   .sp-logo{width:100%;height:auto;overflow:visible;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
-  .sp-trazo{fill:none;stroke:#00E5D6;stroke-width:3.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;filter:url(#spBrillo);animation:spTrazo 1s 1s ease-in-out forwards,spFadeOut .5s 2.6s forwards}
+  .sp-trazo{fill:none;stroke:#00E5D6;stroke-width:3.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;filter:url(#spBrillo);animation:spTrazo 1s 1s ease-in-out forwards,spFadeOut .5s 2.6s forwards}
   .sp-logo .lv-brazo{opacity:0;transform:translate(-14px,-18px);animation:spPieza .7s 2s cubic-bezier(.2,.8,.2,1) forwards}
   .sp-logo .lv-hoja{opacity:0;transform:translate(10px,14px);animation:spPieza .7s 2.15s cubic-bezier(.2,.8,.2,1) forwards}
   .sp-logo .lv-via,.sp-logo .lv-borde,.sp-logo .lv-eje{opacity:0;animation:spFade .6s 2.05s ease-out forwards}
@@ -52,7 +52,7 @@
   .sp-quieto .sp-trazo{display:none}
   @keyframes spFade{to{opacity:1}}
   @keyframes spFadeOut{to{opacity:0}}
-  @keyframes spTrazo{to{stroke-dashoffset:0}}
+  @keyframes spTrazo{0%{opacity:1;stroke-dashoffset:1}to{opacity:1;stroke-dashoffset:0}}
   @keyframes spPieza{to{opacity:1;transform:none}}
   @keyframes spPin{to{opacity:1;transform:none}}
   @keyframes spLuz{to{background-position:0 0}}
