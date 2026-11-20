@@ -11,6 +11,8 @@
 <script>try { if (localStorage.getItem('vamo-tema2') === 'oscuro') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
 <script src="ui/vamo-ui.js"></script>
 <script src="ui/flota.js"></script>
+<script src="ui/avisos.js"></script>
+<script src="ui/admin-horarios.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
 /* Modo de bajo consumo: sin mapa ni librería de mapas (?lite=1 lo activa, ?lite=0 lo desactiva) */
@@ -432,8 +434,27 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stats3 .stat .v{font-size:20px}
 .svc[disabled] span{color:var(--muted)}
 /* Inicio: mapa más bajo para que se vean las acciones */
-html.en-inicio:not(.sinmapa) .main .mapwrap{height:34vh;min-height:220px}
+html.en-inicio:not(.sinmapa) .main .mapwrap{height:46vh;min-height:260px}
 html.en-inicio .filtros{display:none}
+.destinos{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}.destinos::-webkit-scrollbar{display:none}
+.destino{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:10px 14px;min-height:44px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.destino svg{color:var(--morado)}.destino[aria-pressed="true"]{background:var(--morado);border-color:var(--morado);color:#fff}.destino[aria-pressed="true"] svg{color:#fff}
+.desde{display:inline-flex;align-items:center;gap:4px;font:inherit;font-weight:700;color:var(--morado);background:none;border:0;padding:0;cursor:pointer}
+.desde select{font:inherit;font-weight:700;color:var(--morado);border:0;background:transparent;padding:2px 0}
+.estado-mapa{position:absolute;z-index:3;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:0 8px 24px rgba(31,42,68,.18);max-width:460px}
+.estado-mapa[hidden]{display:none}
+.em-body{display:flex;flex-direction:column;gap:3px;text-align:left;background:none;border:0;padding:0;font:inherit;color:var(--ink);cursor:pointer}
+.em-body b{font-size:14px}.em-l{display:flex;gap:6px;font-size:13px;line-height:1.3}.em-l i{font-style:normal}.em-l.tenue{color:var(--muted)}
+.em-av{border:0;border-radius:12px;padding:10px 12px;font:inherit;font-weight:800;font-size:14px;background:var(--morado);color:#fff;cursor:pointer}.em-av.on{background:color-mix(in srgb,var(--morado) 14%,transparent);color:var(--morado)}
+.aviso-toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top,0px));width:min(460px,calc(100% - 20px));background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--morado);border-radius:14px;box-shadow:0 10px 30px rgba(31,42,68,.25);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.aviso-toast[hidden]{display:none}.at-txt{display:flex;flex-direction:column;gap:4px;font-size:14px}.at-txt small{color:var(--muted)}.at-acc{display:flex;gap:6px;align-items:center}.at-x{margin-left:auto;border:0;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;min-width:44px;min-height:36px}
+.grupo{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.altc{display:flex;flex-direction:column;gap:6px}.altc h3{margin:0;font-size:16px}.altc .prox{font-size:15px}.altc .prox b{font-size:20px}
+.altc table{width:100%;border-collapse:collapse;font-size:13px}.altc td,.altc th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:left}.altc th{color:var(--muted);font-weight:600}
+.altc .acc{display:flex;flex-wrap:wrap;gap:6px}.altc .acc a{text-decoration:none}
+.vivo{display:flex;flex-direction:column;gap:6px}.vivo .em-l{font-size:14px}.vivo .em-l small{display:block;color:var(--muted);font-size:12px}
+.alerta-on{border-color:var(--morado)}
+.fechas{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.fechas input{padding:8px;border-radius:10px;border:1px solid var(--line);font:inherit}
 </style>
 </head>
 <body>
@@ -459,6 +480,7 @@ html.en-inicio .filtros{display:none}
       <div class="stylebar" id="styleBar" aria-label="Vista del mapa"></div>
       <div class="filtros" id="filtros" aria-label="Filtrar por tipo de transporte"></div>
       <div class="legend" id="legend"></div>
+      <div class="estado-mapa" id="estadoMapa" hidden></div>
     </section>
   </div>
 </div>
@@ -479,6 +501,7 @@ function along(pts, f) { // punto a fracción f del recorrido
   return pts[pts.length - 1];
 }
 const clp = n => '$' + Math.round(n).toLocaleString('es-CL');
+const precioTxt = n => n == null ? 'Tarifa no informada' : clp(n);
 const hhmm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -488,9 +511,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const N = {
   santiago: [-33.4489, -70.6693], curacavi: [-33.4038, -71.1336], lovasquez: [-33.327, -71.320],
   casablanca: [-33.3197, -71.4097], valparaiso: [-33.0472, -71.6127], vina: [-33.0245, -71.5518],
-  quilpue: [-33.0479, -71.4425], algarrobo: [-33.3640, -71.6713], quintay: [-33.1925, -71.6990], lasdichas: [-33.272, -71.468]
+  quilpue: [-33.0479, -71.4425], villa_alemana: [-33.0428, -71.3740], algarrobo: [-33.3640, -71.6713], quintay: [-33.1925, -71.6990], lasdichas: [-33.272, -71.468]
 };
-const NOMBRES = { santiago: 'Santiago', curacavi: 'Curacaví', lovasquez: 'Lo Vásquez', casablanca: 'Casablanca', valparaiso: 'Valparaíso', vina: 'Viña del Mar', quilpue: 'Quilpué', algarrobo: 'Algarrobo', quintay: 'Quintay', lasdichas: 'Las Dichas' };
+const NOMBRES = { santiago: 'Santiago', curacavi: 'Curacaví', lovasquez: 'Lo Vásquez', casablanca: 'Casablanca', valparaiso: 'Valparaíso', vina: 'Viña del Mar', quilpue: 'Quilpué', villa_alemana: 'Villa Alemana', algarrobo: 'Algarrobo', quintay: 'Quintay', lasdichas: 'Las Dichas' };
 
 const LOCALIDADES = [
   { id: 'casablanca', nombre: 'Casablanca', estado: 'piloto', radio: 2.4, tarifa: { base: 900, km: 650, min: 110, minimo: 2500 } },
@@ -498,6 +521,7 @@ const LOCALIDADES = [
   { id: 'valparaiso', nombre: 'Valparaíso', estado: 'próximamente', radio: 2.2, tarifa: { base: 1000, km: 700, min: 130, minimo: 2800 } },
   { id: 'vina', nombre: 'Viña del Mar', estado: 'próximamente', radio: 2.2, tarifa: { base: 1000, km: 700, min: 130, minimo: 2800 } },
   { id: 'quilpue', nombre: 'Quilpué', estado: 'próximamente', radio: 1.8, tarifa: { base: 950, km: 680, min: 120, minimo: 2600 } },
+  { id: 'villa_alemana', nombre: 'Villa Alemana', estado: 'próximamente', radio: 1.8, tarifa: { base: 950, km: 680, min: 120, minimo: 2600 } },
   { id: 'santiago', nombre: 'Santiago', estado: 'destino', radio: 3, tarifa: { base: 1100, km: 750, min: 140, minimo: 3000 } }
 ];
 const LOC = Object.fromEntries(LOCALIDADES.map(l => [l.id, l]));
@@ -522,6 +546,7 @@ const POIS = [
   { id: 'vi-centro', n: 'Centro de Viña', loc: 'vina', c: off(N.vina, -0.6, 0.4) },
   { id: 'qu-centro', n: 'Centro de Quilpué', loc: 'quilpue', c: N.quilpue },
   { id: 'qu-est', n: 'Estación Quilpué', loc: 'quilpue', c: off(N.quilpue, 0.5, -0.3) },
+  { id: 'va-villa', n: 'Villa Alemana (paso)', loc: 'villa_alemana', c: N.villa_alemana },
   { id: 'st-sur', n: 'Terminal Sur (Estación Central)', loc: 'santiago', c: [-33.4540, -70.6870] },
   { id: 'st-paj', n: 'Terminal Pajaritos', loc: 'santiago', c: [-33.4565, -70.7425] },
   { id: 'st-air', n: 'Aeropuerto de Santiago (SCL)', loc: 'santiago', c: [-33.3930, -70.7858] }
@@ -694,9 +719,9 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto
 let NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--turquesa)', tabs: ['inicio', 'viaje', 'avisar'] },
   { id: 'locomocion', n: 'Locomoción', s: 'Locomoción', i: 'bus', c: 'var(--amarillo)', tabs: ['locomocion', 'buses', 'colectivos'] },
   { id: 'mapa', n: 'Mapa', s: 'Mapa', i: 'planificar', c: 'var(--accent)', tabs: ['mapa'] },
-  { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'soy', 'registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
+  { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'planificar', 'misviajes', 'delivery', 'soy', 'registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'duenos', 'conductor', 'favoritos', 'config', 'avisos'] }];
 // En celular el mapa solo aparece donde ayuda; en el resto de pantallas queda oculto (se abre desde «Mapa»)
-const CON_MAPA = ['inicio', 'mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
+const CON_MAPA = ['inicio', 'locomocion', 'mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
 // Servicios separados: en Inicio se elige uno a la vez y el mapa muestra solo ese tipo (menos congestión)
 const SERV = [{ id: 'bus', n: 'Buses', vis: ['bus'], c: 'var(--bus)' }, { id: 'colectivo', n: 'Colectivos', vis: ['colectivo'], c: 'var(--colectivo)' },
   { id: 'taxi', n: 'Taxis', vis: ['taxi'], c: 'var(--taxi)' }, { id: 'auto', n: 'Autos', vis: ['auto'], c: 'var(--auto)' }];
@@ -800,8 +825,9 @@ function drawBase() {
   const feats = [], stops = [];
   for (const r of RV(ALLROUTES)) {
     const sel = S.selRoute === r.id || pr.includes(r.id);
-    const op = !ver(r.kind) && !sel ? 0 : sel ? 1 : S.selRoute || S.tab === 'planificar' ? 0.15 : focus ? (r.kind === focus ? 0.9 : 0.15) : 0.45;
-    feats.push(line(r.path, { id: r.id, sel, op, tipo: r.tipo || 'inter', color: r.kind === 'bus' ? COL.bus : COL.micro }));
+    const comp = compatVista();
+    const op = !ver(r.kind) && !sel ? 0 : sel ? 1 : S.selRoute || S.tab === 'planificar' ? 0.15 : comp ? (comp.has(r.id) ? 0.95 : 0.1) : focus ? (r.kind === focus ? 0.9 : 0.15) : 0.45;
+    feats.push(line(r.path, { id: r.id, sel, op, tipo: r.ref ? 'rural' : r.tipo || 'inter', color: r.kind === 'bus' ? COL.bus : COL.micro }));
     if (sel || (focus && r.kind === focus && !S.selRoute && ver(r.kind))) for (const p of r.paradas) stops.push(point(POI[p].c, { name: POI[p].n, color: r.kind === 'bus' ? COL.bus : COL.micro }));
   }
   map.getSource('routes').setData(fc(feats)); map.getSource('stops').setData(fc(stops));
@@ -830,6 +856,8 @@ function drawOver() {
       info: `<b>${T.n} ${esc(c.patente)}</b><br>${k === 'colectivo' ? (lleno ? 'Completo' : c.cupos + ' de ' + c.capacidad + ' cupos') + (c.sentido ? ' · ' + esc(c.sentido) : '') : 'En servicio'}${c.retraso_min ? '<br>Retraso informado: ' + c.retraso_min + ' min' : ''}<br><small style="color:#525C86">Ubicación real compartida por el conductor.</small>` })); }
   map.getSource('vehicles').setData(fc(v));
   const pins = [], ride = [];
+  if (['inicio', 'locomocion'].includes(S.tab)) { for (const r of (ALT.rep[S.dest] || {}).data || []) if (r.respaldado && r.lat != null) pins.push(point([+r.lat, +r.lng], { label: '📍 ' + r.personas + ' reportes', color: COL.accent }));
+    const al = AVISOS.alerta(); if (al && al.abordaje && POI[al.abordaje] && al.origen === S.loc) pins.push(point(POI[al.abordaje].c, { label: '🔔 Subo aquí', color: COL.fucsia })); }
   if (S.tab === 'viaje') { const o = placeOf(S.o), d = placeOf(S.d);
     if (o) pins.push(point(o.c, { label: 'A', color: COL.accent })); if (d) pins.push(point(d.c, { label: 'B', color: COL.fucsia }));
     const R = S.ride;
@@ -926,7 +954,7 @@ function busLiveRows(r) { const trips = activeTrips(r);
 function routeCard(r) {
   const sel = S.selRoute === r.id, color = r.kind === 'bus' ? 'var(--bus)' : 'var(--micro)', nx = nextDeps(r, 5);
   const horario = r.cada ? `cada ${r.cada} min · ${hhmm(r.primero)}–${hhmm(r.ultimo)}` : r.freqAprox ? `cada ~${r.freqAprox} min (estimado)` : 'sin horario confirmado';
-  let h = `<button class="route" data-route="${r.id}" data-th="${r.th}" aria-pressed="${sel}" style="--rc:${color}"><div class="h"><span class="row"><span class="code">${r.id}</span><b>${esc(r.nombre)}</b></span><span class="mono">${clp(r.precio)}</span></div>
+  let h = `<button class="route" data-route="${r.id}" data-th="${r.th}" aria-pressed="${sel}" style="--rc:${color}"><div class="h"><span class="row"><span class="code">${r.id}</span><b>${esc(r.nombre)}</b></span><span class="mono">${precioTxt(r.precio)}</span></div>
     <div class="hint">${r.op ? esc(r.op) + ' · ' : ''}${r.min} min de viaje · ${horario}</div>
     <div class="row">${UI.semaforo('sininfo', 'Sin GPS ni reportes en vivo', actTxt(r))}</div>
     <div class="row">${thBadge(r)}${r.cada ? `<span class="tag">${activeTrips(r).length} en ruta según horario</span><span class="hint">Próxima salida: <b class="mono">${nx.length ? hhmm(nx[0]) : 'mañana ' + hhmm(r.primero)}</b></span>` : `<span class="hint">${SIN_EST}</span>`}</div></button>`;
@@ -936,7 +964,7 @@ function routeCard(r) {
     h += `<div class="card" style="--rc:${color}"><h3>¿Dónde van ahora?</h3><p class="hint" style="margin:0">Posición calculada con el horario ${r.th === 'oficial' ? 'oficial' : 'programado (ejemplo, no oficial)'}, no con GPS.</p><div class="live" data-live="${r.id}">${busLiveRows(r)}</div>
       <h3>Próximas salidas</h3><div class="chips">${nx.map(t => `<button class="chip ${S.selDep === t ? 'sel' : ''}" data-dep="${t}">${hhmm(t)}</button>`).join('') || '<span class="hint">No quedan salidas hoy.</span>'}</div>${favBtnR(r)}`;
     if (r.kind === 'bus') { const cupos = S.selDep != null ? 8 + Math.floor((S.selDep * 7 + r.precio) % 30) : null;
-      h += S.selDep != null ? `<div class="row" style="justify-content:space-between"><span>Salida ${hhmm(S.selDep)} · <b>${cupos}</b> asientos libres de 44</span><button class="btn sm" id="comprar">Comprar ${clp(r.precio)}</button></div>` : '<p class="hint">Elige una salida para ver asientos y comprar.</p>';
+      h += S.selDep != null ? `<div class="row" style="justify-content:space-between"><span>Salida ${hhmm(S.selDep)} · <b>${cupos}</b> asientos libres de 44</span><button class="btn sm" id="comprar">Comprar ${precioTxt(r.precio)}</button></div>` : '<p class="hint">Elige una salida para ver asientos y comprar.</p>';
       if (S.ticket && S.ticket.r === r.id) h += `<div class="ticket"><div><div class="eyebrow">Pasaje de demostración, no válido</div><h3>${esc(r.nombre)}</h3><div class="mono">Sale ${hhmm(S.ticket.dep)} · Asiento ${S.ticket.asiento}</div><div class="mono hint">${S.ticket.code}</div></div><canvas id="qr" width="21" height="21" aria-label="Código del pasaje"></canvas></div>`; }
     h += `</div>`;
   }
@@ -970,26 +998,29 @@ function subnav() {
   const g = navDe(S.tab);
   if (PERFIL === 'conductor') { if (NAV_C.some(n => n.id === S.tab)) return '';
     if (['registro', 'soy', 'documentos'].includes(S.tab)) return `<button class="back" data-tab="misvehiculos">‹ Vehículos</button>`;
-    if (S.tab === 'revision') return `<button class="back" data-tab="gestion">‹ Administrar</button>`;
+    if (S.tab === 'revision' || S.tab === 'adminhor') return `<button class="back" data-tab="gestion">‹ Administrar</button>`;
     return `<button class="back" data-tab="mas">‹ Más</button>`; }
   if (g.id === 'locomocion' && S.tab !== 'locomocion') return `<button class="back" data-tab="locomocion">‹ Locomoción</button>`;
   if (g.id === 'inicio' && S.tab !== 'inicio') return `<button class="back" data-tab="inicio">‹ Inicio</button>`;
-  if (['registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'duenos', 'conductor'].includes(S.tab)) return `<button class="back" data-tab="soy">‹ Conductores y dueños</button>`;
+  if (['registro', 'panelcond', 'misvehiculos', 'documentos', 'gestion', 'revision', 'adminhor', 'duenos', 'conductor'].includes(S.tab)) return `<button class="back" data-tab="soy">‹ Conductores y dueños</button>`;
   if (g.id === 'mas' && S.tab !== 'mas') return `<button class="back" data-tab="mas">‹ Más</button>`;
   return '';
 }
 const destinos = () => LOCALIDADES.filter(l => l.id !== S.loc);
 const nombreDest = () => (LOC[S.dest] || {}).nombre || '';
 function setDest(id) { if (!LOC[id] || id === S.loc) return false; S.dest = id; try { localStorage.setItem('vamo-destino', id); } catch (e) {} return true; }
+const EST_SERV = [['disponible', 'Disponible'], ['en_punto_salida', 'En punto de salida'], ['en_recorrido', 'En recorrido'], ['completo', 'Completo'], ['fuera_servicio', 'Fuera de servicio']];
+const DEST_RAPIDOS = [['zona', 'Dentro de la zona', 'auto'], ['casablanca', 'Casablanca', 'bus'], ['valparaiso', 'Valparaíso', 'bus'], ['quilpue', 'Quilpué', 'bus'], ['santiago', 'Santiago', 'bus']];
 function viewInicio() {
   const favs = (FAV.destinos || []).filter(id => LOC[id] && id !== S.loc), fp = FAV.paraderos.filter(id => POI[id]).slice(0, 2);
   const opts = [...destinos().map(l => l.nombre), ...POIS.filter(p => p.loc !== S.loc).map(p => p.n)], sv = servDe(S.serv);
   const accion = (id, c, i, t, d, cls) => `<button class="accion ${cls || ''}" id="${id}" style="--c:${c}"><span class="ai">${UI.icono(i, 30)}</span><span>${t}<small>${d}</small></span></button>`;
-  const nota = { bus: 'En el mapa: solo buses (según horario de ejemplo).', colectivo: 'Colectivos Casablanca–Valparaíso: aún no hay conductores informando, por eso no aparecen en el mapa.', taxi: 'En el mapa: solo taxis (simulados).', auto: 'En el mapa: solo autos tipo Uber (simulados).' }[sv.id];
+  const nota = { bus: 'En el mapa: buses con horario publicado y vehículos con GPS real cuando un conductor comparte su ubicación.', colectivo: 'En el mapa: colectivos solo cuando un conductor autorizado comparte su ubicación.', taxi: 'En el mapa: solo taxis (simulados).', auto: 'En el mapa: solo autos tipo Uber (simulados).' }[sv.id];
   return `<div class="servicios" role="group" aria-label="Tipo de transporte">${SERV.map(x => `<button class="serv" data-serv="${x.id}" aria-pressed="${x.id === sv.id}" style="--c:${x.c}">${UI.icono(x.id, 16)}${x.n}</button>`).join('')}</div>
     <p class="servnota">${nota}</p>
-    <div class="destcard"><div class="hero">${UI.icono('ubicacion', 26)}<div><h2>¿A dónde vamos?</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}${S.dest && S.dest !== S.loc ? ` · destino: <b>${esc(nombreDest())}</b>` : ''}. Consulta locomoción, pide un viaje o planifica tu ruta.</p></div></div>
-    <div class="destrow"><div class="buscar">${UI.icono('ubicacion', 18)}<input id="destQ" list="destLista" type="search" autocomplete="off" placeholder="Busca tu destino: Valparaíso, Viña…" aria-label="Destino" value=""><datalist id="destLista">${opts.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+    <div class="destcard"><div class="hero">${UI.icono('ubicacion', 26)}<div><h2>¿A dónde vamos?</h2><p class="sub">Desde <label class="desde">${UI.icono('ubicacion', 14)}<select id="desdeSel" aria-label="Origen">${LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${esc(l.nombre)}</option>`).join('')}</select></label></p></div></div>
+    <div class="destinos" role="group" aria-label="Destinos rápidos">${DEST_RAPIDOS.filter(([id]) => id !== S.loc).map(([id, n, i]) => `<button class="destino" data-irdest="${id}" aria-pressed="${!!S.destElegido && id !== 'zona' && S.dest === id}">${UI.icono(i, 16)}<span>${id === 'zona' ? n : 'Voy a ' + n}</span></button>`).join('')}</div>
+    <div class="destrow"><div class="buscar">${UI.icono('ubicacion', 18)}<input id="destQ" list="destLista" type="search" autocomplete="off" placeholder="Otro destino: Viña, Villa Alemana…" aria-label="Otro destino" value=""><datalist id="destLista">${opts.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
     <button class="swap" id="swapLoc" aria-label="Invertir origen y destino" title="Invertir origen y destino">${UI.icono('cambiar', 20)}</button></div>
     ${favs.length || fp.length ? `<div class="row">${favs.map(id => `<button class="chip" data-dest="${id}">${UI.icono('estrella', 12)} ${esc(LOC[id].nombre)}</button>`).join('')}${fp.map(id => `<button class="chip" data-destp="${id}">${UI.icono('paradero', 12)} ${esc(POI[id].n)}</button>`).join('')}</div>` : ''}</div>
     <div class="acciones tres">
@@ -1014,7 +1045,7 @@ function tarjetasLocomocion() {
       lineas: ['Cupos y salidas los informarán los conductores. Los reportes de la comunidad se muestran aparte y no reemplazan la información oficial.'] }));
   return out;
 }
-function viewLocomocion() {
+function viewLocomocionBase() {
   if (!LOC[S.dest] || S.dest === S.loc) S.dest = destinos()[0].id;
   const t = tarjetasLocomocion(), favs = (FAV.destinos || []).filter(id => LOC[id] && id !== S.loc);
   return `<div><h2>Locomoción a ${esc(nombreDest())}</h2><p class="sub">Desde ${esc(LOC[S.loc].nombre)}. Cada tarjeta dice de dónde viene el dato y qué tan reciente es.</p></div>
@@ -1027,23 +1058,177 @@ function viewLocomocion() {
     <div class="list" style="margin-top:8px">${UI.semaforo('confirmado', 'información reciente y validada', '')}${UI.semaforo('porconfirmar', 'reportes recientes, aún no bastan', '')}${UI.semaforo('sininfo', 'no hay datos recientes', '')}${UI.semaforo('sinservicio', 'suspensión confirmada', '')}</div></details>
     ${avisoEjemplos()}`;
 }
+/* ============ Alternativas por destino y avisos (horarios reales + vivo) ============ */
+const ALT = { cache: {}, rep: {}, ev: [], evDesde: null, historial: AVISOS.LS('vamo-historial') || [] };
+const hoyISO = (dias = 0) => { const d = new Date(Date.now() + dias * 864e5); try { return d.toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }); } catch (e) { return d.toISOString().slice(0, 10); } };
+const fechaSel = () => S.fecha || hoyISO();
+const esHoy = () => fechaSel() === hoyISO();
+const altKey = (o, d, f) => `${o}|${d}|${f}`;
+const altDe = (o = S.loc, d = S.dest, f = fechaSel()) => ALT.cache[altKey(o, d, f)];
+const utilAlt = a => (a.salidas || []).length || (a.notas || []).length || a.frecuencia_aprox_min || (a.operador && a.operador.id);
+async function sbRpc(fn, args) { const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+async function consultarAlt(o = S.loc, d = S.dest, f = fechaSel(), forzar = false) {
+  if (!LOC[o] || !LOC[d] || o === d) return null;
+  const k = altKey(o, d, f), c = ALT.cache[k]; if (c && !forzar && (c.cargando || Date.now() - c.at < 120000)) return c;
+  ALT.cache[k] = { ...(c || {}), cargando: true };
+  try { const j = await sbRpc('alternativas', { p_origen: o, p_destino: d, p_fecha: f }); ALT.cache[k] = { at: Date.now(), data: (j.alternativas || []).filter(utilAlt), tipo_dia: j.tipo_dia }; }
+  catch (e) { ALT.cache[k] = { at: Date.now(), error: true }; }
+  refrescarVista(); return ALT.cache[k]; }
+async function cargarReportes(d) { const c = ALT.rep[d]; if (c && Date.now() - c.at < 30000) return;
+  ALT.rep[d] = { at: Date.now(), data: (c && c.data) || [] };
+  try { ALT.rep[d].data = await sbRpc('reportes_recientes', { p_destino: d }); } catch (e) { /* aún no disponible */ } }
+async function cargarEventos(al) { if (!FLOTA.on || !al) return;
+  const desde = ALT.ev.length ? `id=gt.${ALT.ev[ALT.ev.length - 1].id}` : `creado_en=gt.${new Date(al.creada - 60000).toISOString()}`;
+  try { const r = await FLOTA.pedir(`evento_servicio?select=*&${desde}&order=id.asc&limit=100`, { publico: true }); ALT.ev = [...ALT.ev, ...r].slice(-200); } catch (e) { /* sin conexión */ } }
+function compatVista() { if (!['inicio', 'locomocion'].includes(S.tab) || !S.destElegido) return null; const A = altDe(); return A && A.data ? new Set(A.data.map(a => a.recorrido_id)) : null; }
+function ctxTrayecto(o, d, f = fechaSel(), abordaje = null) {
+  const A = altDe(o, d, f) || {}, ids = new Set((A.data || []).map(a => a.recorrido_id));
+  return { alts: A.data || [], reales: FL.reales || [], reportes: (ALT.rep[d] || {}).data || [], ahora: nowMin(), esHoy: f === hoyISO(), fecha: f, origen: o, destino: d, nombreDest: (LOC[d] || {}).nombre || '',
+    rutas: Object.fromEntries(ALLROUTES.map(x => [x.id, x.path])), colPath: SEG.cb_valpo, abordaje, origenC: N[o] || null,
+    avisosPausa: (FL.avisos || []).filter(a => a.recorrido_id && ids.has(a.recorrido_id)).map(a => ({ texto: `${(TIPOS_V[a.tipo] || TIPOS_V.auto).n} ${a.patente}: ${a.aviso_pausa}` })) }; }
+const abordajeAlerta = al => al && al.abordaje && POI[al.abordaje] ? POI[al.abordaje].c : null;
+function pintarEstado() { const el = document.getElementById('estadoMapa'); if (!el) return;
+  const ver = ['inicio', 'locomocion'].includes(S.tab) && S.destElegido && LOC[S.dest] && S.dest !== S.loc && !VAMO_LITE, A = ver && altDe();
+  if (!ver || !A || A.error || !A.data) { el.hidden = true; S.estadoT = null; return; }
+  const al = AVISOS.alerta(), mia = al && al.origen === S.loc && al.destino === S.dest;
+  const e = AVISOS.estado(ctxTrayecto(S.loc, S.dest, fechaSel(), mia ? abordajeAlerta(al) : null)); S.estadoT = e;
+  const top = e.lineas.slice(0, 3);
+  el.innerHTML = `<button class="em-body" id="emAbrir" aria-label="Ver alternativas de ${esc(LOC[S.loc].nombre)} a ${esc(nombreDest())}"><b>${esc(LOC[S.loc].nombre)} → ${esc(nombreDest())}${esHoy() ? '' : ' · ' + esc(fechaTxt())}</b>${top.length ? top.map(l => `<span class="em-l ${l.noRecomendar ? 'tenue' : ''}"><i>${l.icono}</i><span>${esc(l.texto)}</span></span>`).join('') : `<span class="em-l"><i>ℹ️</i><span>${A.data.length ? 'Sin servicios en vivo ni salidas programadas para ' + (esHoy() ? 'hoy' : 'esa fecha') : 'Aún no hay empresas registradas para este trayecto'}</span></span>`}</button>
+    <button class="em-av ${mia ? 'on' : ''}" id="${mia ? 'alertaVer' : 'avisame'}">🔔 ${mia ? 'Alerta activa · ver' : 'Avísame cuando venga'}</button>`;
+  el.hidden = false; }
+function refrescarVista() { pintarEstado(); try { drawBase(); } catch (e) {}
+  if (S.tab === 'locomocion') { const y = view.scrollTop, a = document.activeElement; if (a && ['SELECT', 'INPUT'].includes(a.tagName) && view.contains(a)) return; render(); view.scrollTop = y; } }
+const DIAS_TXT = { lv: 'lunes a viernes', sabado: 'sábado', domingo: 'domingo', feriado: 'feriado' };
+function fechaTxt(f = fechaSel()) { const [y, m, d] = f.split('-').map(Number); const dt = new Date(y, m - 1, d);
+  return f === hoyISO() ? 'hoy' : f === hoyISO(1) ? 'mañana' : dt.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }); }
+const INFO_CLASE = { oficial_verificado: 'ok', publicado_sin_verificar: 'warn', referencial: 'warn', incompleto: 'warn', desactualizado: 'err' };
+const infoTag = ei => ei ? `<span class="tag ${INFO_CLASE[ei] || ''}">${AVISOS.INFO[ei] || ei}</span>` : '';
+function altCard(a) {
+  const ss = AVISOS.salidas(a), dia = ss.filter(x => !x.referencial), refs = ss.filter(x => x.referencial), hoy = esHoy(), nx = AVISOS.proxima(a, nowMin(), hoy), op = a.operador || {};
+  const vivo = ((S.estadoT || {}).compatibles || []).filter(c => c.alt && c.alt.recorrido_id === a.recorrido_id && !(c.ap && c.ap.paso) && c.v.estado !== 'completo');
+  const susp = (a.excepciones || []).some(e => e.tipo === 'suspendida');
+  const estOp = susp ? UI.semaforo('sinservicio', 'Suspendido ' + (hoy ? 'hoy' : 'ese día'), 'según aviso registrado') : vivo.length ? UI.semaforo('confirmado', 'En recorrido', vivo.some(c => c.ap && c.ap.min != null) ? 'GPS del conductor' : 'informado por el conductor, sin ubicación reciente') : nx ? UI.semaforo('porconfirmar', 'Programado', 'sin confirmación en vivo') : UI.semaforo('sininfo', 'Sin información operacional', '');
+  const ab = a.abordaje || {}, sub = [];
+  if (nx) { const falta = hoy ? Math.round(nx.min - nowMin()) : null;
+    sub.push(`<div class="prox">Próxima salida${a.desde_inicio ? '' : ' (paso por ' + esc(LOC[S.loc].nombre) + ')'}: <b class="mono">${nx.hora || nx.variante ? AVISOS.hm(nx.min) : '—'}</b>${falta != null && falta <= 120 ? ` · en ${Math.max(0, falta)} min` : ''}${nx.llegada ? ` · llega ${nx.llegada}` : ''}</div>`);
+    if (!a.desde_inicio && !nx.hora) sub.push(`<span class="hint">Hora de paso por ${esc(LOC[S.loc].nombre)} no informada. Sale de su origen a las ${nx.hora_inicio}.</span>`);
+    if (nx.variante) sub.push(`<span class="hint">Variante informada: ${nx.variante}. ${esc(nx.nota_variante || '')}</span>`);
+    if (nx.modificada) sub.push(`<span class="tag warn">Horario modificado ${hoy ? 'hoy' : 'ese día'}</span>`); }
+  else if (dia.length) sub.push(`<span class="hint">${hoy ? 'No quedan salidas programadas hoy.' : 'Sin salidas para esa fecha.'}</span>`);
+  if (a.frecuencia_aprox_min) sub.push(`<span class="hint">Frecuencia aproximada cada ${a.frecuencia_aprox_min} min. No es un horario oficial.</span>`);
+  if (refs.length) sub.push(`<span class="hint">Horarios referenciales (días sin confirmar): <b class="mono">${refs.map(x => x.hora).join(', ')}</b></span>`);
+  for (const n of a.notas || []) sub.push(`<span class="hint">ℹ️ ${esc(n.texto)}</span>`);
+  for (const e of a.excepciones || []) sub.push(`<span class="tag ${e.tipo === 'suspendida' ? 'err' : 'warn'}">${esc({ suspendida: 'Suspendido', modificada: 'Modificado', extra: 'Salida extra', reanudada: 'Reanudado', reducida: 'Servicio reducido', aviso: 'Aviso' }[e.tipo] || e.tipo)}${e.nueva_hora ? ' ' + e.nueva_hora : ''}${e.detalle ? ': ' + esc(e.detalle) : ''}</span>`);
+  const tabla = dia.length ? `<details><summary>Todos los horarios de ${esc(DIAS_TXT[(altDe() || {}).tipo_dia] || 'ese día')} (${dia.length})</summary><table><thead><tr><th>Sale</th><th>Llega</th><th>Nota</th><th></th></tr></thead><tbody>${dia.map(x => `<tr${x.suspendida ? ' style="text-decoration:line-through;color:var(--muted)"' : ''}><td class="mono">${x.hora || (a.desde_inicio ? '' : 'sale ' + x.hora_inicio)}</td><td class="mono">${x.llegada || '—'}</td><td>${x.variante ? 'Variante ' + x.variante : ''}${x.suspendida ? ' Suspendida' : x.modificada ? ' Ahora ' + AVISOS.hm(x.min) : ''}${x.observacion ? ' ' + esc(x.observacion) : ''}</td><td>${hoy && !x.suspendida && x.min >= nowMin() ? `<button class="btn sm ghost" data-avsal="${x.id}" data-avsaltxt="${AVISOS.hm(x.min)}" aria-label="Avísame antes de la salida de las ${AVISOS.hm(x.min)}">🔔</button>` : ''}</td></tr>`).join('')}</tbody></table></details>` : '';
+  const acc = [`<button class="btn sm ghost" data-verruta="${a.recorrido_id}">${UI.icono('planificar', 14)} Ver en el mapa</button>`];
+  if (op.telefono) acc.push(`<a class="btn sm ghost" href="tel:${esc(op.telefono.replace(/[^+\d]/g, ''))}">Llamar</a>`);
+  if (op.avisos_url) acc.push(`<a class="btn sm ghost" href="${esc(op.avisos_url)}" target="_blank" rel="noopener">Consultar avisos de ${esc(op.nombre)}</a>`);
+  if (op.compra_url) acc.push(`<a class="btn sm ghost" href="${esc(op.compra_url)}" target="_blank" rel="noopener">Ver disponibilidad y comprar</a>`);
+  const fuentes = (a.fuentes || []).length ? `<details><summary>Fuentes (${a.fuentes.length})</summary><ul>${a.fuentes.map(f => `<li>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.titulo)}</a>` : esc(f.titulo)}${f.verificada_en ? ' · verificada ' + f.verificada_en : ' · sin verificar'}</li>`).join('')}</ul>${(op.oficinas || []).map(o => `<p class="hint" style="margin:0">${esc(o.nombre)}: ${esc(o.direccion)}${o.verificado ? '' : ' (ubicación por verificar)'}</p>`).join('')}</details>` : '';
+  return `<div class="card altc" data-alt="${a.recorrido_id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><h3>${UI.icono('bus', 16)} ${esc(op.nombre || 'Operador por confirmar')}</h3>${infoTag(a.estado_info || (dia[0] || refs[0] || {}).estado_info)}</div>
+    <span class="hint" style="margin:0">${esc(a.nombre)} · sale de ${esc(ab.nombre || LOC[S.loc].nombre)}${ab.verificado === false ? ' (punto por verificar)' : ''}${a.trazado_referencial ? ' · trazado referencial' : ''}</span>
+    ${sub.join('')}<div class="row">${estOp}</div>
+    <span class="hint" style="margin:0">Tarifa: ${a.precio != null ? clp(a.precio) : esc(a.tarifa_nota || 'no informada')}${op.beneficios ? '. ' + esc(op.beneficios) : ''}</span>
+    ${tabla}<div class="acc">${acc.join('')}</div>${fuentes}</div>`; }
+function alertaHTML() { const al = AVISOS.alerta(), mia = al && al.origen === S.loc && al.destino === S.dest;
+  if (!mia) return `<button class="gbtn" id="avisame" style="--c:var(--morado)">🔔 AVÍSAME CUANDO VENGA</button><p class="hint" style="margin:0">${al ? `Ya tienes una alerta para ${esc(LOC[al.origen].nombre)} → ${esc(LOC[al.destino].nombre)}; esta la reemplaza.` : 'Te avisamos en pantalla mientras VAMO esté abierto: cuando un bus o colectivo compatible inicie servicio, esté en su punto de salida o se acerque a tu punto, o cuando se acerque una salida programada. No necesitas dar permiso de notificaciones.'}</p>`;
+  const pts = POIS.filter(p => p.loc === al.origen), sil = al.silencio > Date.now(), quedan = Math.max(0, Math.round((al.vence - Date.now()) / 60000));
+  return `<div class="card alerta-on"><h3>🔔 Alerta activa: ${esc(LOC[al.origen].nombre)} → ${esc(LOC[al.destino].nombre)}</h3>
+    ${al.salidaTxt ? `<p class="hint" style="margin:0">Recordatorio de la salida de las ${al.salidaTxt}: salida programada, pendiente de confirmación.</p>` : ''}
+    <label class="campo">Dónde subes<select id="alAbordaje"><option value="">Punto de salida de cada servicio</option>${pts.map(p => `<option value="${p.id}" ${al.abordaje === p.id ? 'selected' : ''}>${esc(p.n)}${p.ver === false ? ' (por verificar)' : ''}</option>`).join('')}</select></label>
+    <label class="campo">Anticipación<select id="alAnticip">${[5, 10, 15, 20, 30].map(m => `<option value="${m}" ${al.anticip === m ? 'selected' : ''}>${m} minutos antes</option>`).join('')}</select></label>
+    <div class="opciones">${[['bus', 'Buses'], ['colectivo', 'Colectivos']].map(([m, n]) => `<button class="opcion" data-almodo="${m}" aria-pressed="${al.modos.includes(m)}">${n}</button>`).join('')}</div>
+    <p class="hint" style="margin:0">${sil ? 'Silenciada hasta las ' + new Date(al.silencio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'Vence en ' + (quedan >= 60 ? Math.floor(quedan / 60) + ' h ' + (quedan % 60) + ' min' : quedan + ' min')}. Funciona con VAMO abierto; los avisos con la app cerrada vendrán después.</p>
+    <div class="row"><button class="btn sm ghost" id="alSil">${sil ? 'Reactivar avisos' : 'Silenciar 30 min'}</button><button class="btn sm ghost" id="alCancel">Cancelar alerta</button></div></div>`; }
+function viewLocomocion() {
+  if (!LOC[S.dest] || S.dest === S.loc) S.dest = destinos()[0].id;
+  S.destElegido = true;
+  const A = altDe();
+  if (!A) { consultarAlt(); cargarReportes(S.dest); }
+  if (A && A.error) return viewLocomocionBase();
+  const favs = (FAV.destinos || []).filter(id => LOC[id] && id !== S.loc), hoy = esHoy();
+  let h = `<div><h2>${esc(LOC[S.loc].nombre)} → ${esc(nombreDest())}</h2><p class="sub">${esc(fechaTxt()[0].toUpperCase() + fechaTxt().slice(1))}${A && A.tipo_dia ? ' · horario de ' + DIAS_TXT[A.tipo_dia] : ''}. Cada dato dice de dónde viene.</p></div>
+    <div class="row">${destinos().slice(0, 7).map(l => `<button class="chip ${l.id === S.dest ? 'sel' : ''}" data-dest="${l.id}">${favs.includes(l.id) ? '★ ' : ''}${esc(l.nombre)}</button>`).join('')}<button class="chip" id="swapLoc" aria-label="Invertir origen y destino">⇄ Invertir</button></div>
+    <div class="fechas" role="group" aria-label="Fecha"><div class="seg">${[['hoy', hoyISO()], ['mañana', hoyISO(1)]].map(([n, f]) => `<button data-fecha="${f}" aria-pressed="${fechaSel() === f}">${n[0].toUpperCase() + n.slice(1)}</button>`).join('')}</div><input type="date" id="fechaSel" aria-label="Otra fecha" value="${fechaSel()}"></div>`;
+  if (!A || !A.data) return h + `<div class="card"><p class="hint" style="margin:0">Buscando alternativas…</p></div>`;
+  const al0 = AVISOS.alerta(), e = S.estadoT = AVISOS.estado(ctxTrayecto(S.loc, S.dest, fechaSel(), al0 && al0.origen === S.loc && al0.destino === S.dest ? abordajeAlerta(al0) : null));
+  h += alertaHTML();
+  if (hoy) h += `<div class="card vivo" id="vivoBox"><h3>Ahora</h3>${e && e.lineas.length ? e.lineas.map(l => `<span class="em-l ${l.noRecomendar ? 'tenue' : ''}"><i>${l.icono}</i><span>${esc(l.texto)}<small>${esc(l.sub || '')}</small></span></span>`).join('') : '<span class="hint">Sin vehículos en servicio ni reportes recientes para este trayecto.</span>'}</div>`;
+  const prox = [], conf = [];
+  for (const a of A.data) { const dia = AVISOS.salidas(a).filter(x => !x.referencial); (dia.length ? prox : conf).push(a); }
+  prox.sort((x, y) => ((AVISOS.proxima(x, nowMin(), hoy) || { min: 9999 }).min) - ((AVISOS.proxima(y, nowMin(), hoy) || { min: 9999 }).min));
+  h += `<h3 class="grupo">Próximas salidas</h3>${prox.length ? prox.map(altCard).join('') : `<p class="hint">Sin salidas programadas registradas para ${hoy ? 'hoy' : 'esa fecha'}.</p>`}`;
+  const otras = [];
+  if (AVISOS.colectivoCubre(S.loc, S.dest)) { const vivos = (FL.reales || []).filter(v => v.tipo === 'colectivo' && AVISOS.norm(v.sentido).includes(AVISOS.norm(nombreDest())) && v.estado !== 'fuera_servicio');
+    otras.push(`<div class="card altc"><h3>${UI.icono('colectivo', 16)} Colectivos ${esc(LOC[S.loc].nombre)}–${esc(nombreDest())}</h3><span class="hint" style="margin:0">${vivos.length ? vivos.length + ' en servicio ahora, informado por sus conductores.' : 'Ningún conductor informando ahora.'} Cupos solo cuando el conductor los informó hace menos de 10 min.</span><span class="hint" style="margin:0">Tarifa informada: $3.000 por pasajero (vigencia por verificar).</span><div class="acc"><button class="btn sm ghost" data-tab="colectivos">Ver colectivos</button></div></div>`); }
+  otras.push(`<div class="card altc"><h3>${UI.icono('auto', 16)} Taxi o viaje particular</h3><span class="hint" style="margin:0">Conductores habilitados que estén conectados. Si no hay, te lo diremos; nunca mostramos autos inventados como disponibles.</span><div class="acc"><button class="btn sm" id="pedirViaje">Pedir un viaje</button></div></div>`);
+  h += `<h3 class="grupo">Otras alternativas</h3>${otras.join('')}`;
+  if (conf.length) h += `<h3 class="grupo">Horarios por confirmar</h3>${conf.map(altCard).join('')}`;
+  if (!A.data.length) h += UI.vacio(`Aún no hay empresas registradas de ${LOC[S.loc].nombre} a ${nombreDest()}`, 'No inventamos empresas ni horarios. Puedes pedir un viaje particular o avisarnos de un servicio que conozcas.', '');
+  return h + `<details class="card"><summary><b>¿De dónde viene cada dato?</b></summary><div class="list" style="margin-top:8px">${UI.fuente('operador')}<span class="hint">GPS del conductor autorizado, solo durante su servicio.</span>${UI.fuente('comunidad')}<span class="hint">Reportes de pasajeros: con 3 personas distintas se muestra una ubicación estimada.</span>${UI.fuente('oficial')}<span class="hint">Horario publicado: «Publicado sin verificar» hasta que el operador lo confirme. Un horario publicado no confirma que el bus esté operando.</span></div></details>
+    <div class="row"><button class="btn sm ghost" id="favDest" aria-pressed="${favs.includes(S.dest)}">${UI.icono('estrella', 14)} ${favs.includes(S.dest) ? 'Destino favorito' : 'Guardar destino'}</button><button class="btn sm ghost" data-tab="buses">${UI.icono('paradero', 14)} Buscar por paradero</button></div>`; }
+function mostrarAvisos(lista) { let t = document.getElementById('avisoToast');
+  if (!t) { t = document.createElement('div'); t.id = 'avisoToast'; t.className = 'aviso-toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); document.body.appendChild(t); }
+  t.innerHTML = `<div class="at-txt"><b>${esc(lista[0].texto)}</b>${lista.length > 1 ? `<small>Y ${lista.length - 1} aviso${lista.length > 2 ? 's' : ''} más: ${lista.slice(1).map(x => esc(x.texto)).join(' · ')}</small>` : ''}</div><div class="at-acc"><button class="btn sm" id="atVer">Ver</button><button class="btn sm ghost" id="atSil">Silenciar 30 min</button><button class="at-x" id="atX" aria-label="Cerrar aviso">×</button></div>`;
+  t.hidden = false; clearTimeout(ALT.tToast); ALT.tToast = setTimeout(() => { t.hidden = true; }, 30000);
+  ALT.historial = [...lista.map(x => ({ texto: x.texto, at: Date.now() })), ...ALT.historial].slice(0, 30); AVISOS.LS('vamo-historial', ALT.historial); }
+async function tickAvisos() { if (document.hidden) return;
+  const al = AVISOS.alerta(), mirando = ['inicio', 'locomocion'].includes(S.tab) && S.destElegido && S.dest !== S.loc;
+  if (!al && !mirando) return;
+  const tareas = [];
+  if (mirando) tareas.push(consultarAlt(), cargarReportes(S.dest));
+  if (al) tareas.push(consultarAlt(al.origen, al.destino, hoyISO()), cargarReportes(al.destino), cargarEventos(al));
+  await Promise.all(tareas);
+  if (al) { const nuevos = AVISOS.revisar(al, ctxTrayecto(al.origen, al.destino, hoyISO(), abordajeAlerta(al)), ALT.ev);
+    if (nuevos.length) { AVISOS.marcarVisto(nuevos.map(x => x.clave)); mostrarAvisos(nuevos); } }
+  pintarEstado();
+  const vb = document.getElementById('vivoBox'); if (vb && S.tab === 'locomocion') refrescarVista(); }
+setInterval(tickAvisos, 15000);
+function activarAlerta(extra = {}) { const al = AVISOS.crearAlerta({ origen: S.loc, destino: S.dest, ...extra }); ALT.ev = [];
+  mostrarAvisos([{ texto: `🔔 Te avisaremos sobre ${LOC[al.origen].nombre} → ${LOC[al.destino].nombre} mientras VAMO esté abierto.` }]);
+  if (S.tab !== 'locomocion') ir('locomocion'); else refrescarVista(); setTimeout(tickAvisos, 300); }
+document.addEventListener('click', e => { const b = e.target.closest('#emAbrir,#avisame,#alertaVer,#atVer,#atSil,#atX,#alSil,#alCancel,[data-almodo],[data-avsal],[data-irdest],[data-fecha],[data-verruta]'); if (!b) return;
+  const t = document.getElementById('avisoToast');
+  if (b.id === 'emAbrir' || b.id === 'alertaVer') { if (S.tab !== 'locomocion') ir('locomocion'); else view.scrollTop = 0; return; }
+  if (b.id === 'avisame') { activarAlerta(); return; }
+  if (b.dataset.avsal) { activarAlerta({ salida: +b.dataset.avsal, salidaTxt: b.dataset.avsaltxt }); return; }
+  if (b.id === 'atX') { if (t) t.hidden = true; return; }
+  if (b.id === 'atVer') { if (t) t.hidden = true; const al = AVISOS.alerta(); if (al) { if (LOC[al.origen] && al.origen !== S.loc) { locEl.value = al.origen; S.loc = al.origen; } setDest(al.destino); S.fecha = null; } ir('locomocion'); return; }
+  if (b.id === 'atSil' || b.id === 'alSil') { const al = AVISOS.alerta(); if (al) AVISOS.actualizarAlerta({ silencio: al.silencio > Date.now() ? 0 : Date.now() + 30 * 60000 }); if (t && b.id === 'atSil') t.hidden = true; refrescarVista(); return; }
+  if (b.id === 'alCancel') { AVISOS.cancelarAlerta(); refrescarVista(); return; }
+  if (b.dataset.almodo) { const al = AVISOS.alerta(); if (al) { const m = b.dataset.almodo, ms = al.modos.includes(m) ? al.modos.filter(x => x !== m) : [...al.modos, m]; if (ms.length) AVISOS.actualizarAlerta({ modos: ms }); } refrescarVista(); return; }
+  if (b.dataset.irdest) { const d = b.dataset.irdest; if (d === 'zona') { S.dest = S.loc; ir('viaje'); return; }
+    if (!setDest(d)) return; S.destElegido = true; S.fecha = null; render(); consultarAlt(); cargarReportes(d); const c = compatVista(); if (c) fit(ALLROUTES.filter(r => c.has(r.id)).flatMap(r => r.path), 2); return; }
+  if (b.dataset.fecha) { S.fecha = b.dataset.fecha === hoyISO() ? null : b.dataset.fecha; consultarAlt(); refrescarVista(); return; }
+  if (b.dataset.verruta) { const r = ALLROUTES.find(x => x.id === b.dataset.verruta); if (r) { S.selRoute = r.id; drawBase(); fit(r.path, 2); window.scrollTo && window.scrollTo(0, 0); } return; }
+});
+document.addEventListener('change', e => { const t = e.target;
+  if (t.id === 'fechaSel' && t.value) { S.fecha = t.value === hoyISO() ? null : t.value; consultarAlt(); refrescarVista(); }
+  if (t.id === 'desdeSel') { locEl.value = t.value; locEl.onchange(); if (S.destElegido && S.dest !== S.loc) { consultarAlt(); cargarReportes(S.dest); } }
+  if (t.id === 'alAbordaje') { AVISOS.actualizarAlerta({ abordaje: t.value || null }); refrescarVista(); try { drawOver(); } catch (er) {} }
+  if (t.id === 'alAnticip') { AVISOS.actualizarAlerta({ anticip: +t.value }); refrescarVista(); } });
 function viewMapa() {
   return `<div><h2>Mapa</h2><p class="sub">Vehículos y recorridos en el mapa. Los autos y taxis son simulados; los buses siguen horarios de ejemplo.</p></div>
     <div class="row"><button class="btn sm ghost" data-tab="locomocion">Ver locomoción en lista</button><button class="btn sm ghost" data-tab="viaje">Pedir un viaje</button></div>
     <p class="hint">Usa los botones sobre el mapa para filtrar por tipo y para cambiar entre Calles y Satélite.</p>`;
 }
-const AV_TIPOS = { abordo: ['bus', 'colectivo'], vipasar: ['bus', 'colectivo'] };
+const AV_TIPOS = { abordo: ['bus', 'colectivo'], vipasar: ['bus', 'colectivo'], espero: ['bus', 'colectivo'] };
+const AV_RPC = { abordo: 'en_locomocion', vipasar: 'vi_pasar', espero: 'esperando' };
 function viewAvisar() {
   const A = S.av || (S.av = { modo: null, tipo: null, dest: null, enviado: false });
   if (!A.modo) return `<div><h2>Avisar dónde viene</h2><p class="sub">Tu aviso ayuda a otras personas. Nunca se muestra tu nombre ni tu ubicación exacta.</p></div>
     <div class="acciones"><button class="accion" data-avmodo="abordo" style="--c:var(--fucsia)"><span class="ai">${UI.icono('comunidad', 24)}</span><span>Estoy en la locomoción<small>Voy arriba de un bus o colectivo</small></span></button>
-    <button class="accion" data-avmodo="vipasar" style="--c:var(--amarillo)"><span class="ai">${UI.icono('senal', 24)}</span><span>Vi pasar locomoción<small>Lo vi pasar por donde estoy</small></span></button></div>`;
-  if (A.enviado) return `<div class="card"><h3>Gracias por avisar</h3><p class="hint" style="margin:0">Con 3 avisos que coincidan, VAMO! lo mostrará como confirmado.</p><p class="hint" style="margin:0"><b>Prototipo:</b> este aviso todavía no se envía ni se guarda. Funcionará cuando existan las cuentas y la validación en el servidor.</p><button class="btn" id="avFin">Listo</button></div>`;
+    <button class="accion" data-avmodo="vipasar" style="--c:var(--amarillo)"><span class="ai">${UI.icono('senal', 24)}</span><span>Vi pasar locomoción<small>Lo vi pasar por donde estoy</small></span></button>
+    <button class="accion" data-avmodo="espero" style="--c:var(--turquesa)"><span class="ai">${UI.icono('reloj', 24)}</span><span>Estoy esperando<small>Ayuda a saber cuánta gente espera</small></span></button></div>`;
+  if (A.enviando) return `<div class="card"><p class="hint" style="margin:0">Enviando tu aviso…</p></div>`;
+  if (A.enviado) return A.error ? `<div class="card"><h3>No se pudo enviar</h3><p class="hint" style="margin:0">${esc(A.error)}</p><button class="btn" id="avFin">Listo</button></div>`
+    : A.guardado ? `<div class="card"><h3>Gracias por avisar</h3><p class="hint" style="margin:0">Tu aviso queda visible 20 minutos como <b>reporte comunitario</b>, nunca como confirmación oficial. Con 3 personas distintas que coincidan, VAMO mostrará una ubicación estimada.${A.sinUbic ? ' Se envió sin ubicación porque no diste permiso.' : ' Tu ubicación se redondeó a unos 100 m y no se muestra con tu nombre.'}</p><button class="btn" id="avFin">Listo</button></div>`
+    : `<div class="card"><h3>Gracias por avisar</h3><p class="hint" style="margin:0">Con 3 avisos que coincidan, VAMO! lo mostrará como confirmado.</p><p class="hint" style="margin:0"><b>Prototipo:</b> en este sitio el aviso todavía no se guarda.</p><button class="btn" id="avFin">Listo</button></div>`;
   const dests = [...destinos().slice(0, 5).map(l => [l.id, l.nombre]), ...(A.modo === 'vipasar' ? [['nose', 'No sé hacia dónde iba']] : [])];
-  return `<div><h2>${A.modo === 'abordo' ? 'Estoy en la locomoción' : 'Vi pasar locomoción'}</h2></div>
-    <div class="paso"><h3>1. ${A.modo === 'abordo' ? '¿En qué vas?' : '¿Qué viste?'}</h3><div class="opciones">${AV_TIPOS[A.modo].map(t => `<button class="opcion" data-avtipo="${t}" aria-pressed="${A.tipo === t}">${UI.icono(t, 16)} ${t === 'bus' ? 'Bus' : 'Colectivo'}</button>`).join('')}</div></div>
-    <div class="paso"><h3>2. ${A.modo === 'abordo' ? '¿Hacia dónde vas?' : '¿Hacia dónde iba?'}</h3><div class="opciones">${dests.map(([id, n]) => `<button class="opcion" data-avdest="${id}" aria-pressed="${A.dest === id}">${esc(n)}</button>`).join('')}</div></div>
-    <p class="hint">${A.modo === 'abordo' ? 'Al enviar te pediremos compartir tu ubicación solo mientras viajas, con un botón Detener siempre visible.' : 'Se envía con tu ubicación aproximada y la hora de ahora.'}</p>
+  return `<div><h2>${{ abordo: 'Estoy en la locomoción', vipasar: 'Vi pasar locomoción', espero: 'Estoy esperando' }[A.modo]}</h2></div>
+    <div class="paso"><h3>1. ${{ abordo: '¿En qué vas?', vipasar: '¿Qué viste?', espero: '¿Qué esperas?' }[A.modo]}</h3><div class="opciones">${AV_TIPOS[A.modo].map(t => `<button class="opcion" data-avtipo="${t}" aria-pressed="${A.tipo === t}">${UI.icono(t, 16)} ${t === 'bus' ? 'Bus' : 'Colectivo'}</button>`).join('')}</div></div>
+    <div class="paso"><h3>2. ${A.modo === 'vipasar' ? '¿Hacia dónde iba?' : '¿Hacia dónde vas?'}</h3><div class="opciones">${dests.map(([id, n]) => `<button class="opcion" data-avdest="${id}" aria-pressed="${A.dest === id}">${esc(n)}</button>`).join('')}</div></div>
+    <p class="hint">Al enviar te pediremos tu ubicación una sola vez. Se guarda redondeada (unos 100 m), sin tu nombre, y vence a los 20 minutos. Si no das permiso, el aviso se envía igual sin ubicación.</p>
     <button class="btn" id="avEnviar" ${A.tipo && A.dest ? '' : 'disabled'}>Enviar aviso</button><button class="btn ghost" id="avCancel">Cancelar</button>`;
 }
 function viewConductor() {
@@ -1145,7 +1330,7 @@ function viewSoy() {
 function soyConectado() { pedirSync();
   return `${msgHTML()}<div class="card"><h3>Tengo un código de invitación</h3><p class="hint" style="margin:0">Si un dueño te autorizó a conducir su vehículo, ingresa el código que te dio.</p>
       <div class="row"><input id="invCod" maxlength="8" placeholder="Ej.: 4F7A2C9B" autocapitalize="characters" style="text-transform:uppercase;flex:1"><button class="btn sm" id="invOk">Usar código</button></div></div>
-    ${FL.admin ? `<button class="btn secundario" data-tab="revision">Revisar documentos (equipo VAMO)</button>` : ''}
+    ${FL.admin ? `<button class="btn secundario" data-tab="revision">Revisar documentos (equipo VAMO)</button><button class="btn secundario" data-tab="adminhor">Horarios y operadores (equipo VAMO)</button>` : ''}
     <p class="hint">Versión de desarrollo conectada a VAMO. No necesitas correo ni contraseña: este teléfono recibe una identidad propia al guardar tu primer vehículo o usar un código.${FLOTA.uid() ? ` Identificador: <span class="mono">${FLOTA.uid().slice(0, 8)}</span>` : ''}</p>`; }
 function viewRegistro() {
   if (!REG) return `<div class="vacio">${UI.icono('auto', 30)}<h3>Elige primero tu vehículo</h3><button class="btn sm" data-tab="soy">Elegir vehículo</button></div>`;
@@ -1223,6 +1408,7 @@ function viewPanelCond() {
       <div class="grid2"><button class="gbtn" id="pSalida" style="--c:var(--turquesa)">INFORMAR SALIDA</button><button class="gbtn" id="pCompleto" style="--c:var(--amarillo)">${s.completo ? 'HAY CUPOS' : 'COMPLETO'}</button></div>${s.salida ? `<p class="hint" style="margin:0;text-align:center">Salida informada a las ${s.salida}</p>` : ''}`;
     else if (k === 'bus') h += `<div class="paso"><h3 class="paso-n">${UI.icono('reloj', 18)} INFORMAR RETRASO</h3><div class="opciones">${[5, 10, 15].map(m => `<button class="opcion" data-pret="${m}" aria-pressed="${s.retraso === m}">${m} min</button>`).join('')}</div></div>`;
     else h += UI.vacio('Sin solicitudes por ahora', k === 'moto' ? 'Aquí verás los despachos cercanos para enviar tu oferta.' : 'Aquí verás los pedidos cercanos para enviar tu oferta.');
+    if (k === 'colectivo' || k === 'bus') h += `<div class="paso"><h3 class="paso-n">ESTADO DEL SERVICIO</h3><div class="opciones">${EST_SERV.filter(([e]) => k === 'colectivo' || e !== 'en_punto_salida').map(([e, n]) => `<button class="opcion" data-pest="${e}" aria-pressed="${(s.estado || 'disponible') === e}">${n}</button>`).join('')}</div><p class="hint" style="margin:0">Los pasajeros con alerta reciben un aviso cuando inicias servicio o marcas «En punto de salida». Solo lo que tú marcas cuenta como disponible; nunca se deduce por tu ubicación.</p></div>`;
     h += `<button class="gbtn fin" id="pFin" style="--c:var(--fucsia)">${UI.icono('bandera', 20)} ${k === 'auto' || k === 'taxi' || k === 'moto' ? 'FINALIZAR JORNADA' : 'FINALIZAR SERVICIO'}</button>`;
   }
   if (FLOTA.on && !activo) h += red ? `<div class="grid2"><button class="btn secundario" data-tab="documentos">Documentos</button>${v.rol === 'dueno' ? '<button class="btn secundario" data-tab="gestion">Administrar</button>' : ''}</div>`
@@ -1271,8 +1457,9 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
     if (fn === 'actualizar_cupos') { clearTimeout(FL.tCupos); FL.tCupos = setTimeout(() => { FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, n: s.cupos })).catch(() => {}); }, 500); return; }
     FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, ...args })).catch(() => {}); };
   if (b.id === 'pMenos' || b.id === 'pMas') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid), s = ses(); s.cupos = Math.max(0, Math.min(v.cap || 4, s.cupos + (b.id === 'pMas' ? 1 : -1))); s.completo = s.cupos === 0; saveSes(); render(); rs('actualizar_cupos', { n: s.cupos }); return; }
-  if (b.id === 'pCompleto') { const s = ses(); s.completo = !s.completo; if (s.completo) s.cupos = 0; saveSes(); render(); rs('marcar_completo', { si: s.completo }); return; }
-  if (b.id === 'pSalida') { const s = ses(); s.salida = hhmm(nowMin()); saveSes(); render(); rs('informar_salida', { retraso: 0 }); return; }
+  if (b.id === 'pCompleto') { const s = ses(); s.completo = !s.completo; if (s.completo) s.cupos = 0; s.estado = s.completo ? 'completo' : 'disponible'; saveSes(); render(); rs('marcar_completo', { si: s.completo }); return; }
+  if (b.dataset.pest) { const s = ses(); s.estado = b.dataset.pest; if (s.estado === 'completo') { s.completo = true; s.cupos = 0; } else if (s.completo) s.completo = false; if (s.estado === 'en_recorrido' && !s.salida) s.salida = hhmm(nowMin()); saveSes(); render(); rs('cambiar_estado', { e: s.estado }); return; }
+  if (b.id === 'pSalida') { const s = ses(); s.salida = hhmm(nowMin()); if (!s.completo) s.estado = 'en_recorrido'; saveSes(); render(); rs('informar_salida', { retraso: 0 }); return; }
   if (b.dataset.psent) { const s = ses(); s.sentido = b.dataset.psent; saveSes(); render(); rs('cambiar_sentido', { sentido: s.sentido }); return; }
   if (b.dataset.pret) { const s = ses(); s.retraso = +b.dataset.pret; saveSes(); render(); rs('informar_salida', { retraso: s.retraso }); return; }
   if (b.id === 'pEditar') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid), k = tipoDe(v);
@@ -1469,6 +1656,7 @@ function horarioConductorHTML(v) { const mis = FL.misHor[v.rid];
     ${(mis || []).map(h => `<div class="docrow"><span>${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.dia_semana]} ${h.salida.slice(0, 5)}</span><span class="tag ${h.validado ? 'ok' : 'warn'}">${h.validado ? 'Validada' : 'Pendiente de validación'}</span></div>`).join('')}
     <p class="hint" style="margin:0">Las salidas que cargas quedan pendientes hasta que el dueño las valide; mientras tanto no se muestran a pasajeros.</p></div>`; }
 view.addEventListener('change', async e => { const t = e.target;
+  if (S.tab === 'adminhor' && await ADMINHOR.change(t)) return;
   if (t.id === 'gestVeh') { S.panelVid = t.value; rerender(); return; }
   if (t.dataset && t.dataset.doc && t.files && t.files[0]) { const v = vSel(), f = t.files[0];
     if (f.size > 8 * 1024 * 1024) { flMsg('El archivo pesa más de 8 MB. Prueba con una foto más liviana.', false); return; }
@@ -1480,6 +1668,7 @@ view.addEventListener('change', async e => { const t = e.target;
     delete FL.docs[v.rid]; rerender(); }
 });
 view.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b || !FLOTA.on) return; const v = vSel(), uid = FLOTA.uid();
+  if (S.tab === 'adminhor' && await ADMINHOR.click(b)) return;
   if (b.id === 'pGpsQ') { FL.quiereGps = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', FL.quiereGps); return; }
   if (b.id === 'pGpsStop') { const s = SES[v.id]; gpsDetener(); if (s && s.rsid) { s.gpsOk = false; saveSes(); remoto('detener_ubicacion', { s: s.rsid }, 'Dejaste de compartir tu ubicación.').catch(() => {}); } rerender(); return; }
   if (b.id === 'pGpsOn') { gpsIniciar(SES[v.id]); rerender(); return; }
@@ -1521,7 +1710,7 @@ view.addEventListener('click', async e => { const b = e.target.closest('button')
 const NAV_P = NAV;
 const NAV_C = [{ id: 'panelcond', n: 'Mi jornada', s: 'Jornada', i: 'play', c: 'var(--morado)', tabs: ['panelcond'] },
   { id: 'misvehiculos', n: 'Vehículos', s: 'Vehículos', i: 'auto', c: 'var(--turquesa)', tabs: ['misvehiculos', 'soy', 'registro', 'documentos'] },
-  { id: 'gestion', n: 'Administrar', s: 'Administrar', i: 'duenos', c: 'var(--amarillo)', tabs: ['gestion', 'revision'] },
+  { id: 'gestion', n: 'Administrar', s: 'Administrar', i: 'duenos', c: 'var(--amarillo)', tabs: ['gestion', 'revision', 'adminhor'] },
   { id: 'mas', n: 'Más', s: 'Más', i: 'mas', c: 'var(--fucsia)', tabs: ['mas', 'duenos', 'conductor', 'config', 'favoritos', 'avisos'] }];
 let PERFIL = null; try { PERFIL = localStorage.getItem('vamo-perfil'); } catch (e) {}
 if (PERFIL !== 'pasajero' && PERFIL !== 'conductor') PERFIL = null;
@@ -1553,7 +1742,7 @@ function resumenPanel(v, k, s, activo, r) {
   const fila = (a, b) => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="hint">${a}</span><b style="text-align:right">${b}</b></div>`;
   const recorrido = k === 'bus' ? null : k === 'colectivo' ? 'Casablanca ⇄ Valparaíso' : esc(v.zona || 'Casablanca urbano');
   const tarifa = k === 'taxi' ? 'Taxímetro' : k === 'colectivo' ? (+v.tarifaPas > 0 ? clp(+v.tarifaPas) + ' por pasajero' : 'Sin configurar')
-    : k === 'bus' ? (r ? clp(r.precio) + (r.ejemplo ? ' (ejemplo)' : '') : 'Según recorrido') : `Base ${clp(OWNER.tarifa.base)} + ${clp(OWNER.tarifa.km)}/km`;
+    : k === 'bus' ? (r ? precioTxt(r.precio) + (r.ejemplo ? ' (ejemplo)' : '') : 'Según recorrido') : `Base ${clp(OWNER.tarifa.base)} + ${clp(OWNER.tarifa.km)}/km`;
   const cap = v.cap || TIPOS_V[k].cap, unidad = k === 'moto' ? 'bultos' : 'pasajeros';
   return `<div class="card">${recorrido ? fila(k === 'colectivo' ? 'Recorrido' : 'Zona', recorrido) : ''}${k === 'colectivo' && activo && s.salida ? fila('Salida informada', s.salida) : ''}
     ${fila('Tarifa', tarifa)}${fila(k === 'colectivo' && activo ? 'Cupos disponibles' : 'Capacidad', k === 'colectivo' && activo ? `${s.cupos} de ${cap}` : `${cap} ${unidad}`)}
@@ -1778,11 +1967,11 @@ function render() {
   const g = navDe(S.tab);
   tabsEl.innerHTML = NAV.map(t => `<button class="tab" role="tab" aria-selected="${g.id === t.id}" data-tab="${t.id}" data-nav="${t.id}" style="--tc:${t.c}">${UI.icono(t.i, 16)}<span class="tl">${t.n}</span><span class="ts">${t.s}</span></button>`).join('');
   view.innerHTML = (VAMO_LITE ? `<div class="litebar"><span>${UI.icono('hoja', 14)} Modo bajo consumo: sin mapa.</span><button class="btn sm ghost" id="liteOff">Volver al modo normal</button></div>` : '') + subnav() +
-    { inicio: viewInicio, locomocion: viewLocomocion, mapa: viewMapa, avisar: viewAvisar, conductor: viewConductor, favoritos: viewFavoritos, config: viewConfig, avisos: viewAvisos, viaje: viewViaje, buses: viewBuses, micros: viewMicros, colectivos: viewColectivos, planificar: viewPlan, misviajes: viewMisViajes, mas: viewMas, soy: viewSoy, registro: viewRegistro, panelcond: viewPanelCond, misvehiculos: viewMisVehiculos, documentos: viewDocumentos, gestion: viewGestion, revision: viewRevision, delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
+    { inicio: viewInicio, locomocion: viewLocomocion, mapa: viewMapa, avisar: viewAvisar, conductor: viewConductor, favoritos: viewFavoritos, config: viewConfig, avisos: viewAvisos, viaje: viewViaje, buses: viewBuses, micros: viewMicros, colectivos: viewColectivos, planificar: viewPlan, misviajes: viewMisViajes, mas: viewMas, soy: viewSoy, registro: viewRegistro, panelcond: viewPanelCond, misvehiculos: viewMisVehiculos, documentos: viewDocumentos, gestion: viewGestion, revision: viewRevision, adminhor: () => ADMINHOR.view(), delivery: viewDelivery, duenos: viewDuenos }[S.tab]();
   map.getCanvas().style.cursor = (S.tab === 'viaje' && !S.ride) || (S.tab === 'delivery' && S.dl.pick) ? 'crosshair' : '';
   const sin = !CON_MAPA.includes(S.tab), antes = document.documentElement.classList.contains('sinmapa');
   document.documentElement.classList.toggle('sinmapa', sin); document.documentElement.classList.toggle('en-inicio', S.tab === 'inicio'); if (antes && !sin && map.resize) setTimeout(() => map.resize(), 50);
-  if (S.ticket) drawQR(); renderFiltros(); drawBase();
+  if (S.ticket) drawQR(); renderFiltros(); drawBase(); pintarEstado();
 }
 function drawQR() { const c = document.getElementById('qr'); if (!c) return; const x = c.getContext('2d'); let h = 0; for (const ch of S.ticket.code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const ink = '#0B0F24', bg = '#ffffff';
@@ -1847,7 +2036,13 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.dataset.avmodo) { S.av = { modo: b.dataset.avmodo, tipo: null, dest: S.dest !== S.loc ? S.dest : null, enviado: false }; render(); return; }
   if (b.dataset.avtipo) { S.av.tipo = b.dataset.avtipo; render(); return; }
   if (b.dataset.avdest) { S.av.dest = b.dataset.avdest; render(); return; }
-  if (b.id === 'avEnviar') { S.av.enviado = true; render(); return; }
+  if (b.id === 'avEnviar') { const A = S.av; if (!FLOTA.on) { A.enviado = true; render(); return; }
+    A.enviando = true; render(); (async () => {
+    const pos = await new Promise(res => { if (!navigator.geolocation) return res(null); navigator.geolocation.getCurrentPosition(p => res(p.coords), () => res(null), { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }); });
+    try { await FLOTA.rpcPub('reportar_locomocion', { p_tipo: AV_RPC[A.modo], p_modo: A.tipo, p_origen: S.loc, p_destino: A.dest, p_lat: pos ? pos.latitude : null, p_lng: pos ? pos.longitude : null });
+      A.guardado = true; A.sinUbic = !pos; if (ALT.rep[A.dest]) ALT.rep[A.dest].at = 0; }
+    catch (er) { A.error = traducir(er); }
+    A.enviando = false; A.enviado = true; render(); })(); return; }
   if (b.id === 'avCancel' || b.id === 'avFin') { S.av = null; ir('inicio'); return; }
   if (b.dataset.ctipo) { S.cond.tipo = b.dataset.ctipo; render(); return; }
   if (b.dataset.csent) { S.cond.sentido = b.dataset.csent; render(); return; }
@@ -1859,7 +2054,7 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.id === 'cfgTema') { temaBtn.click(); render(); return; }
   if (b.id === 'vipasar' || b.id === 'abordo') { S.pronto = b.id; render(); return; }
   if (b.id === 'prontoX') { S.pronto = null; render(); return; }
-  if (b.dataset.dest) { setDest(b.dataset.dest); if (S.tab === 'inicio') ir('locomocion'); else render(); return; }
+  if (b.dataset.dest) { setDest(b.dataset.dest); S.destElegido = true; S.fecha = null; if (S.tab === 'inicio') ir('locomocion'); else { render(); consultarAlt(); cargarReportes(S.dest); } return; }
   if (b.id === 'favDest') { FAV.destinos = FAV.destinos || []; FAV.destinos = FAV.destinos.includes(S.dest) ? FAV.destinos.filter(x => x !== S.dest) : [...FAV.destinos, S.dest]; saveFav(); render(); return; }
   if (b.id === 'esperando' || b.id === 'verBuses') { const ps = l => [...new Set(RV(INTER).flatMap(r => r.paradas))].find(id => POI[id] && POI[id].loc === l) || ''; S.bq = { o: ps(S.loc), d: ps(S.dest) }; ir('buses'); return; }
   if (b.id === 'pedirA') { const p = POIS.find(x => x.loc === S.dest); if (p) { S.d = p.id; S.pick = 'o'; } ir('viaje'); return; }
@@ -1958,13 +2153,13 @@ const aMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; 
 async function cargarRecorridos() {
   const [lugares, rutas] = await Promise.all([sb('lugar_publico?select=id,localidad_id,nombre,tipo,lat,lon'), sb('recorrido_publico?select=*&order=orden')]);
   for (const l of lugares) { if (!LOC[l.localidad_id]) continue; const c = [l.lat, l.lon];
-    if (POI[l.id]) { POI[l.id].c = c; POI[l.id].n = l.nombre; } else { const p = { id: l.id, n: l.nombre, loc: l.localidad_id, c }; POIS.push(p); POI[l.id] = p; } }
+    if (POI[l.id]) { POI[l.id].c = c; POI[l.id].n = l.nombre; POI[l.id].ver = l.verificado !== false; } else { const p = { id: l.id, n: l.nombre, loc: l.localidad_id, c, ver: l.verificado !== false }; POIS.push(p); POI[l.id] = p; } }
   const inter = [], micros = [];
   for (const r of rutas) { if (!r.trazado || !r.trazado.length) continue;
     const paradas = r.paradas.filter(p => !p.sentido || p.sentido === 'ida').map(p => p.lugar).filter(id => POI[id]); if (!paradas.length) continue;
     const h = r.horarios.find(x => x.sentido === 'ida') || r.horarios[0];
     const o = { id: r.id, nombre: r.nombre, path: r.trazado.map(([lon, lat]) => [lat, lon]), paradas, min: r.duracion_min, precio: r.precio, op: r.operador_nombre, desc: r.descripcion,
-      th: r.tipo_horario, fuente: (h && h.fuente) || r.fuente_horario, freqAprox: r.frecuencia_aprox_min, act: r.actualizado_en, reportes: r.permite_reportes, loc: r.localidad_id,
+      th: r.tipo_horario, fuente: (h && h.fuente) || r.fuente_horario, freqAprox: r.frecuencia_aprox_min, act: r.actualizado_en, reportes: r.permite_reportes, loc: r.localidad_id, ref: !!r.trazado_referencial, color: r.color,
       ...(h && r.tipo_horario !== 'sin_horario' ? { cada: h.cada, primero: aMin(h.primera), ultimo: aMin(h.ultima) } : {}) };
     if (r.tipo === 'interurbano') inter.push(o); else micros.push({ ...o, tipo: r.tipo === 'urbano' ? 'urbana' : 'rural' }); }
   if (!inter.length && !micros.length) return;

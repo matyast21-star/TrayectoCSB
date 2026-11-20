@@ -25,8 +25,8 @@ window.FLOTA = (() => {
     })().finally(() => { pendiente = null; });
     return pendiente;
   }
-  async function pedir(path, { method = 'GET', body, prefer, publico = false } = {}) {
-    const h = { apikey: KEY, 'Accept-Profile': 'flota', 'Content-Profile': 'flota' };
+  async function pedir(path, { method = 'GET', body, prefer, publico = false, esquema = 'flota' } = {}) {
+    const h = { apikey: KEY, 'Accept-Profile': esquema, 'Content-Profile': esquema };
     if (!publico) h.Authorization = 'Bearer ' + (await sesion()).access_token;
     if (body !== undefined) h['Content-Type'] = 'application/json';
     if (prefer) h.Prefer = prefer;
@@ -35,6 +35,8 @@ window.FLOTA = (() => {
     const t = await r.text(); return t ? JSON.parse(t) : null;
   }
   const rpc = (fn, args = {}) => pedir('rpc/' + fn, { method: 'POST', body: args });
+  // Funciones del esquema público que necesitan identidad (reportes comunitarios, alertas)
+  const rpcPub = (fn, args = {}) => pedir('rpc/' + fn, { method: 'POST', body: args, esquema: 'public' });
   async function subir(vid, tipo, file) {
     const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'bin', ruta = `${vid}/${tipo}.${ext}`;
     const r = await fetch(`${URL_}/storage/v1/object/${BUCKET}/${ruta}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + (await sesion()).access_token, 'x-upsert': 'true', 'Content-Type': file.type || 'application/octet-stream' }, body: file });
@@ -46,5 +48,5 @@ window.FLOTA = (() => {
     if (!r.ok) throw new Error(await leerError(r));
     const j = await r.json(); return URL_ + '/storage/v1' + (j.signedURL || j.signedUrl);
   }
-  return { on, URL: URL_, KEY, uid: () => (ses && ses.user ? ses.user.id : null), conSesion: () => !!ses, sesion, pedir, rpc, subir, verArchivo };
+  return { on, URL: URL_, KEY, uid: () => (ses && ses.user ? ses.user.id : null), conSesion: () => !!ses, sesion, pedir, rpc, rpcPub, subir, verArchivo };
 })();

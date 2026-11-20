@@ -109,11 +109,13 @@ await test('Ver locomoción: tarjetas con semáforo, fuente y ejemplo', async ()
   for (const w of ['Ejemplo', 'Sin información', 'Fuente', 'Sin estimación disponible', 'Colectivos']) assert(txt.includes(w), 'falta: ' + w);
   await page.click('[data-lf=colectivos]'); assert(await page.locator('#view [data-loco]').count() === 0, 'el filtro no ocultó buses'); await page.click('[data-lf=todos]');
   await page.locator('#view [data-loco]').first().click(); assert(await ev(() => S.tab === 'buses' && !!S.selRoute), 'la tarjeta no abrió el detalle'); });
-await test('Avisar dónde viene: dos acciones y formulario mínimo', async () => {
-  await irA(page, 'inicio'); await page.click('#avisarBtn'); assert(await page.locator('[data-avmodo]').count() === 2, 'no hay 2 acciones');
+await test('Avisar dónde viene: tres acciones y formulario mínimo', async () => {
+  await irA(page, 'inicio'); await page.click('#avisarBtn'); assert(await page.locator('[data-avmodo]').count() === 3, 'no hay 3 acciones');
   await page.click('[data-avmodo=vipasar]'); assert(await page.locator('[data-avdest=nose]').count() === 1, 'falta «No sé hacia dónde iba»');
-  await page.click('[data-avtipo=bus]'); await page.click('[data-avdest=nose]'); await page.click('#avEnviar');
-  const txt = await page.locator('#view').innerText(); assert(txt.includes('Gracias') && txt.includes('no se envía'), 'no confirma o no aclara que es prototipo'); await page.click('#avFin'); });
+  await page.route(/rpc\/reportar_locomocion/, r => r.fulfill({ status: 200, contentType: 'application/json', body: 'null' }));
+  await page.route(/auth\/v1\/signup/, r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'tok', refresh_token: 'ref', expires_in: 3600, user: { id: 'u3333333-0000-0000-0000-000000000000' } }) }));
+  await page.click('[data-avtipo=bus]'); await page.click('[data-avdest=nose]'); await page.click('#avEnviar'); await page.waitForFunction(() => /Gracias|No se pudo/.test(document.getElementById('view').innerText), null, { timeout: 15000 });
+  const txt = await page.locator('#view').innerText(); assert(txt.includes('Gracias') && /reporte comunitario/i.test(txt) && /nunca como confirmación oficial/i.test(txt), 'no confirma o no aclara que es un reporte comunitario: ' + txt.slice(0, 300)); await page.click('#avFin'); await page.unroute(/rpc\/reportar_locomocion/); await page.unroute(/auth\/v1\/signup/); });
 await test('Modo conductor: colectivo y bus con botones grandes', async () => {
   await irA(page, 'conductor'); assert(await page.locator('#cIniciar').isDisabled(), 'permite iniciar sin sentido');
   await page.click('[data-csent="Hacia Valparaíso"]'); await page.click('#cIniciar'); await page.click('#cMas');
@@ -205,7 +207,7 @@ await test('Celular: barra inferior y sin desborde horizontal', async () => {
   const m = await nuevaPag({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
   assert(await m.evaluate(() => getComputedStyle(document.getElementById('tabs')).position === 'fixed'), 'la barra inferior no está fija'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no se ve en Inicio');
-  await m.click('#tabs [data-tab=locomocion]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display === 'none'), 'el mapa se ve en Locomoción');
+  await m.click('#tabs [data-tab=locomocion]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no se ve en Locomoción');
   await m.click('#tabs [data-tab=mapa]'); assert(await m.evaluate(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no aparece en Mapa');
   await m.close(); });
 // ---- Recorridos desde la base de datos (respuestas simuladas con tests/fixtures/bd.json) ----
@@ -308,6 +310,73 @@ await test('Cambiar de perfil desde Más, sin perder vehículos', async () => {
   assert(await pf.locator('#view .accion').count() === 3 && await pf.locator('#destQ').count() === 1, 'Inicio de pasajero cambió');
   assert(await pev(() => OWNER.vehiculos.some(v => v.patente === 'PERF12') && localStorage.getItem('vamo-perfil') === 'pasajero'), 'perdió el vehículo o el perfil'); });
 await pc.close();
+
+// ---- Avisos de locomoción: horarios reales + vehículos en vivo (Supabase simulado; hora fija 14:40 de un viernes en Chile) ----
+const ALTF = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'alternativas.json'), 'utf8'));
+const avc = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Santiago' }); await avc.addInitScript(PASAJERO);
+await avc.addInitScript(() => { try { const f = Notification.requestPermission; Notification.requestPermission = (...a) => { window.__permisosPedidos = (window.__permisosPedidos || 0) + 1; return f.apply(Notification, a); }; } catch (e) {} });
+const av = await avc.newPage(); av.on('pageerror', e => errors.push('avisos: ' + e.message));
+await av.clock.setFixedTime(new Date('2026-11-20T17:40:00Z'));
+const RPCS = [], ESCRITURAS = []; const ahoraISO = () => new Date('2026-11-20T17:39:00Z').toISOString();
+await av.route(/supabase\.co\/(auth|rest|storage)\//, r => { const u = new URL(r.request().url()), path = u.pathname, perfil = r.request().headers()['accept-profile'];
+  let body = r.request().postData(); try { body = body ? JSON.parse(body) : null; } catch (e) {}
+  const ok = d => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) }); const t = path.split('/').pop();
+  if (path.includes('/rpc/')) RPCS.push({ fn: t, body });
+  if (path.endsWith('/auth/v1/signup')) return ok({ access_token: 'tok', refresh_token: 'ref', expires_in: 3600, user: { id: 'u2222222-0000-0000-0000-000000000000' } });
+  if (t === 'alternativas') return ok(ALTF[`${body.p_origen}|${body.p_destino}`] || { tipo_dia: 'lv', alternativas: [] });
+  if (t === 'reportes_recientes' || t === 'evento_servicio') return ok([]);
+  if (t === 'reportar_locomocion') return ok(null);
+  if (t === 'es_admin') return ok(true);
+  if (perfil === 'public' || r.request().headers()['content-profile'] === 'public') { const m = r.request().method();
+    if (m !== 'GET') { ESCRITURAS.push({ m, t, body }); return ok(null); }
+    if (t === 'recorrido') return ok([{ id: 'MS1', nombre: 'Mira-Sur · Casablanca – Valparaíso', activo: true }]);
+    if (t === 'operador') return ok([{ id: 'o1', slug: 'mira-sur', nombre_comercial: 'Mira-Sur', razon_social: 'Transportes Mira-Sur', alias: ['MiraSur'], categoria: 'empresa', estado_info: 'publicado_sin_verificar', publico: true }]);
+    if (t === 'salida') return ok([{ id: 1, recorrido_id: 'MS1', sentido: 'ida', tipo_dia: 'lv', hora: '14:50:00', estado_info: 'publicado_sin_verificar' }]); }
+  if (perfil === 'flota' && t === 'en_servicio') return ok([
+    { sesion_id: 'b1', vehiculo_id: 'vb1', tipo: 'bus', patente: 'BUSS11', capacidad: 40, recorrido_id: 'MS1', sentido: 'Hacia Valparaíso', cupos: null, completo: false, estado: 'en_recorrido', estado_en: ahoraISO(), inicio: ahoraISO(), lat: null, lng: null },
+    { sesion_id: 'c1', vehiculo_id: 'vc1', tipo: 'colectivo', patente: 'COLE22', capacidad: 4, sentido: 'Hacia Valparaíso', cupos: 3, cupos_en: ahoraISO(), completo: false, estado: 'en_punto_salida', estado_en: ahoraISO(), inicio: ahoraISO(), lat: null, lng: null }]);
+  return ok([]); });
+await av.goto(BASE); await av.waitForTimeout(1500);
+const aev = f => av.evaluate(f);
+const avUntil = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await aev(f)) return true; await av.waitForTimeout(250); } return false; };
+await test('Inicio: destinos rápidos y estado inmediato sobre el mapa', async () => {
+  assert(await av.locator('#view [data-irdest=valparaiso]').count() === 1, 'falta «Voy a Valparaíso»');
+  await av.click('#view [data-irdest=valparaiso]'); assert(await aev(() => S.tab === 'inicio'), 'salió de Inicio');
+  assert(await avUntil(() => { const e = document.getElementById('estadoMapa'); return e && !e.hidden && /Mira-Sur hacia Valparaíso: en recorrido/.test(e.innerText); }), 'el estado no muestra el bus en recorrido: ' + await aev(() => (document.getElementById('estadoMapa') || {}).innerText));
+  const t = await av.locator('#estadoMapa').innerText(); assert(/Colectivo hacia Valparaíso disponible en su punto de salida/.test(t), 'no muestra el colectivo en su punto: ' + t);
+  assert(await av.locator('#estadoMapa #avisame').count() === 1, 'falta «Avísame cuando venga»'); });
+await test('Locomoción: alternativas reales con mapa, próximas salidas y horarios por confirmar', async () => {
+  await av.click('#emAbrir'); assert(await aev(() => S.tab === 'locomocion'), 'no abrió Locomoción');
+  assert(await aev(() => getComputedStyle(document.querySelector('.mapwrap')).display !== 'none'), 'el mapa no se ve');
+  const txt = await av.locator('#view').innerText();
+  assert(/Próximas salidas/i.test(txt) && /Mira-Sur/.test(txt) && /14:50/.test(txt), 'no muestra la próxima salida de Mira-Sur: ' + txt.slice(0, 300).replace(/\n/g, ' / '));
+  assert(/Horarios por confirmar/i.test(txt) && /FlixBus/.test(txt), 'FlixBus no aparece como por confirmar');
+  assert(/Suspendid/.test(await av.locator('#view').textContent()), 'no marca la salida suspendida'); });
+await test('Avísame: alerta en la app sin pedir permisos y sin repetir avisos', async () => {
+  await av.click('#view #avisame'); assert(await aev(() => !!AVISOS.alerta() && AVISOS.alerta().destino === 'valparaiso'), 'no creó la alerta');
+  assert(await avUntil(() => { const t = document.getElementById('avisoToast'); return t && !t.hidden && /Próximo Mira-Sur programado a las 14:50/.test(t.innerText); }), 'no avisó la próxima salida: ' + await aev(() => (document.getElementById('avisoToast') || {}).innerText));
+  const n = await aev(() => (ALT.historial || []).length); await aev(() => tickAvisos()); await av.waitForTimeout(400);
+  assert(await aev(() => (ALT.historial || []).length) === n, 'repitió avisos');
+  assert(await aev(() => window.__permisosPedidos || 0) === 0, 'pidió permiso de notificaciones'); });
+await test('Brander de regreso: sin horarios inventados', async () => {
+  await aev(() => { S.loc = 'casablanca'; setDest('quilpue'); S.destElegido = true; consultarAlt(); render(); });
+  assert(await avUntil(() => /pendiente/i.test(document.getElementById('view').innerText) && /Brander/.test(document.getElementById('view').innerText)), 'no muestra Brander pendiente');
+  assert(!/Próximo Brander/.test(await av.locator('#view').innerText()), 'inventó una salida de Brander'); });
+await test('Avisar «Estoy esperando» guarda un reporte comunitario', async () => {
+  await aev(() => ir('avisar')); assert(await av.locator('[data-avmodo=espero]').count() === 1, 'falta «Estoy esperando»');
+  await av.click('[data-avmodo=espero]'); await av.click('[data-avtipo=bus]'); await av.click('[data-avdest=valparaiso]'); const enviar = av.locator('#avEnviar'); assert(await enviar.count() === 1, 'falta enviar'); await enviar.click();
+  assert(await avUntil(() => true, 300) && await (async () => { for (let i = 0; i < 20 && !RPCS.some(x => x.fn === 'reportar_locomocion'); i++) await av.waitForTimeout(250); return RPCS.some(x => x.fn === 'reportar_locomocion' && x.body.p_tipo === 'esperando'); })(), 'no envió el reporte: ' + JSON.stringify(RPCS.map(x => x.fn))); });
+await test('Equipo VAMO: cargar salidas y operadores sin duplicar empresas', async () => {
+  await aev(() => { FL.admin = null; ir('adminhor'); }); await av.waitForSelector('#ahRec', { timeout: 8000 });
+  assert(/14:50/.test(await av.locator('#view').innerText()), 'no lista las salidas cargadas');
+  await av.fill('#ahHora', '15:20'); await av.click('#ahSalAdd'); await av.waitForTimeout(400);
+  const w = ESCRITURAS.find(x => x.t === 'salida' && x.m === 'POST'); assert(w && w.body.hora === '15:20' && w.body.sentido === 'ida' && w.body.tipo_dia === 'lv' && w.body.recorrido_id === 'MS1', 'no guardó la salida: ' + JSON.stringify(w));
+  await av.fill('#ahHora', '14:50'); await av.click('#ahSalAdd'); assert(/ya existe/.test(await av.locator('#view').innerText()), 'permitió duplicar la salida');
+  await av.click('[data-ahsec=operadores]'); await av.fill('#ahOpN', 'Mirasur'); await av.click('#ahOpAdd');
+  assert(/operador parecido/.test(await av.locator('#view').innerText()) && !ESCRITURAS.some(x => x.t === 'operador'), 'no avisó del nombre parecido');
+  await av.fill('#ahOpN', 'Mirasur'); await av.click('#ahOpAdd'); await av.waitForTimeout(400);
+  const o = ESCRITURAS.find(x => x.t === 'operador'); assert(o && o.body.publico === false, 'no agregó el operador oculto tras confirmar'); });
+await avc.close();
 
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
