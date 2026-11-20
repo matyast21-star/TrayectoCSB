@@ -66,14 +66,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .app{height:100%;display:grid;grid-template-rows:auto 1fr}
-.top{color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(180deg,#070A1A,#0B0F24);border-bottom:2px solid transparent;border-image:var(--grad) 1;position:relative;z-index:3}
+.top{color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(180deg,#0B1E3F,#0A2D55);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,#00E5D6,#00B3C6 55%,#0A4B7A) 1;position:relative;z-index:3}
 .brand{display:flex;align-items:center;gap:12px}
 .vamo-marca{display:flex;align-items:center;gap:6px}
-.vamo-v{flex-shrink:0;display:block;filter:drop-shadow(0 0 8px rgba(0,229,255,.35))}
+.vamo-v{flex-shrink:0;display:block;filter:drop-shadow(0 0 8px rgba(0,229,214,.35))}
 .vamo-palabra{display:grid;line-height:1;position:relative}
 .vamo-nombre{font-family:var(--f-display);font-weight:800;font-style:italic;font-size:23px;letter-spacing:.02em;color:#fff}
 .vamo-swoosh{width:100%;height:6px;margin-top:1px}
-.vamo-sello{font-size:10.5px;color:#C9D0EE;justify-self:end;margin-top:-1px}.vamo-sello b{color:#fff;font-weight:700}
+.vamo-sello{font-size:10.5px;color:#C9D0EE;justify-self:end;margin-top:1px;letter-spacing:.01em}.vamo-sello b{color:#fff;font-weight:800;letter-spacing:.03em}.vamo-sello i{font-style:normal;color:#00E5D6}
 .tagline{font-size:12.5px;color:#C9D0EE;margin-left:4px;padding-left:12px;border-left:1px solid #2A3366;display:flex;align-items:center;gap:6px}.tagline svg{color:var(--fucsia)}
 /* Diseño pensado para teléfono: en pantallas grandes la app se muestra como un teléfono centrado */
 .tagline{display:none}
@@ -293,8 +293,8 @@ html.lite .panel{border-right:0}
 @media (min-width:520px){html{background:var(--bg)}.app{border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:0 0 60px rgba(0,229,255,.07)}}
 /* ===== Kit visual VAMO (claro): encabezado, barra, botones, tarjetas, estados ===== */
 :root:not([data-theme="dark"]) .top{color:var(--ink);background:#fff;border-bottom:1px solid var(--line);border-image:none}
-:root:not([data-theme="dark"]) .vamo-nombre{color:var(--ink)}
-:root:not([data-theme="dark"]) .vamo-sello{color:var(--muted)}:root:not([data-theme="dark"]) .vamo-sello b{color:var(--ink)}
+:root:not([data-theme="dark"]) .vamo-nombre{color:#0B1E3F}
+:root:not([data-theme="dark"]) .vamo-sello{color:var(--muted)}:root:not([data-theme="dark"]) .vamo-sello b{color:#0B1E3F}:root:not([data-theme="dark"]) .vamo-sello i{color:#00B3C6}
 :root:not([data-theme="dark"]) .vamo-v{filter:none}
 :root:not([data-theme="dark"]) .top select{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px;padding:7px 10px;font-weight:600;font-size:13px}
 :root:not([data-theme="dark"]) .iconbtn{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px}
@@ -461,6 +461,7 @@ html.en-inicio .filtros{display:none}
 </style>
 </head>
 <body>
+<script src="ui/splash.js"></script>
 
 <div class="app">
   <header class="top">
