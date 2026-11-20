@@ -1,0 +1,368 @@
+{
+ "casablanca|valparaiso": {
+  "tipo_dia": "lv",
+  "alternativas": [
+   {
+    "tipo": "interurbano",
+    "color": "#FF007A",
+    "notas": [
+     {
+      "texto": "El servicio ha presentado cambios de frecuencia y suspensiones repentinas según información pública. VAMO no consulta Facebook automáticamente: revisa los avisos de Mira-Sur antes de viajar.",
+      "fuente": "biobio-2026-06-09",
+      "tipo_dia": null,
+      "estado_info": "referencial"
+     }
+    ],
+    "bajada": {
+     "id": "va-term",
+     "nombre": "Terminal Rodoviario Valparaíso",
+     "localidad": "valparaiso",
+     "verificado": false
+    },
+    "nombre": "Mira-Sur · Casablanca – Valparaíso",
+    "precio": null,
+    "fuentes": [
+     {
+      "id": "mirasur-fb-grupo",
+      "url": "https://www.facebook.com/groups/187196101861030/posts/2071593026754652/",
+      "tipo": "facebook",
+      "titulo": "Horarios Mira-Sur (grupo de Facebook)",
+      "publicada_en": null,
+      "verificada_en": null
+     }
+    ],
+    "salidas": [
+     {
+      "id": 13,
+      "hora": "06:20",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": "06:30",
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "06:20",
+      "observacion": null,
+      "nota_variante": "Variante informada según temporada o programación; no confirmada para fechas concretas."
+     },
+     {
+      "id": 14,
+      "hora": "06:50",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": "07:10",
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "06:50",
+      "observacion": null,
+      "nota_variante": "Variante informada según temporada o programación; no confirmada para fechas concretas."
+     },
+     {
+      "id": 15,
+      "hora": "07:20",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "07:20",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 16,
+      "hora": "08:00",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": "08:15",
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "08:00",
+      "observacion": null,
+      "nota_variante": "Variante informada según temporada o programación; no confirmada para fechas concretas."
+     },
+     {
+      "id": 17,
+      "hora": "09:00",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "09:00",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 18,
+      "hora": "10:00",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "10:00",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 19,
+      "hora": "11:00",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "11:00",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 20,
+      "hora": "12:00",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "12:00",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 21,
+      "hora": "13:20",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "13:20",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 22,
+      "hora": "14:50",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "14:50",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 23,
+      "hora": "15:50",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": {
+       "tipo": "suspendida",
+       "nueva_hora": null,
+       "detalle": "Suspendida por el operador",
+       "fuente": null,
+       "estado_info": "publicado_sin_verificar"
+      },
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "15:50",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 24,
+      "hora": "16:50",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "16:50",
+      "observacion": null,
+      "nota_variante": null
+     },
+     {
+      "id": 25,
+      "hora": "17:50",
+      "llegada": null,
+      "tipo_dia": "lv",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "publicado_sin_verificar",
+      "hora_inicio": "17:50",
+      "observacion": null,
+      "nota_variante": null
+     }
+    ],
+    "sentido": "ida",
+    "abordaje": {
+     "id": "cb-ref",
+     "lat": -33.3197,
+     "lon": -71.4097,
+     "nota": "Punto de salida o llegada en Casablanca no informado.",
+     "nombre": "Casablanca (punto no informado)",
+     "localidad": "casablanca",
+     "verificado": false
+    },
+    "operador": {
+     "id": "op-ms",
+     "slug": "mira-sur",
+     "nombre": "Mira-Sur",
+     "oficinas": [
+      {
+       "nombre": "Oficina Casablanca",
+       "direccion": "Av. Portales 698, Casablanca",
+       "verificado": false
+      }
+     ],
+     "telefono": "+56 9 8666 8381",
+     "categoria": "empresa",
+     "avisos_url": "https://www.facebook.com/p/MiraSur-100054391306714/?locale=es_LA",
+     "beneficios": "Beneficio estudiantil disponible según condiciones informadas.",
+     "compra_url": null,
+     "estado_info": "publicado_sin_verificar"
+    },
+    "tipo_dia": "lv",
+    "estado_info": "publicado_sin_verificar",
+    "excepciones": [],
+    "tarifa_nota": null,
+    "desde_inicio": true,
+    "duracion_min": null,
+    "recorrido_id": "MS1",
+    "tipo_horario": "programado",
+    "trazado_referencial": true,
+    "frecuencia_aprox_min": null
+   },
+   {
+    "tipo": "interurbano",
+    "notas": [
+     {
+      "texto": "No se asume que opere todos los días. Consulta disponibilidad por fecha y compra en el sitio de FlixBus.",
+      "fuente": "flixbus-ruta",
+      "tipo_dia": null,
+      "estado_info": "referencial"
+     }
+    ],
+    "nombre": "FlixBus · Casablanca – Valparaíso",
+    "precio": null,
+    "fuentes": [],
+    "salidas": [
+     {
+      "id": 37,
+      "hora": "09:40",
+      "llegada": null,
+      "tipo_dia": "sin_dia",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "referencial",
+      "hora_inicio": "09:40",
+      "observacion": "Horario referencial.",
+      "nota_variante": null
+     },
+     {
+      "id": 38,
+      "hora": "13:40",
+      "llegada": null,
+      "tipo_dia": "sin_dia",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "referencial",
+      "hora_inicio": "13:40",
+      "observacion": "Horario referencial.",
+      "nota_variante": null
+     },
+     {
+      "id": 39,
+      "hora": "17:40",
+      "llegada": null,
+      "tipo_dia": "sin_dia",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "referencial",
+      "hora_inicio": "17:40",
+      "observacion": "Horario referencial.",
+      "nota_variante": null
+     },
+     {
+      "id": 40,
+      "hora": "21:40",
+      "llegada": null,
+      "tipo_dia": "sin_dia",
+      "variante": null,
+      "excepcion": null,
+      "estado_info": "referencial",
+      "hora_inicio": "21:40",
+      "observacion": "Horario referencial.",
+      "nota_variante": null
+     }
+    ],
+    "sentido": "ida",
+    "abordaje": {
+     "id": "cb-ref",
+     "lat": -33.3197,
+     "lon": -71.4097,
+     "nombre": "Casablanca (punto no informado)",
+     "localidad": "casablanca",
+     "verificado": false
+    },
+    "operador": {
+     "id": "op-fx",
+     "nombre": "FlixBus",
+     "compra_url": "https://www.flixbus.cl/rutas-bus/casablanca-valparaiso-valparaiso",
+     "estado_info": "referencial",
+     "oficinas": []
+    },
+    "tipo_dia": "lv",
+    "estado_info": "referencial",
+    "excepciones": [],
+    "desde_inicio": true,
+    "recorrido_id": "FX1",
+    "trazado_referencial": true,
+    "frecuencia_aprox_min": null
+   }
+  ]
+ },
+ "casablanca|quilpue": {
+  "tipo_dia": "lv",
+  "alternativas": [
+   {
+    "tipo": "interurbano",
+    "notas": [
+     {
+      "texto": "Horarios de regreso (Casablanca → Villa Alemana → Quilpué) pendientes de confirmación. VAMO no usa los horarios de ida para el regreso.",
+      "fuente": null,
+      "tipo_dia": null,
+      "estado_info": "incompleto"
+     }
+    ],
+    "nombre": "Brander Bus · Quilpué – Villa Alemana – Casablanca",
+    "precio": null,
+    "fuentes": [],
+    "salidas": [],
+    "sentido": "vuelta",
+    "abordaje": {
+     "id": "cb-ref",
+     "lat": -33.3197,
+     "lon": -71.4097,
+     "nombre": "Casablanca (punto no informado)",
+     "localidad": "casablanca",
+     "verificado": false
+    },
+    "operador": {
+     "id": "op-br",
+     "nombre": "Brander Bus",
+     "telefono": "+56 9 5941 5257",
+     "estado_info": "publicado_sin_verificar",
+     "oficinas": []
+    },
+    "tipo_dia": "lv",
+    "estado_info": "publicado_sin_verificar",
+    "excepciones": [],
+    "desde_inicio": true,
+    "recorrido_id": "BR1",
+    "trazado_referencial": true
+   }
+  ]
+ }
+}

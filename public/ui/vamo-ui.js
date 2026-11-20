@@ -2,8 +2,10 @@
    Se usan en la app y, más adelante, en el panel de administración. Todo es SVG propio: el kit UI es solo referencia. */
 (function () {
   const C = {
-    fondo: '#0B0F24', turquesa: '#00E5FF', fucsia: '#FF00B8', violeta: '#8A2BE2', amarillo: '#FFC107', blanco: '#FFFFFF',
-    auto: '#FF8A1F', taxi: '#FFC107', bus: '#2F8BFF', micro: '#22C55E', moto: '#B44CFF', ocupado: '#8C93B0'
+    // Paleta del kit visual VAMO (claro)
+    fondo: '#0B0F24', morado: '#7B2FF7', turquesa: '#00C8FF', fucsia: '#FF007A', violeta: '#7B2FF7', amarillo: '#FFC107', blanco: '#FFFFFF',
+    texto: '#1F2A44', texto2: '#6B7280', borde: '#E5E7EB', tarjeta: '#F3F4F6',
+    auto: '#1F2A44', taxi: '#FFC107', bus: '#7B2FF7', colectivo: '#00C8FF', micro: '#22C55E', moto: '#FF7A00', ocupado: '#9CA3AF'
   };
 
   // Íconos de línea en una grilla de 24 × 24 (trazo = currentColor)
@@ -32,7 +34,17 @@
     colectivo: 'M4 16V9a2 2 0 0 1 2-2h9l4 4v5H4z M4 12h15 M8 7v5 M7.5 16v2 M16.5 16v2',
     qr: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h2v2h-2z M18 18h2v2h-2z M14 18h2 M18 14h2',
     hoja: 'M5 19c0-8 5-14 15-14 0 10-6 15-14 15 M5 19l7-7',
-    senal: 'M2 9a15 15 0 0 1 20 0 M5 12.5a10 10 0 0 1 14 0 M8.5 16a5 5 0 0 1 7 0 M12 19.5h.01'
+    senal: 'M2 9a15 15 0 0 1 20 0 M5 12.5a10 10 0 0 1 14 0 M8.5 16a5 5 0 0 1 7 0 M12 19.5h.01',
+    capas: 'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5',
+    cambiar: 'M7 4L3 8l4 4 M3 8h14 M17 20l4-4-4-4 M21 16H7',
+    reloj: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0 M12 7v5l3 2',
+    cupos: 'M5 8a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M2 20c0-3 3-5 6-5s6 2 6 5 M15 6a3 3 0 0 1 0 6 M17 15c3 .5 5 2.3 5 5',
+    megafono: 'M3 10v4h4l8 5V5L7 10z M18 9a4 4 0 0 1 0 6 M7 14l1.5 6h3L10 15',
+    bandera: 'M5 21V4 M5 4h12l-2 4 2 4H5',
+    play: 'M7 4l13 8-13 8z',
+    check: 'M4 12l5 5L20 6',
+    alerta: 'M12 3l10 18H2z M12 10v4 M12 17.5h.01',
+    miubicacion: 'M12 2v3 M12 19v3 M2 12h3 M19 12h3 M6 12a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M10 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0'
   };
   const icono = (n, size = 20, extra = '') =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}><path d="${P[n] || P.inicio}"/></svg>`;
@@ -67,14 +79,14 @@
   }
 
   // Pin de mapa por tipo (40 × 52, punta abajo)
-  const PIN_TIPOS = ['auto', 'taxi', 'bus', 'micro', 'moto', 'ocupado'];
+  const PIN_TIPOS = ['auto', 'taxi', 'bus', 'colectivo', 'micro', 'moto', 'ocupado'];
   function pin(tipo, size = 40) {
     const col = C[tipo] || C.ocupado;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 52" width="${size}" height="${size * 1.3}">
       <ellipse cx="20" cy="49.5" rx="6" ry="2" fill="#000" opacity=".35"/>
       <path d="M20 49C20 49 4.5 32.5 4.5 20a15.5 15.5 0 0 1 31 0C35.5 32.5 20 49 20 49z" fill="${col}" opacity=".35" transform="translate(20 22) scale(1.12) translate(-20 -22)"/>
-      <path d="M20 49C20 49 4.5 32.5 4.5 20a15.5 15.5 0 0 1 31 0C35.5 32.5 20 49 20 49z" fill="${col}" stroke="${C.fondo}" stroke-width="1.5"/>
-      <circle cx="20" cy="20" r="11" fill="${C.fondo}"/>
+      <path d="M20 49C20 49 4.5 32.5 4.5 20a15.5 15.5 0 0 1 31 0C35.5 32.5 20 49 20 49z" fill="${col}" stroke="${C.blanco}" stroke-width="2"/>
+      <circle cx="20" cy="20" r="11" fill="${C.blanco}"/>
       <g transform="translate(11 11) scale(.75)" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${P[tipo] || P.auto}"/></g>
     </svg>`;
   }
@@ -85,10 +97,27 @@
       .then(list => Object.fromEntries(list.filter(([, i]) => i)));
   }
   // Semáforo de disponibilidad: color + texto + hora (nunca solo color)
-  const SEM = { confirmado: ['Confirmado', '#22C55E'], porconfirmar: ['Por confirmar', C.amarillo], sininfo: ['Sin información', '#C9D0EE'], sinservicio: ['Sin servicio', '#FF3B5C'] };
+  const SEM = { confirmado: ['Confirmado', '#16A34A'], porconfirmar: ['Por confirmar', '#F59E0B'], sininfo: ['Sin información', '#9CA3AF'], sinservicio: ['Sin servicio', '#DC2626'] };
   const semaforo = (estado, texto, hora) => { const [n, col] = SEM[estado] || SEM.sininfo;
     return `<span class="sem" data-sem="${estado}" style="--sc:${col}"><i aria-hidden="true"></i><b>${n}</b>${texto ? `<span>${texto}</span>` : ''}${hora ? `<time>${hora}</time>` : ''}</span>`; };
   const chip = (tipo, texto) => `<span class="vchip" style="--c:${C[tipo] || C.turquesa}">${icono(tipo, 15)}${texto}</span>`;
 
-  window.VamoUI = { C, P, icono, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl, semaforo, SEM };
+  // ===== Componentes del kit visual (devuelven HTML; los estilos viven en index.html) =====
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Botón: variante principal | secundario | terciario | peligro
+  const boton = (texto, o = {}) => { const cls = { principal: 'btn', secundario: 'btn secundario', terciario: 'btn ghost', peligro: 'btn peligro' }[o.variante || 'principal'];
+    return `<button class="${cls}${o.sm ? ' sm' : ''}" ${o.id ? `id="${o.id}"` : ''} ${o.attrs || ''}>${o.icono ? icono(o.icono, 18) + ' ' : ''}${esc(texto)}</button>`; };
+  // Origen del dato: oficial (empresa u horario publicado), operador (GPS del conductor) o comunidad (reportes)
+  const FUENTE = { oficial: 'Información oficial', operador: 'Ubicación del operador', comunidad: 'Reporte de la comunidad', ejemplo: 'Dato de ejemplo', ninguna: 'Sin datos en vivo' };
+  const fuente = (tipo, texto) => `<span class="fuente" data-f="${tipo}">${esc(texto || FUENTE[tipo] || FUENTE.ninguna)}</span>`;
+  // Tarjeta de vehículo / servicio: tipo, título, subtítulo, estado (semaforo), ETA y líneas extra
+  const tarjetaVehiculo = o => `<button class="tarjeta" style="--c:${C[o.tipo] || C.morado}" ${o.attrs || ''}>
+    <div class="vh"><span class="vi">${icono(o.tipo === 'colectivo' ? 'colectivo' : o.tipo, 26)}</span><span><b>${esc(o.titulo)}</b>${o.sub ? `<div class="hint">${o.sub}</div>` : ''}</span><span class="ve">${o.eta || ''}</span></div>
+    ${o.estado || ''}${(o.lineas || []).map(l => `<div class="hint">${l}</div>`).join('')}</button>`;
+  const buscador = (id, ph, o = {}) => `<div class="buscar">${icono(o.icono || 'ubicacion', 18)}<input id="${id}" type="search" autocomplete="off" placeholder="${esc(ph)}" aria-label="${esc(o.label || ph)}" ${o.attrs || ''}></div>`;
+  const selector = (id, opciones, sel, label) => `<select id="${id}" aria-label="${esc(label || '')}">${opciones.map(([v, n]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+  const vacio = (titulo, texto, accion) => `<div class="vacio">${icono('rutas', 30)}<h3>${esc(titulo)}</h3>${texto ? `<p>${texto}</p>` : ''}${accion || ''}</div>`;
+  const error = (titulo, texto, accion) => `<div class="vacio" data-t="error" role="alert">${icono('alerta', 30)}<h3>${esc(titulo)}</h3>${texto ? `<p>${texto}</p>` : ''}${accion || ''}</div>`;
+
+  window.VamoUI = { C, P, icono, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl, semaforo, SEM, boton, fuente, FUENTE, tarjetaVehiculo, buscador, selector, vacio, error };
 })();
