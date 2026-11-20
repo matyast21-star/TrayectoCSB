@@ -678,7 +678,7 @@ const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto
   ejemplos: (() => { try { return localStorage.getItem('vamo-ejemplos') !== '0'; } catch (e) { return true; } })(), pick: 'o', o: 'cb-plaza', d: 'cb-term', custom: {}, clase: 'eco',
   ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 },
   bq: { o: '', d: '' },
-  filtro: (() => { const d = { auto: true, taxi: true, moto: true, bus: true, micro: true }; try { return { ...d, ...JSON.parse(localStorage.getItem('vamo-filtro') || '{}') }; } catch (e) { return d; } })(),
+  filtro: (() => { const d = { auto: true, taxi: true, moto: true, bus: true, micro: true, colectivo: true }; try { return { ...d, ...JSON.parse(localStorage.getItem('vamo-filtro') || '{}') }; } catch (e) { return d; } })(),
   serv: (() => { try { return localStorage.getItem('vamo-servicio') || 'bus'; } catch (e) { return 'bus'; } })(),
   dl: { resto: 'r1', dest: null, vt: 'moto', tam: 'chico', pago: 'pagado', nota: '', pick: false, sel: null } };
 // Navegación principal (6 secciones). Cada sección agrupa pestañas internas, sin quitar ninguna función.
@@ -690,7 +690,7 @@ const NAV = [{ id: 'inicio', n: 'Inicio', s: 'Inicio', i: 'inicio', c: 'var(--tu
 // En celular el mapa solo aparece donde ayuda; en el resto de pantallas queda oculto (se abre desde «Mapa»)
 const CON_MAPA = ['inicio', 'mapa', 'viaje', 'planificar', 'delivery', 'duenos'];
 // Servicios separados: en Inicio se elige uno a la vez y el mapa muestra solo ese tipo (menos congestión)
-const SERV = [{ id: 'bus', n: 'Buses', vis: ['bus'], c: 'var(--bus)' }, { id: 'colectivo', n: 'Colectivos', vis: [], c: 'var(--colectivo)' },
+const SERV = [{ id: 'bus', n: 'Buses', vis: ['bus'], c: 'var(--bus)' }, { id: 'colectivo', n: 'Colectivos', vis: ['colectivo'], c: 'var(--colectivo)' },
   { id: 'taxi', n: 'Taxis', vis: ['taxi'], c: 'var(--taxi)' }, { id: 'auto', n: 'Autos', vis: ['auto'], c: 'var(--auto)' }];
 const servDe = id => SERV.find(x => x.id === id) || SERV[0];
 const navDe = tab => NAV.find(n => n.tabs.includes(tab)) || NAV[0];
@@ -781,9 +781,9 @@ const fitRegion = () => fit(Object.values(N), 3);
 const fitLoc = id => { const R = LOC[id].radio + 0.4; fit([off(N[id], -R, -R), off(N[id], R, R)], 0); };
 
 // Cada pestaña muestra solo los vehículos que le sirven, para no congestionar el mapa
-const VIS = { soy: [], registro: [], panelcond: [], misvehiculos: [], locomocion: ['bus'], mapa: ['auto', 'taxi', 'moto', 'bus'], avisar: [], conductor: [], favoritos: [], config: [], avisos: [], inicio: ['auto', 'taxi', 'bus', 'micro'], colectivos: [], misviajes: ['auto', 'taxi'], mas: ['auto', 'taxi', 'moto', 'bus', 'micro'], viaje: ['auto', 'taxi'], buses: ['bus'], micros: ['micro'], delivery: ['moto', 'auto'], planificar: ['auto', 'taxi', 'moto', 'bus', 'micro'], duenos: ['auto', 'taxi', 'moto'] };
+const VIS = { soy: [], registro: [], panelcond: [], misvehiculos: [], locomocion: ['bus'], mapa: ['auto', 'taxi', 'moto', 'bus', 'colectivo'], avisar: [], conductor: [], favoritos: [], config: [], avisos: [], inicio: ['auto', 'taxi', 'bus', 'micro'], colectivos: ['colectivo'], misviajes: ['auto', 'taxi'], mas: ['auto', 'taxi', 'moto', 'bus', 'micro'], viaje: ['auto', 'taxi'], buses: ['bus'], micros: ['micro'], delivery: ['moto', 'auto'], planificar: ['auto', 'taxi', 'moto', 'bus', 'micro'], duenos: ['auto', 'taxi', 'moto'] };
 // En pestañas de un solo tipo (Buses, Micros) no hay filtros: ese tipo siempre se ve
-const visDe = tab => tab === 'inicio' ? servDe(S.serv).vis : tab === 'locomocion' ? ({ buses: ['bus'], colectivos: [] }[S.lf] || ['bus']) : (VIS[tab] || VIS.planificar);
+const visDe = tab => tab === 'inicio' ? servDe(S.serv).vis : tab === 'locomocion' ? ({ buses: ['bus'], colectivos: ['colectivo'] }[S.lf] || ['bus']) : (VIS[tab] || VIS.planificar);
 const ver = k => { const vs = visDe(S.tab); return vs.includes(k) && (vs.length < 2 || !!S.filtro[k]); };
 const planRouteIds = () => S.tab === 'planificar' ? (planOptions()[S.plan.sel] || { legs: [] }).legs.map(l => l.route).filter(Boolean) : [];
 function drawBase() {
@@ -816,6 +816,10 @@ function drawOver() {
     const dlj = c.job && S.tab === 'delivery';
     v.push(point(c.pos, { kind: c.tipo, icon: !libre && !mine && !dlj ? 'ocupado' : c.tipo, color: !libre && !mine && !dlj ? COL.ocupado : c.tipo === 'taxi' ? COL.taxi : c.tipo === 'moto' ? COL.moto : COL.auto, stroke: c.tipo === 'taxi' ? '#111111' : c.owned ? COL.ink : '#ffffff', owned: !!c.owned || c.tipo === 'taxi', hl: !!mine,
       ...(mine || dlj ? { label: dlj ? c.job.code : c.patente } : {}), info: `<b>${c.tipo === 'taxi' ? 'Taxi' : c.tipo === 'moto' ? 'Moto delivery' : 'Auto'} ${esc(c.patente)}</b><br>${esc(c.modelo)} · ${esc(c.cond)} · ★ ${c.nota}<br>${c.job ? 'Despacho ' + c.job.code : libre ? 'Libre' : mine ? 'Tu viaje' : 'Ocupado'}<br><small style="color:#525C86">Vehículo simulado de demostración.</small>` })); }
+  for (const c of FL.reales) { if (c.lat == null) continue; const k = c.tipo; if (!ver(k)) continue;
+    const T = TIPOS_V[k] || TIPOS_V.auto, lleno = c.completo || (k === 'colectivo' && !c.cupos);
+    v.push(point([c.lat, c.lng], { kind: k, icon: k === 'moto' || k === 'bus' || k === 'taxi' || k === 'colectivo' ? k : 'auto', color: COL[k] || COL.auto, stroke: '#ffffff', owned: true, hl: false, label: c.patente,
+      info: `<b>${T.n} ${esc(c.patente)}</b><br>${k === 'colectivo' ? (lleno ? 'Completo' : c.cupos + ' de ' + c.capacidad + ' cupos') + (c.sentido ? ' · ' + esc(c.sentido) : '') : 'En servicio'}${c.retraso_min ? '<br>Retraso informado: ' + c.retraso_min + ' min' : ''}<br><small style="color:#525C86">Ubicación real compartida por el conductor.</small>` })); }
   map.getSource('vehicles').setData(fc(v));
   const pins = [], ride = [];
   if (S.tab === 'viaje') { const o = placeOf(S.o), d = placeOf(S.d);
@@ -937,7 +941,7 @@ function viewBuses() {
   const paraderos = [...new Set(INTER.flatMap(r => r.paradas))].filter(id => POI[id]).sort((a, b) => POI[a].n.localeCompare(POI[b].n, 'es'));
   const opt = sel => `<option value="">Cualquiera</option>` + LOCALIDADES.map(l => { const ps = paraderos.filter(id => POI[id].loc === l.id); return ps.length ? `<optgroup label="${l.nombre}">${ps.map(id => `<option value="${id}" ${id === sel ? 'selected' : ''}>${esc(POI[id].n)}</option>`).join('')}</optgroup>` : ''; }).join('');
   const favs = FAV.paraderos.filter(id => POI[id]), frec = frecuentes().filter(id => ALLROUTES.some(r => r.id === id));
-  return avisoEjemplos() + `<div><h2>Buses interurbanos</h2><p class="sub">Salidas desde y hacia ${LOC[S.loc].nombre}. Cada recorrido indica si su horario es oficial, programado, estimado o no confirmado.</p></div>
+  return avisoEjemplos() + (FLOTA.on ? avisosHTML(['bus']) : '') + `<div><h2>Buses interurbanos</h2><p class="sub">Salidas desde y hacia ${LOC[S.loc].nombre}. Cada recorrido indica si su horario es oficial, programado, estimado o no confirmado.</p></div>
     <div class="card"><h3>¿De dónde a dónde?</h3>
       <div class="form"><label>Origen<select id="bqO">${opt(B.o)}</select></label><label>Destino<select id="bqD">${opt(B.d)}</select></label></div>
       <div class="row">${B.o ? `<button class="btn sm ghost" data-favp="${B.o}" aria-pressed="${FAV.paraderos.includes(B.o)}">${UI.icono('estrella', 14)} ${FAV.paraderos.includes(B.o) ? 'Paradero favorito' : 'Guardar paradero de origen'}</button>` : ''}${B.o || B.d ? '<button class="btn sm ghost" id="bqSwap">Invertir</button><button class="btn sm ghost" id="bqClear">Limpiar</button>' : ''}</div>
@@ -1194,7 +1198,7 @@ function viewPanelCond() {
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:${T.c}">${UI.icono(T.i, 60)}<span class="estado-pill" data-on="${activo ? 1 : 0}"><i></i>${estado}${s && s.demo && activo ? ' · demostración' : ''}</span>${chipVerif(v)}</div>`;
   if (k === 'bus') h += `<div class="card"><span class="hint">Tu recorrido</span><b>${r ? esc(r.nombre) : 'Sin recorrido asignado'}</b>${r ? `<div class="row"><span class="hint">Próxima salida</span><b style="font-size:22px">${nx != null ? hhmm(nx) : 'mañana'}</b>${r.ejemplo ? '<span class="tag warn">Horario de ejemplo</span>' : ''}</div>` : '<span class="hint">El dueño asigna recorridos y salidas en su panel.</span>'}</div>
     <div class="stats3"><div class="stat"><div class="v">${cap}</div><div class="l">Capacidad total</div></div><div class="stat"><div class="v">—</div><div class="l">Asientos disponibles</div></div><div class="stat"><div class="v">0</div><div class="l">Reservados</div></div></div>
-    <p class="hint" style="margin:-6px 0 0">Reservas de asientos desactivadas hasta tener inventario confirmado.</p>`;
+    <p class="hint" style="margin:-6px 0 0">Reservas de asientos desactivadas hasta tener inventario confirmado.</p>${FLOTA.on && v.rid && v.rol === 'conductor' && v.recorrido ? horarioConductorHTML(v) : ''}`;
   else if (k === 'colectivo') h += `<div class="campo">Dirección<div class="seg">${['Hacia Valparaíso', 'Hacia Casablanca'].map(x => `<button data-psent="${x}" aria-pressed="${(s && s.sentido || 'Hacia Valparaíso') === x}">${x}</button>`).join('')}</div></div>`;
   else h += `<div class="card"><div class="row" style="justify-content:space-between"><span class="hint">Servicio</span><b>${k === 'taxi' ? 'Taxi · taxímetro' : k === 'moto' ? 'Reparto en moto' : 'Auto · precio propio'}</b></div><div class="row" style="justify-content:space-between"><span class="hint">Zona</span><b>${esc(v.zona || 'Casablanca urbano')}</b></div></div>`;
   if (red) h = h.replace('<div style="display:flex', msgHTML() + '<div style="display:flex');
@@ -1273,7 +1277,7 @@ const DOCS_REQ = { auto: ['licencia', 'padron', 'revision_tecnica', 'soap'], mot
 const DOC_N = { licencia: 'Licencia de conducir', licencia_profesional: 'Licencia profesional', padron: 'Padrón del vehículo', revision_tecnica: 'Revisión técnica',
   soap: 'SOAP vigente', permiso_circulacion: 'Permiso de circulación', inscripcion_rnstp: 'Inscripción de transporte público', seguro_pasajeros: 'Seguro de pasajeros' };
 Object.assign(VERIF, { rechazado: ['Rechazado', 'sinservicio'], suspendido: ['Suspendido', 'sinservicio'] });
-const FL = { ult: 0, cargando: false, admin: null, docs: {}, gest: {}, rev: null, cola: null, colaAt: 0, gps: null, gpsUlt: 0, gpsErr: '', msg: null, quiereGps: null, dia: new Date().getDay() === 0 ? 6 : new Date().getDay() - 1, copia: [] };
+const FL = { ult: 0, cargando: false, admin: null, docs: {}, gest: {}, rev: null, cola: null, colaAt: 0, gps: null, gpsUlt: 0, gpsErr: '', msg: null, quiereGps: null, reales: [], avisos: [], misHor: {}, dia: new Date().getDay() === 0 ? 6 : new Date().getDay() - 1, copia: [] };
 const flMsg = (t, ok) => { FL.msg = { t, ok, at: Date.now() }; rerender(); };
 const msgHTML = () => FL.msg && Date.now() - FL.msg.at < 20000 ? `<div class="aviso-fl ${FL.msg.ok ? 'ok' : 'err'}" role="status">${esc(FL.msg.t)}</div>` : '';
 const vSel = () => OWNER.vehiculos.find(x => x.id === S.panelVid);
@@ -1434,11 +1438,23 @@ function viewGestion() {
 async function cargarColectivos() { if (!FLOTA.on || Date.now() - FL.colaAt < 20000) return; FL.colaAt = Date.now();
   try { FL.cola = await FLOTA.pedir('en_servicio?select=*&tipo=eq.colectivo&order=inicio', { publico: true }); if (S.tab === 'colectivos') rerender(); } catch (e) { /* sin conexión: se mantiene lo último */ } }
 function colectivosHTML() {
-  cargarColectivos(); if (!FL.cola || !FL.cola.length) return '';
-  return `<h3>En servicio ahora</h3>${FL.cola.map(c => `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(c.sentido || 'Colectivo')}</b>${UI.semaforo(c.completo || !c.cupos ? 'sinservicio' : 'confirmado', c.completo || !c.cupos ? 'Completo' : `${c.cupos} de ${c.capacidad} cupos`, '')}</div>
+  cargarColectivos(); const av = avisosHTML(['colectivo']); if (!FL.cola || !FL.cola.length) return av;
+  return av + `<h3>En servicio ahora</h3>${FL.cola.map(c => `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(c.sentido || 'Colectivo')}</b>${UI.semaforo(c.completo || !c.cupos ? 'sinservicio' : 'confirmado', c.completo || !c.cupos ? 'Completo' : `${c.cupos} de ${c.capacidad} cupos`, '')}</div>
     <div class="hint">Patente ${esc(c.patente)} · en servicio desde ${hhmm(minDe(c.inicio))}${c.salida_informada ? ' · salió a las ' + hhmm(minDe(c.salida_informada)) + (c.retraso_min ? ` (${c.retraso_min} min de retraso)` : '') : ''}${c.lat != null ? ' · ubicación en vivo' : ''}</div><span class="tag ok">Informado por el conductor</span></div>`).join('')}`;
 }
 
+// Vehículos reales en servicio (con ubicación compartida) y avisos de servicio suspendido, para todos los pasajeros
+async function cargarReales() { if (!FLOTA.on || document.hidden) return;
+  try { const [r, a] = await Promise.all([FLOTA.pedir('en_servicio?select=*', { publico: true }), FLOTA.pedir('avisos_servicio?select=*', { publico: true })]);
+    FL.reales = r; FL.avisos = a; FL.cola = r.filter(x => x.tipo === 'colectivo'); FL.colaAt = Date.now(); } catch (e) { return; /* sin conexión */ } try { drawOver(); } catch (e) { /* mapa cambiando de estilo */ } }
+if (FLOTA.on) { setTimeout(cargarReales, 1500); setInterval(cargarReales, 15000); }
+const avisosHTML = tipos => FL.avisos.filter(a => tipos.includes(a.tipo)).map(a => `<div class="aviso-fl err" role="note">${UI.icono('alerta', 16)} <b>${TIPOS_V[a.tipo].n} ${esc(a.patente)}${a.recorrido_id && ALLROUTES.find(r => r.id === a.recorrido_id) ? ' · ' + esc(ALLROUTES.find(r => r.id === a.recorrido_id).nombre) : ''}:</b> ${esc(a.aviso_pausa)} <small>(aviso del operador)</small></div>`).join('');
+// El conductor autorizado de un bus puede cargar salidas; quedan pendientes hasta que el dueño las valide
+function horarioConductorHTML(v) { const mis = FL.misHor[v.rid];
+  if (!mis) { FL.misHor[v.rid] = []; FLOTA.pedir(`horario?select=*&vehiculo_id=eq.${v.rid}&cargado_por=eq.${FLOTA.uid()}&order=dia_semana,salida`).then(r => { FL.misHor[v.rid] = r; rerender(); }).catch(() => {}); }
+  return `<div class="card"><h3>Cargar una salida</h3><div class="row"><select id="chDia" aria-label="Día">${DIAS.map((d, i) => `<option value="${i}" ${i === FL.dia ? 'selected' : ''}>${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][i]}</option>`).join('')}</select><input type="time" id="chHora" aria-label="Hora"><button class="btn sm" id="chAdd">Enviar</button></div>
+    ${(mis || []).map(h => `<div class="docrow"><span>${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.dia_semana]} ${h.salida.slice(0, 5)}</span><span class="tag ${h.validado ? 'ok' : 'warn'}">${h.validado ? 'Validada' : 'Pendiente de validación'}</span></div>`).join('')}
+    <p class="hint" style="margin:0">Las salidas que cargas quedan pendientes hasta que el dueño las valide; mientras tanto no se muestran a pasajeros.</p></div>`; }
 view.addEventListener('change', async e => { const t = e.target;
   if (t.id === 'gestVeh') { S.panelVid = t.value; rerender(); return; }
   if (t.dataset && t.dataset.doc && t.files && t.files[0]) { const v = vSel(), f = t.files[0];
@@ -1456,6 +1472,8 @@ view.addEventListener('click', async e => { const b = e.target.closest('button')
   if (b.id === 'pGpsOn') { gpsIniciar(SES[v.id]); rerender(); return; }
   if (b.id === 'pSubir') { subirVehiculo(v); return; }
   if (b.id === 'docEnviar') { try { const faltan = await FLOTA.rpc('enviar_a_revision', { v: v.rid }); if (faltan && faltan.length) flMsg('Faltan: ' + faltan.map(t => DOC_N[t] || t).join(', '), false); else { FL.ult = 0; await sincronizar(true); flMsg('Enviado a revisión. VAMO revisará tus documentos.', true); } } catch (err) { flMsg(traducir(err), false); } return; }
+  if (b.id === 'chAdd') { const h = (document.getElementById('chHora') || {}).value, d = +(document.getElementById('chDia') || {}).value; if (!h) return;
+    try { await FLOTA.pedir('horario', { method: 'POST', body: { recorrido_id: v.recorrido, vehiculo_id: v.rid, dia_semana: d, salida: h, validado: false, cargado_por: uid } }); delete FL.misHor[v.rid]; flMsg('Salida enviada. El dueño debe validarla.', true); } catch (err) { flMsg(traducir(err), false); } return; }
   if (b.id === 'invOk') { const c = (document.getElementById('invCod') || {}).value || ''; if (!c.trim()) return;
     try { const rid = await FLOTA.rpc('aceptar_invitacion', { c }); await sincronizar(true); const x = OWNER.vehiculos.find(y => y.rid === rid); if (x) S.panelVid = x.id; FL.msg = { t: 'Listo: ya puedes conducir este vehículo.', ok: true, at: Date.now() }; ir('panelcond'); } catch (err) { flMsg(traducir(err), false); } return; }
   if (b.dataset.ver) { const w = window.open('', '_blank'); try { const u = await FLOTA.verArchivo(b.dataset.ver); if (w) w.location = u; else location.href = u; } catch (err) { if (w) w.close(); flMsg(traducir(err), false); } return; }

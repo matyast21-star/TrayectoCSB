@@ -86,7 +86,8 @@ await test('Cada pestaña muestra solo sus vehículos', async () => {
   assert(await ev(() => __src.routes.features.every(f => f.properties.op === 0)), 'en Pedir viaje se ven recorridos de buses');
   await irA(page, 'buses'); await page.waitForTimeout(300); k = await kinds();
   assert(!/auto|taxi|moto|micro/.test(k), 'en Buses aparecen autos: ' + k);
-  await ev(() => { S.filtro.bus = false; }); k = await kinds(); assert(k === 'bus', 'con el filtro Buses apagado, la pestaña Buses quedó vacía: ' + k); await ev(() => { S.filtro.bus = true; });
+  const hayBuses = await ev(() => RV(ALLROUTES).some(r => r.kind === 'bus' && activeTrips(r).length)); // de noche no hay buses programados
+  await ev(() => { S.filtro.bus = false; }); k = await kinds(); assert(!hayBuses || k === 'bus', 'con el filtro Buses apagado, la pestaña Buses quedó vacía: ' + k); await ev(() => { S.filtro.bus = true; });
   await irA(page, 'planificar'); await page.waitForTimeout(300); assert(await ev(() => document.querySelectorAll('.fchip').length) === 4, 'Planificar debería mostrar todos los filtros');
   await ev(() => { delete map.getSource; mapReady = __mr; }); await irA(page, 'viaje'); });
 await test('Navegación Express: 4 secciones', async () => {
@@ -249,6 +250,7 @@ await fl.route(/supabase\.co\/(auth|rest|storage)\//, r => { const u = new URL(r
   if (t === 'finalizar_servicio') { sesionActiva = null; return ok(null); }
   if (t === 'enviar_a_revision') return ok(['soap']);
   if (t === 'es_admin') return ok(false);
+  if (t === 'avisos_servicio') return ok([{ tipo: 'colectivo', patente: 'QWER12', recorrido_id: null, aviso_pausa: 'Sin servicio por mantención' }]);
   if (t === 'en_servicio') return ok([{ sesion_id: 's9', vehiculo_id: 'v9', tipo: 'colectivo', patente: 'XYZW12', capacidad: 4, sentido: 'Hacia Valparaíso', cupos: 2, completo: false, inicio: new Date().toISOString(), salida_informada: null, retraso_min: 0, lat: null }]);
   return ok([]); });
 await fl.goto(BASE); await fl.waitForTimeout(1000);
@@ -272,7 +274,8 @@ await test('Conectado: documentos requeridos y envío a revisión', async () => 
   assert(await fl.locator('#docEnviar').isDisabled(), 'permite enviar sin documentos'); });
 await test('Conectado: colectivos informados por conductores, sin inventar', async () => {
   await fl.evaluate(() => ir('colectivos')); await fl.waitForTimeout(500);
-  const txt = await fl.locator('#view').innerText(); assert(/2 de 4 cupos/.test(txt) && /Informado por el conductor/.test(txt), 'no muestra el colectivo en servicio'); });
+  const txt = await fl.locator('#view').innerText(); assert(/2 de 4 cupos/.test(txt) && /Informado por el conductor/.test(txt), 'no muestra el colectivo en servicio');
+  assert(/Sin servicio por mantención/.test(txt), 'no muestra el aviso de servicio suspendido'); });
 await test('Conectado: código de invitación y administrar', async () => {
   await fl.evaluate(() => ir('soy')); assert(await fl.locator('#invCod').count() === 1, 'falta el campo de código');
   await fl.evaluate(() => ir('gestion')); await fl.waitForSelector('#gInvitar'); assert(await fl.locator('#gPausa').count() === 1, 'falta suspender servicio'); });
