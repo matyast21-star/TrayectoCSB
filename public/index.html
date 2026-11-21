@@ -418,10 +418,16 @@ html.lite .panel{border-right:0}
 .cupos.chico{justify-content:flex-start}.cupos.chico button{width:48px;height:48px;font-size:24px}.cupos.chico output{font-size:26px;min-width:44px}
 .docrow{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
 label.btn{display:inline-flex;align-items:center;cursor:pointer}
-.bienv{position:fixed;inset:0;z-index:2000;background:var(--bg,#fff);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
-.bienv-c{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;text-align:center}
-.bienv-marca{display:flex;justify-content:center;transform:scale(1.4);margin:18px 0 6px}
-.bienv h2{margin:10px 0 2px}
+.bienv{position:fixed;inset:0;z-index:2000;background:var(--bg,#fff);display:flex;flex-direction:column;align-items:center;overflow:auto}
+.bienv-hero{position:relative;width:100%;max-width:480px;flex:1 0 auto;min-height:min(46vh,400px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:max(28px,env(safe-area-inset-top,0px)) 20px 34px;color:#fff;border-radius:0 0 32px 32px;overflow:hidden;
+  background:radial-gradient(60% 45% at 0% 0%,rgba(0,229,214,.5),transparent 70%),radial-gradient(55% 40% at 100% 100%,rgba(0,229,214,.35),transparent 70%),radial-gradient(80% 60% at 50% 45%,#0A4B7A,#0B1E3F 75%)}
+.bienv-hero .vamo-v{width:min(52vw,210px);height:auto;filter:drop-shadow(0 8px 22px rgba(0,0,0,.35)) drop-shadow(0 0 18px rgba(0,229,214,.25))}
+.bienv-nombre{font-family:var(--f-display);font-weight:800;font-style:italic;font-size:min(16vw,64px);line-height:.95;letter-spacing:.01em;margin-top:6px;text-shadow:0 0 18px rgba(0,229,214,.35)}
+.bienv-by{font-size:min(5.4vw,21px);font-weight:500;align-self:center;margin-left:min(22vw,90px)}.bienv-by b{font-weight:800;letter-spacing:.04em}.bienv-by i{font-style:normal;color:#00E5D6}
+.bienv-lema{margin:12px 0 0;font-size:14px;color:#BFE9F0;display:flex;align-items:center;gap:6px}.bienv-lema svg{color:#00E5D6}
+.bienv-c{width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px;text-align:center;padding:20px 16px max(20px,env(safe-area-inset-bottom,0px))}
+.bienv h2{margin:0 0 4px;font-size:21px}
 .perfil-op{display:flex;align-items:center;gap:14px;text-align:left;padding:18px 16px;border-radius:18px;border:2px solid color-mix(in srgb,var(--c) 45%,var(--line));background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:84px}
 .perfil-op:hover,.perfil-op:focus-visible{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--surface))}
 .perfil-op .vi{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);flex-shrink:0}
@@ -1740,8 +1746,8 @@ function elegirPerfil(p) {
 function mostrarBienvenida() {
   if (document.getElementById('bienv')) return;
   const op = (p, ic, c, t, d) => `<button class="perfil-op" data-elegir-perfil="${p}" style="--c:${c}"><span class="vi">${UI.icono(ic, 30)}</span><span><b>${t}</b><small>${d}</small></span>›</button>`;
-  document.body.insertAdjacentHTML('beforeend', `<div id="bienv" class="bienv" role="dialog" aria-modal="true" aria-labelledby="bienvT"><div class="bienv-c">
-    <div class="bienv-marca">${UI.marca()}</div><p class="hint" style="margin:0">Tu viaje comienza aquí.</p>
+  document.body.insertAdjacentHTML('beforeend', `<div id="bienv" class="bienv" role="dialog" aria-modal="true" aria-labelledby="bienvT"><div class="bienv-hero" role="img" aria-label="VAMO! by FLUVA">${UI.logoV(160)}<div class="bienv-nombre">VAMO!</div><div class="bienv-by">by <b>FLUV<i>A</i></b></div>
+    <p class="bienv-lema">${UI.icono('ubicacion', 15)}Tu viaje comienza aquí.</p></div><div class="bienv-c">
     <h2 id="bienvT">¿Cómo vas a usar VAMO?</h2>
     ${op('pasajero', 'ubicacion', 'var(--turquesa)', 'Soy pasajero', 'Mapa, locomoción y viajes. Sin registro.')}
     ${op('conductor', 'auto', 'var(--morado)', 'Soy conductor', 'Tu vehículo, disponibilidad y jornada.')}
