@@ -21,7 +21,7 @@
   ].map(d => `<path d="${d}"/>`).join('');
   const pin = (x, y) => `<g class="sp-mpin" transform="translate(${x} ${y})"><ellipse rx="11" ry="4" cy="2" fill="none" stroke="#00E5D6" stroke-width="1.4" opacity=".7"/><path d="M0 0C-5 -6 -8 -9 -8 -14A8 8 0 1 1 8 -14C8 -9 5 -6 0 0Z" fill="#00E5D6"/><circle cy="-14" r="3" fill="#0B1E3F"/></g>`;
 
-  const html = `<div id="splash" class="sp${quieto ? ' sp-quieto' : ''}" role="status" aria-label="Cargando VAMO by FLUVA">
+  const html = `<div id="splash" class="sp${quieto ? ' sp-quieto' : ''}" role="status" aria-label="Cargando VAMO! by FLUVA">
   <style>
   .sp{position:fixed;inset:0;z-index:5000;overflow:hidden;background:#0B1E3F;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -72,7 +72,7 @@
       ${UI.logoCuerpo('sp')}
       <path class="sp-trazo" pathLength="1" d="${UI.LOGO.borde}"/>
     </svg>
-    <div class="sp-txt"><span class="sp-vamo">VAMO</span><span class="sp-by">by <b>FLUV<i>A</i></b></span></div>
+    <div class="sp-txt"><span class="sp-vamo">VAMO!</span><span class="sp-by">by <b>FLUV<i>A</i></b></span></div>
   </div>
   <div class="sp-carga" aria-hidden="true"></div>
 </div>`;

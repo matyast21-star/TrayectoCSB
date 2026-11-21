@@ -81,7 +81,7 @@
   }
   // Marca completa: V + VAMO + «by FLUVA» (la A final en turquesa)
   function marca() {
-    return `<span class="vamo-marca" role="img" aria-label="VAMO by FLUVA">${logoV(34)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO</span><span class="vamo-sello">by <b>FLUV<i>A</i></b></span></span></span>`;
+    return `<span class="vamo-marca" role="img" aria-label="VAMO! by FLUVA">${logoV(34)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO!</span><span class="vamo-sello">by <b>FLUV<i>A</i></b></span></span></span>`;
   }
   // Ícono de app en 3 variantes: oscuro, amarillo, blanco
   // Ícono de app: logo sobre azul noche (oscuro), turquesa (amarillo, se mantiene el nombre) o blanco
