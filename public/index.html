@@ -66,14 +66,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .app{height:100%;display:grid;grid-template-rows:auto 1fr}
-.top{color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(180deg,#070A1A,#0B0F24);border-bottom:2px solid transparent;border-image:var(--grad) 1;position:relative;z-index:3}
+.top{color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(180deg,#0B1E3F,#0A2D55);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,#00E5D6,#00B3C6 55%,#0A4B7A) 1;position:relative;z-index:3}
 .brand{display:flex;align-items:center;gap:12px}
 .vamo-marca{display:flex;align-items:center;gap:6px}
-.vamo-v{flex-shrink:0;display:block;filter:drop-shadow(0 0 8px rgba(0,229,255,.35))}
+.vamo-v{flex-shrink:0;display:block;filter:drop-shadow(0 0 8px rgba(0,229,214,.35))}
 .vamo-palabra{display:grid;line-height:1;position:relative}
 .vamo-nombre{font-family:var(--f-display);font-weight:800;font-style:italic;font-size:23px;letter-spacing:.02em;color:#fff}
 .vamo-swoosh{width:100%;height:6px;margin-top:1px}
-.vamo-sello{font-size:10.5px;color:#C9D0EE;justify-self:end;margin-top:-1px}.vamo-sello b{color:#fff;font-weight:700}
+.vamo-sello{font-size:10.5px;color:#C9D0EE;justify-self:end;margin-top:1px;letter-spacing:.01em}.vamo-sello b{color:#fff;font-weight:800;letter-spacing:.03em}.vamo-sello i{font-style:normal;color:#00E5D6}
 .tagline{font-size:12.5px;color:#C9D0EE;margin-left:4px;padding-left:12px;border-left:1px solid #2A3366;display:flex;align-items:center;gap:6px}.tagline svg{color:var(--fucsia)}
 /* Diseño pensado para teléfono: en pantallas grandes la app se muestra como un teléfono centrado */
 .tagline{display:none}
@@ -293,8 +293,8 @@ html.lite .panel{border-right:0}
 @media (min-width:520px){html{background:var(--bg)}.app{border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:0 0 60px rgba(0,229,255,.07)}}
 /* ===== Kit visual VAMO (claro): encabezado, barra, botones, tarjetas, estados ===== */
 :root:not([data-theme="dark"]) .top{color:var(--ink);background:#fff;border-bottom:1px solid var(--line);border-image:none}
-:root:not([data-theme="dark"]) .vamo-nombre{color:var(--ink)}
-:root:not([data-theme="dark"]) .vamo-sello{color:var(--muted)}:root:not([data-theme="dark"]) .vamo-sello b{color:var(--ink)}
+:root:not([data-theme="dark"]) .vamo-nombre{color:#0B1E3F}
+:root:not([data-theme="dark"]) .vamo-sello{color:var(--muted)}:root:not([data-theme="dark"]) .vamo-sello b{color:#0B1E3F}:root:not([data-theme="dark"]) .vamo-sello i{color:#00B3C6}
 :root:not([data-theme="dark"]) .vamo-v{filter:none}
 :root:not([data-theme="dark"]) .top select{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px;padding:7px 10px;font-weight:600;font-size:13px}
 :root:not([data-theme="dark"]) .iconbtn{background:#fff;color:var(--ink);border-color:var(--line);border-radius:999px}
@@ -418,10 +418,17 @@ html.lite .panel{border-right:0}
 .cupos.chico{justify-content:flex-start}.cupos.chico button{width:48px;height:48px;font-size:24px}.cupos.chico output{font-size:26px;min-width:44px}
 .docrow{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
 label.btn{display:inline-flex;align-items:center;cursor:pointer}
-.bienv{position:fixed;inset:0;z-index:2000;background:var(--bg,#fff);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
-.bienv-c{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;text-align:center}
-.bienv-marca{display:flex;justify-content:center;transform:scale(1.4);margin:18px 0 6px}
-.bienv h2{margin:10px 0 2px}
+.bienv{position:fixed;inset:0;z-index:2000;background:var(--bg,#fff);display:flex;flex-direction:column;align-items:center;overflow:auto}
+.bienv-hero{width:100%;max-width:480px;flex:1 0 auto;min-height:min(42vh,360px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:max(28px,env(safe-area-inset-top,0px)) 20px 8px}
+.bienv-logo{display:flex;align-items:center;gap:min(3vw,14px)}
+.bienv-hero .vamo-v{width:min(31vw,150px);height:auto}
+.bienv-palabra{display:flex;flex-direction:column;align-items:flex-end;line-height:1}
+.bienv-nombre{font-family:var(--f-display);font-weight:800;font-style:italic;font-size:min(13.5vw,66px);line-height:.95;letter-spacing:.01em;color:#0B1E3F}
+.bienv-by{font-size:min(5.6vw,24px);font-weight:500;color:#5B6B80;margin-top:4px}.bienv-by b{font-weight:800;letter-spacing:.04em;color:#0B1E3F}.bienv-by i{font-style:normal;color:#00B3C6}
+.bienv-lema{margin:0;font-size:min(4.6vw,18px);color:#5B6B80}
+:root[data-theme="dark"] .bienv-nombre,:root[data-theme="dark"] .bienv-by b{color:#fff}:root[data-theme="dark"] .bienv-by,:root[data-theme="dark"] .bienv-lema{color:#BFD3E6}:root[data-theme="dark"] .bienv-by i{color:#00E5D6}
+.bienv-c{width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px;text-align:center;padding:20px 16px max(20px,env(safe-area-inset-bottom,0px))}
+.bienv h2{margin:0 0 4px;font-size:21px}
 .perfil-op{display:flex;align-items:center;gap:14px;text-align:left;padding:18px 16px;border-radius:18px;border:2px solid color-mix(in srgb,var(--c) 45%,var(--line));background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:84px}
 .perfil-op:hover,.perfil-op:focus-visible{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--surface))}
 .perfil-op .vi{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);flex-shrink:0}
@@ -461,6 +468,7 @@ html.en-inicio .filtros{display:none}
 </style>
 </head>
 <body>
+<script src="ui/splash.js"></script>
 
 <div class="app">
   <header class="top">
@@ -1739,8 +1747,8 @@ function elegirPerfil(p) {
 function mostrarBienvenida() {
   if (document.getElementById('bienv')) return;
   const op = (p, ic, c, t, d) => `<button class="perfil-op" data-elegir-perfil="${p}" style="--c:${c}"><span class="vi">${UI.icono(ic, 30)}</span><span><b>${t}</b><small>${d}</small></span>›</button>`;
-  document.body.insertAdjacentHTML('beforeend', `<div id="bienv" class="bienv" role="dialog" aria-modal="true" aria-labelledby="bienvT"><div class="bienv-c">
-    <div class="bienv-marca">${UI.marca()}</div><p class="hint" style="margin:0">Tu viaje comienza aquí.</p>
+  document.body.insertAdjacentHTML('beforeend', `<div id="bienv" class="bienv" role="dialog" aria-modal="true" aria-labelledby="bienvT"><div class="bienv-hero" role="img" aria-label="VAMO! by FLUVA. Tu viaje comienza aquí."><div class="bienv-logo">${UI.logoV(110)}<div class="bienv-palabra"><span class="bienv-nombre">VAMO!</span><span class="bienv-by">by <b>FLUV<i>A</i></b></span></div></div>
+    <p class="bienv-lema">Tu viaje comienza aquí.</p></div><div class="bienv-c">
     <h2 id="bienvT">¿Cómo vas a usar VAMO?</h2>
     ${op('pasajero', 'ubicacion', 'var(--turquesa)', 'Soy pasajero', 'Mapa, locomoción y viajes. Sin registro.')}
     ${op('conductor', 'auto', 'var(--morado)', 'Soy conductor', 'Tu vehículo, disponibilidad y jornada.')}

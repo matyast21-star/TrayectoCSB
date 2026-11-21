@@ -49,32 +49,49 @@
   const icono = (n, size = 20, extra = '') =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}><path d="${P[n] || P.inicio}"/></svg>`;
 
-  // Logo: V con carretera integrada (degradado turquesa → violeta → fucsia)
+  // Logo 2026: V turquesa con carretera que sube hasta el marcador de ubicación (paleta FLUVA).
+  // Geometría en un lienzo de 140 × 110; la usan la marca, el ícono de la app y la animación de inicio.
+  const MARCA = { turquesa: '#00E5D6', turquesa2: '#00B3C6', azul: '#0A4B7A', noche: '#0B1E3F', blanco: '#FFFFFF' };
+  const LOGO = {
+    brazo: 'M8 16Q6 8 14 8H32Q39 8 41 15L60 76Q52 92 50 100Q42 100 39 90Z',
+    hoja: 'M50 100C58 80 66 64 78 54C90 44 104 39 120 36C108 46 100 58 92 74C82 94 68 102 50 100Z',
+    via: 'M39 90C48 62 76 40 118 31L120 36C104 39 90 44 78 54C66 64 58 80 50 100Q42 99 39 90Z',
+    borde: 'M39 90C48 62 76 40 118 31',
+    eje: 'M45 94C54 66 78 44 119 33.5',
+    pin: 'M122 44C114 35 108 30 108 22A14 14 0 1 1 136 22C136 30 130 35 122 44Z'
+  };
   let uid = 0;
+  function logoDefs(g) {
+    return `<linearGradient id="${g}a" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#3FF5E6"/><stop offset=".55" stop-color="${MARCA.turquesa2}"/><stop offset="1" stop-color="#0A6FA0"/></linearGradient>
+      <linearGradient id="${g}h" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${MARCA.turquesa}"/><stop offset="1" stop-color="${MARCA.turquesa2}"/></linearGradient>
+      <linearGradient id="${g}v" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${MARCA.azul}"/><stop offset="1" stop-color="#1E6FB0"/></linearGradient>`;
+  }
+  // Cuerpo del logo (sin <svg>), con clases para poder animar cada pieza
+  function logoCuerpo(g) {
+    return `<path class="lv-brazo" d="${LOGO.brazo}" fill="url(#${g}a)"/>
+      <path class="lv-hoja" d="${LOGO.hoja}" fill="url(#${g}h)"/>
+      <path class="lv-via" d="${LOGO.via}" fill="url(#${g}v)"/>
+      <path class="lv-eje" d="${LOGO.eje}" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="7 6" stroke-linecap="round"/>
+      <path class="lv-borde" d="${LOGO.borde}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+      <g class="lv-pin"><path d="${LOGO.pin}" fill="#00C9CF" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="122" cy="21" r="4.6" fill="#fff"/></g>`;
+  }
   function logoV(size = 34) {
     const g = 'vg' + (++uid);
-    return `<svg viewBox="0 0 120 100" width="${size * 1.2}" height="${size}" aria-hidden="true" class="vamo-v">
-      <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.turquesa}"/><stop offset=".55" stop-color="${C.violeta}"/><stop offset="1" stop-color="${C.fucsia}"/></linearGradient></defs>
-      <path d="M14 12L60 86L106 12" fill="none" stroke="url(#${g})" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M58 88Q72 52 106 12" fill="none" stroke="${C.fondo}" stroke-width="12" stroke-linecap="round"/>
-      <path d="M58 88Q72 52 106 12" fill="none" stroke="${C.blanco}" stroke-width="2.2" stroke-dasharray="6 6" stroke-linecap="round"/>
-    </svg>`;
+    return `<svg viewBox="0 0 140 110" width="${Math.round(size * 140 / 110)}" height="${size}" aria-hidden="true" class="vamo-v"><defs>${logoDefs(g)}</defs>${logoCuerpo(g)}</svg>`;
   }
-  // Marca completa: V + VAMO + sello "by fluva."
+  // Marca completa: V + VAMO + «by FLUVA» (la A final en turquesa)
   function marca() {
-    return `<span class="vamo-marca" role="img" aria-label="VAMO! by fluva">${logoV(30)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO!</span><svg class="vamo-swoosh" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8Q50 0 98 3" fill="none" stroke="${C.amarillo}" stroke-width="2.4" stroke-linecap="round"/></svg><span class="vamo-sello">by <b>fluva.</b></span></span></span>`;
+    return `<span class="vamo-marca" role="img" aria-label="VAMO! by FLUVA">${logoV(34)}<span class="vamo-palabra"><span class="vamo-nombre">VAMO!</span><span class="vamo-sello">by <b>FLUV<i>A</i></b></span></span></span>`;
   }
   // Ícono de app en 3 variantes: oscuro, amarillo, blanco
+  // Ícono de app: logo sobre azul noche (oscuro), turquesa (amarillo, se mantiene el nombre) o blanco
   function iconoApp(variante = 'oscuro', size = 96) {
-    const fondo = { oscuro: C.fondo, amarillo: C.amarillo, blanco: C.blanco }[variante] || C.fondo;
+    const fondo = { oscuro: MARCA.noche, amarillo: MARCA.turquesa, blanco: MARCA.blanco }[variante] || MARCA.noche;
     const g = 'ia' + (++uid);
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${size}" height="${size}">
-      <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.turquesa}"/><stop offset=".55" stop-color="${C.violeta}"/><stop offset="1" stop-color="${C.fucsia}"/></linearGradient></defs>
-      <rect width="120" height="120" rx="28" fill="${fondo}"/>
-      ${variante === 'oscuro' ? `<rect x="3" y="3" width="114" height="114" rx="25" fill="none" stroke="url(#${g})" stroke-width="3" opacity=".9"/>` : ''}
-      <g transform="translate(18 26) scale(.7)"><path d="M14 12L60 86L106 12" fill="none" stroke="${variante === 'amarillo' ? C.fondo : `url(#${g})`}" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M58 88Q72 52 106 12" fill="none" stroke="${variante === 'amarillo' ? C.amarillo : C.fondo}" stroke-width="12" stroke-linecap="round"/>
-      <path d="M58 88Q72 52 106 12" fill="none" stroke="${variante === 'amarillo' ? C.fondo : C.blanco}" stroke-width="2.4" stroke-dasharray="6 6" stroke-linecap="round"/></g>
+      <defs>${logoDefs(g)}<radialGradient id="${g}r" cx=".3" cy=".2" r="1"><stop offset="0" stop-color="${variante === 'oscuro' ? '#0A4B7A' : fondo}"/><stop offset="1" stop-color="${fondo}"/></radialGradient></defs>
+      <rect width="120" height="120" rx="28" fill="url(#${g}r)"/>
+      <g transform="translate(12 22) scale(.7)">${logoCuerpo(g)}</g>
     </svg>`;
   }
 
@@ -119,5 +136,5 @@
   const vacio = (titulo, texto, accion) => `<div class="vacio">${icono('rutas', 30)}<h3>${esc(titulo)}</h3>${texto ? `<p>${texto}</p>` : ''}${accion || ''}</div>`;
   const error = (titulo, texto, accion) => `<div class="vacio" data-t="error" role="alert">${icono('alerta', 30)}<h3>${esc(titulo)}</h3>${texto ? `<p>${texto}</p>` : ''}${accion || ''}</div>`;
 
-  window.VamoUI = { C, P, icono, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl, semaforo, SEM, boton, fuente, FUENTE, tarjetaVehiculo, buscador, selector, vacio, error };
+  window.VamoUI = { C, P, icono, MARCA, LOGO, logoDefs, logoCuerpo, logoV, marca, iconoApp, pin, pinImagenes, PIN_TIPOS, chip, svgUrl, semaforo, SEM, boton, fuente, FUENTE, tarjetaVehiculo, buscador, selector, vacio, error };
 })();
