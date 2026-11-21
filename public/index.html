@@ -665,17 +665,21 @@ function syncOwnerFleet() {
 syncOwnerFleet();
 
 /* ============ Tarifas (ejemplo) ============ */
-const TAXI = { bajada: 450, cada200: 190, espera: 190 }; // taxímetro de ejemplo
+// Taxis de la zona: no usan taxímetro. El taxista indica su precio al aceptar el viaje.
+// Dentro de la misma localidad se sugiere el precio habitual; hacia pueblos cercanos cada taxista tiene su precio fijo.
+const TAXI = { dentroZona: 2500 };
+const precioTaxiSugerido = (oLoc, dLoc) => oLoc && oLoc === dLoc ? TAXI.dentroZona : null;
 const CLASES = [
   { id: 'eco', n: 'Económico', d: 'Auto particular, hasta 4 personas', f: 1, ic: 'A', tipo: 'auto', color: 'var(--auto)' },
-  { id: 'taxi', n: 'Taxi local', d: 'Taxi de la zona con taxímetro', f: 'taxi', ic: 'T', tipo: 'taxi', color: 'var(--taxi)' },
+  { id: 'taxi', n: 'Taxi local', d: 'Taxi de la zona; el taxista te da el precio al aceptar', f: 'taxi', ic: 'T', tipo: 'taxi', color: 'var(--taxi)' },
   { id: 'xl', n: 'XL', d: 'Van, hasta 7 personas', f: 1.45, ic: 'XL', tipo: 'auto', color: 'var(--auto)' },
   { id: 'comp', n: 'Compartido', d: 'Estilo colectivo, compartes el viaje', f: 0.6, ic: 'C', tipo: 'auto', color: 'var(--auto)' }
 ];
-function quote(a, b, locId, f = 1) {
+function quote(a, b, locId, f = 1, dLoc = locId) {
   const t = LOC[locId] ? LOC[locId].tarifa : LOC.casablanca.tarifa, rt = typeof cached === 'function' ? cached(a, b) : null;
   const km = rt ? rt.km : dist(a, b) * 1.3, mins = rt ? rt.mins + 2 : km / (km > 12 ? 70 : 30) * 60 + 2;
-  if (f === 'taxi') return { km, mins, real: !!rt, precio: TAXI.bajada + TAXI.cada200 * Math.ceil(km * 1000 / 200) };
+  if (f === 'taxi') { const sug = precioTaxiSugerido(locId, dLoc); // fuera de la zona: referencia con la tarifa de autos (el taxista confirma)
+    return { km, mins, real: !!rt, sugerido: sug, precio: sug || Math.max(t.minimo, Math.round((t.base + t.km * km + t.min * mins) / 100) * 100) }; }
   return { km, mins, real: !!rt, precio: Math.max(t.minimo * f, Math.round((t.base + t.km * km + t.min * mins) * f / 100) * 100) };
 }
 
@@ -937,19 +941,19 @@ function viewViaje() {
     if (S.o !== S.d) ensureRoute(o.c, d.c);
     h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>Disponibles cerca de A</h3><span class="tag ok" id="nLibres">${libresTxt(o)}</span></div><div class="live" id="nearList">${nearHTML(o)}</div></div>`;
     const modo = modoPrecio(o.loc, 'viaje');
-    h += `<div class="opts">` + CLASES.map(c => { const q = quote(o.c, d.c, o.loc, c.f), rg = c.f !== 'taxi' && modo === 'rango' ? rangoPrecio(o.loc, 'viaje', q.km * (typeof c.f === 'number' ? 1 : 1), q.precio) : null;
-      const pr = c.f === 'taxi' ? '~' + clp(q.precio) : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : `${clp(r100(rg.lo * c.f))}–${clp(r100(rg.hi * c.f)).slice(1)}`;
+    h += `<div class="opts">` + CLASES.map(c => { const q = quote(o.c, d.c, o.loc, c.f, d.loc), rg = c.f !== 'taxi' && modo === 'rango' ? rangoPrecio(o.loc, 'viaje', q.km * (typeof c.f === 'number' ? 1 : 1), q.precio) : null;
+      const pr = c.f === 'taxi' ? (q.sugerido ? `<span style="font-size:11px;color:var(--muted)">sugerido</span><br>${clp(q.sugerido)}` : '<span style="font-size:11px;color:var(--muted)">precio del<br>taxista</span>') : modo === 'conductor' ? `<span style="font-size:11px;color:var(--muted)">ofertas desde</span><br>~${clp(r100(q.precio * 0.85))}` : `${clp(r100(rg.lo * c.f))}–${clp(r100(rg.hi * c.f)).slice(1)}`;
       return `<button class="opt" data-clase="${c.id}" aria-pressed="${S.clase === c.id}" style="--c:${c.color}"><span class="ic" style="background:${c.color}">${c.id === 'xl' ? '<b style="font-size:12px">XL</b>' : UI.icono(c.tipo, 20)}</span><span><div class="t">${c.n}</div><div class="d">${c.d} · ${q.km.toFixed(1)} km · ${Math.round(q.mins)} min${q.real ? '' : ' (aprox.)'}</div></span><span class="p">${pr}</span></button>`; }).join('') + `</div>
       <button class="btn" id="pedir" ${S.o === S.d ? 'disabled' : ''}>${S.clase !== 'taxi' && modo === 'conductor' ? 'Pedir ofertas de conductores' : 'Pedir ' + CLASES.find(c => c.id === S.clase).n}</button>
       ${precioInfoHTML(o.loc, 'viaje')}
-      <p class="hint">${S.clase === 'taxi' ? `Taxímetro de ejemplo: bajada de bandera ${clp(TAXI.bajada)} + ${clp(TAXI.cada200)} cada 200 m. El precio final lo marca el taxímetro; los taxis siempre cobran con taxímetro.` : modo === 'conductor' ? `Tarifa de referencia para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min. Cada conductor ofrece su propio precio.` : `Rango calculado con lo que se pagó en viajes parecidos en ${LOC[o.loc].nombre}.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
+      <p class="hint">${S.clase === 'taxi' ? `Los taxis de la zona no usan taxímetro: el taxista te indica el precio al aceptar el viaje y tú eliges. Dentro de ${LOC[o.loc].nombre} lo habitual es ${clp(TAXI.dentroZona)}; hacia pueblos cercanos cada taxista tiene su precio fijo.` : modo === 'conductor' ? `Tarifa de referencia para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min. Cada conductor ofrece su propio precio.` : `Rango calculado con lo que se pagó en viajes parecidos en ${LOC[o.loc].nombre}.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
   } else {
     const veh = R.clase === 'taxi' ? 'taxi' : 'auto';
     const st = { buscando: [R.modo === 'conductor' ? 'Pidiendo precio a los conductores cercanos…' : `Buscando el ${veh} libre más cercano…`, 'var(--warn)', true], ofertas: ['Elige una oferta', 'var(--accent)', false], va: ['Tu conductor va en camino', 'var(--auto)', true], llego: ['Tu conductor llegó a A', 'var(--ok)', false], viaje: ['En viaje hacia B', 'var(--accent)', true], fin: ['Llegaste a tu destino', 'var(--ok)', false] }[R.fase];
     h += `<div class="card"><div class="status"><span class="dot ${st[2] ? 'pulse' : ''}" style="background:${st[1]}"></span><div><h3>${st[0]}</h3><div class="hint" id="rideEta"></div></div></div>`;
     if (R.car) h += `<div class="row"><span class="plate">${R.car.patente}</span><span>${R.car.tipo === 'taxi' ? 'Taxi · ' : ''}${esc(R.car.modelo)} · ${esc(R.car.cond)} · ★ ${R.car.nota}</span></div>`;
     if (R.fase === 'ofertas') h += `<p class="hint" style="margin:0">Cada conductor puso su precio. Elige el que prefieras; puedes ver su nota y cuánto tarda en llegar.</p><div class="list">${R.ofertas.map(offerRow).join('')}</div>`;
-    else h += `<div class="row" style="justify-content:space-between"><span>${CLASES.find(c => c.id === R.clase).n}${R.modo === 'conductor' ? ' · precio del conductor' : R.modo === 'rango' ? ' · precio estimado' : ''}</span><span class="mono">${R.clase === 'taxi' ? '~' : ''}${clp(R.precio)}</span></div>`;
+    else h += `<div class="row" style="justify-content:space-between"><span>${CLASES.find(c => c.id === R.clase).n}${R.modo === 'conductor' ? ' · precio del conductor' : R.modo === 'rango' ? ' · precio estimado' : ''}</span><span class="mono">${clp(R.precio)}</span></div>`;
     if (R.car && R.fase !== 'fin') h += `<div class="row"><button class="btn sm ghost" id="seguirAuto">Seguir en el mapa</button><button class="btn sm ghost" id="compartir">Compartir viaje</button></div>`;
     if (R.fase === 'fin') h += `<div class="row">${[1, 2, 3, 4, 5].map(n => `<button class="chip" data-stars="${n}" aria-label="${n} estrellas">${'★'.repeat(n)}</button>`).join('')}</div><button class="btn" id="nuevo">Nuevo viaje</button>`; else h += `<button class="btn ghost" id="cancelar">Cancelar</button>`;
     h += `</div><p class="hint">Simulación acelerada sobre calles reales. Conductor, patente y vehículo son de ejemplo.</p>`;
@@ -1316,7 +1320,7 @@ function viewMisViajes() {
    Taxi, colectivo y bus no se muestran a pasajeros sin verificación de documentos. */
 const TIPOS_V = {
   auto: { n: 'Auto particular', d: 'Viajes a pedido, pones tu precio', i: 'auto', c: 'var(--auto)', cap: 4, publico: false, servicio: 'viajes', docs: ['Licencia de conducir', 'Permiso de circulación', 'SOAP vigente', 'Revisión técnica'] },
-  taxi: { n: 'Taxi', d: 'Con taxímetro, requiere verificación', i: 'taxi', c: 'var(--taxi)', cap: 4, publico: true, servicio: 'taxi', docs: ['Licencia profesional', 'Permiso de circulación', 'SOAP vigente', 'Revisión técnica', 'Inscripción de transporte público'] },
+  taxi: { n: 'Taxi', d: 'Pones el precio al aceptar cada viaje, requiere verificación', i: 'taxi', c: 'var(--taxi)', cap: 4, publico: true, servicio: 'taxi', docs: ['Licencia profesional', 'Permiso de circulación', 'SOAP vigente', 'Revisión técnica', 'Inscripción de transporte público'] },
   colectivo: { n: 'Colectivo', d: 'Casablanca–Valparaíso, cupos y salidas', i: 'colectivo', c: 'var(--colectivo)', cap: 4, publico: true, servicio: 'colectivo', docs: ['Licencia profesional', 'Permiso de circulación', 'SOAP vigente', 'Revisión técnica', 'Inscripción de transporte público'] },
   bus: { n: 'Bus', d: 'Recorridos, horarios y conductores', i: 'bus', c: 'var(--bus)', cap: 44, publico: true, servicio: 'interurbano', docs: ['Licencia profesional', 'Permiso de circulación', 'SOAP vigente', 'Revisión técnica', 'Inscripción de transporte público'] },
   moto: { n: 'Moto de reparto', d: 'Delivery para locales cercanos', i: 'moto', c: 'var(--moto)', cap: 1, publico: false, servicio: 'delivery', docs: ['Licencia clase C', 'Permiso de circulación', 'SOAP vigente'] }
@@ -1375,7 +1379,7 @@ function viewRegistro() {
     else if (R.tipo === 'moto') h += campo('zona', 'Zona de reparto', 'Casablanca urbano') + `<p class="hint">Recibirás despachos de locales cercanos con el sistema de ofertas actual.</p>`;
     else h += `${R.tipo === 'auto' ? `<div class="campo">Categoría<div class="seg">${[['eco', 'Económico'], ['xl', 'XL (hasta 7)'], ['comp', 'Compartido']].map(([k, n]) => `<button data-rcat="${k}" aria-pressed="${R.categoria === k}">${n}</button>`).join('')}</div></div>` : ''}
       ${campo('zona', 'Zona de servicio', 'Casablanca urbano')}
-      <p class="hint">${R.tipo === 'taxi' ? 'Cobras con taxímetro, como hoy.' : 'Pones tu propio precio con el sistema de ofertas actual; lo ajustas en «Configurar mi vehículo».'}</p>`;
+      <p class="hint">${R.tipo === 'taxi' ? `Pones el precio al aceptar cada viaje (sugerido ${clp(TAXI.dentroZona)} dentro de la zona).` : 'Pones tu propio precio con el sistema de ofertas actual; lo ajustas en «Configurar mi vehículo».'}</p>`;
     h += `<div class="card"><h3>Conductores autorizados</h3><div class="docrow"><span><b>Tú</b> (dueño y conductor)</span></div>${FLOTA.on ? '<p class="hint" style="margin:0">Al terminar, invitas a otros conductores desde «Administrar».</p>' : '<button class="btn sm ghost" disabled title="Se habilita con las cuentas">+ Invitar a otro conductor</button>'}<p class="hint" style="margin:0">Cada conductor invitado solo podrá usar los vehículos que le asignes.</p></div>`;
   } else {
     h += `<div class="campo">¿Qué días trabajas normalmente?<div class="dias">${DIAS.map((d, i) => `<button data-rdia="${i}" aria-pressed="${!!R.dias[i]}">${d}</button>`).join('')}</div></div>
@@ -1763,7 +1767,7 @@ if (PERFIL === 'conductor') S.tab = inicioConductor();
 function resumenPanel(v, k, s, activo, r) {
   const fila = (a, b) => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="hint">${a}</span><b style="text-align:right">${b}</b></div>`;
   const recorrido = k === 'bus' ? null : k === 'colectivo' ? 'Casablanca ⇄ Valparaíso' : esc(v.zona || 'Casablanca urbano');
-  const tarifa = k === 'taxi' ? 'Taxímetro' : k === 'colectivo' ? (+v.tarifaPas > 0 ? clp(+v.tarifaPas) + ' por pasajero' : 'Sin configurar')
+  const tarifa = k === 'taxi' ? `Lo pones al aceptar (sugerido ${clp(TAXI.dentroZona)} en la zona)` : k === 'colectivo' ? (+v.tarifaPas > 0 ? clp(+v.tarifaPas) + ' por pasajero' : 'Sin configurar')
     : k === 'bus' ? (r ? precioTxt(r.precio) + (r.ejemplo ? ' (ejemplo)' : '') : 'Según recorrido') : `Base ${clp(OWNER.tarifa.base)} + ${clp(OWNER.tarifa.km)}/km`;
   const cap = v.cap || TIPOS_V[k].cap, unidad = k === 'moto' ? 'bultos' : 'pasajeros';
   return `<div class="card">${recorrido ? fila(k === 'colectivo' ? 'Recorrido' : 'Zona', recorrido) : ''}${k === 'colectivo' && activo && s.salida ? fila('Salida informada', s.salida) : ''}
@@ -1854,15 +1858,15 @@ function viewDuenos() {
   return `<div><h2>Panel de dueños</h2><p class="sub">Conecta tus vehículos, elige cómo trabajan y paga la plataforma solo por lo que usas.</p></div>
   <div class="stats"><div class="stat"><div class="v">${T.n}</div><div class="l">Viajes hoy</div></div><div class="stat"><div class="v">${clp(T.bruto)}</div><div class="l">Cobrado a pasajeros</div></div>
     <div class="stat"><div class="v">${clp(T.fee)}</div><div class="l">Cargo plataforma (${PLANES.find(p => p.id === OWNER.plan).n.toLowerCase()})</div></div><div class="stat"><div class="v" style="color:var(--ok)">${clp(T.neto)}</div><div class="l">Te queda</div></div></div>
-  <div><h3>Mis vehículos</h3><p class="hint">Activa un auto o un taxi y aparece en el mapa como disponible. Los taxis y colectivos de la zona se suman con su patente de taxi y mantienen su taxímetro.</p></div>
+  <div><h3>Mis vehículos</h3><p class="hint">Activa un auto o un taxi y aparece en el mapa como disponible. Los taxis y colectivos de la zona se suman con su patente de taxi y cobran el precio que indican al aceptar cada viaje.</p></div>
   <div class="list">${OWNER.vehiculos.map(v => `<div class="veh"><span class="ic" style="width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;background:${v.servicio === 'taxi' ? '#c9a000' : v.servicio === 'viajes' ? 'var(--auto)' : v.servicio === 'interurbano' ? 'var(--bus)' : v.servicio === 'delivery' ? 'var(--moto)' : 'var(--micro)'}">${v.servicio === 'taxi' ? 'TAXI' : v.tipo === 'moto' ? 'MOTO' : v.tipo === 'bus' ? 'BUS' : v.tipo === 'van' ? 'VAN' : 'AUTO'}</span>
-      <span style="min-width:0"><div><span class="plate">${esc(v.patente)}</span> ${esc(v.modelo)}</div><div class="hint">${{ viajes: 'Viajes a pedido', taxi: 'Taxi con taxímetro', urbana: 'Línea de micro urbana', rural: 'Recorrido rural', interurbano: 'Bus interurbano', delivery: 'Delivery de comida' }[v.servicio]} · ${esc(v.cond)} · ${v.activo ? 'Disponible' : 'Fuera de servicio'}</div></span>
+      <span style="min-width:0"><div><span class="plate">${esc(v.patente)}</span> ${esc(v.modelo)}</div><div class="hint">${{ viajes: 'Viajes a pedido', taxi: 'Taxi local', urbana: 'Línea de micro urbana', rural: 'Recorrido rural', interurbano: 'Bus interurbano', delivery: 'Delivery de comida' }[v.servicio]} · ${esc(v.cond)} · ${v.activo ? 'Disponible' : 'Fuera de servicio'}</div></span>
       <button class="switch" role="switch" aria-checked="${v.activo}" aria-label="Disponible ${esc(v.patente)}" data-veh="${v.id}"></button></div>`).join('')}</div>
   <details class="card"><summary style="cursor:pointer;font-weight:600">Registrar un vehículo</summary>
     <form class="form" id="vform"><label>Tipo<select id="vtipo"><option value="auto">Auto</option><option value="moto">Moto</option><option value="van">Van</option><option value="bus">Bus</option></select></label>
       <label>Patente<input id="vpat" required maxlength="8" placeholder="ABCD12"></label>
       <label class="full">Marca, modelo y año<input id="vmod" required placeholder="Kia Rio 2020"></label>
-      <label>Servicio<select id="vserv"><option value="viajes">Viajes a pedido</option><option value="taxi">Taxi local (con taxímetro)</option><option value="delivery">Delivery de comida</option><option value="urbana">Línea de micro urbana</option><option value="rural">Recorrido rural</option><option value="interurbano">Bus interurbano</option></select></label>
+      <label>Servicio<select id="vserv"><option value="viajes">Viajes a pedido</option><option value="taxi">Taxi local</option><option value="delivery">Delivery de comida</option><option value="urbana">Línea de micro urbana</option><option value="rural">Recorrido rural</option><option value="interurbano">Bus interurbano</option></select></label>
       <label>Conductor<input id="vcond" placeholder="Tú"></label>
       <button class="btn sm full" type="submit">Registrar</button></form>
     <p class="hint">En producción se pedirían permiso de circulación, SOAP, revisión técnica y licencia del conductor. Para taxis, además, la inscripción en el Registro Nacional de Transporte Público de Pasajeros.</p></details>
@@ -2122,13 +2126,13 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
 
 /* ============ Simulación ============ */
 function startRide() {
-  const o = placeOf(S.o), d = placeOf(S.d), c = CLASES.find(c => c.id === S.clase), q = quote(o.c, d.c, o.loc, c.f);
-  const modo = c.f === 'taxi' ? 'taxi' : modoPrecio(o.loc, 'viaje');
+  const o = placeOf(S.o), d = placeOf(S.d), c = CLASES.find(c => c.id === S.clase), q = quote(o.c, d.c, o.loc, c.f, d.loc);
+  const modo = c.f === 'taxi' ? 'conductor' : modoPrecio(o.loc, 'viaje'); // taxis: cada taxista ofrece su precio al aceptar
   const precio = modo === 'rango' ? r100(rangoPrecio(o.loc, 'viaje', q.km, q.precio).med * c.f) : q.precio;
   S.ride = { fase: 'buscando', modo, clase: c.id, precio, km: q.km, loc: o.loc, o: o.c, d: d.c }; S.note = ''; render();
   setTimeout(() => { const R = S.ride; if (!R || R.fase !== 'buscando') return; const cand = nearbyCars(o.c, modo === 'conductor' ? 3 : 1, c.tipo);
     if (!cand.length) { S.ride = null; S.note = `No hay ${c.tipo === 'taxi' ? 'taxis' : 'autos'} libres cerca en este momento. Prueba otra opción.`; render(); return; }
-    if (modo === 'conductor') { R.fase = 'ofertas'; R.ofertas = cand.map(x => ({ v: x.v, eta: Math.max(1, Math.round(x.d * 1.3 / 30 * 60)), precio: precioConductor(x.v, q.precio, q.km, c.f) })).sort((a, b) => a.precio - b.precio); render(); return; }
+    if (modo === 'conductor') { R.fase = 'ofertas'; R.ofertas = cand.map(x => ({ v: x.v, eta: Math.max(1, Math.round(x.d * 1.3 / 30 * 60)), precio: c.f === 'taxi' && q.sugerido ? q.sugerido : precioConductor(x.v, q.precio, q.km, c.f === 'taxi' ? 1 : c.f) })).sort((a, b) => a.precio - b.precio); render(); return; }
     assignRide(R, cand[0].v); }, 1400);
 }
 async function assignRide(R, car) {
@@ -2142,7 +2146,7 @@ function stepRide(dt) { const R = S.ride; if (!R || !R.car || !['va', 'viaje'].i
   const eta = document.getElementById('rideEta'); if (eta) eta.textContent = (R.fase === 'va' ? 'Llega a A en ' : 'Llegas a B en ') + Math.max(1, Math.ceil(rem)) + ' min · ' + ((1 - Math.min(1, R.f)) * R.legKm).toFixed(1) + ' km';
   if (S.followCar && R.car) map.jumpTo({ center: ll(R.car.pos) });
   if (R.f >= 1) { if (R.fase === 'va') { R.fase = 'llego'; render(); setTimeout(() => { if (S.ride === R) { R.fase = 'viaje'; const rt = cached(R.o, R.d); R.leg = rt ? rt.coords : [R.o, R.d]; R.legKm = rt ? rt.km : dist(R.o, R.d) * 1.3; R.f = 0; R.car.estado = 'ocupado'; render(); } }, 1500); }
-    else { R.fase = 'fin'; R.car.estado = 'libre'; R.car.tgt = randIn(R.car.loc); S.followCar = false; if (R.modo !== 'taxi') registrarPagado(R.loc, 'viaje', R.km, R.precio);
+    else { R.fase = 'fin'; R.car.estado = 'libre'; R.car.tgt = randIn(R.car.loc); S.followCar = false; if (R.clase !== 'taxi') registrarPagado(R.loc, 'viaje', R.km, R.precio);
       HIST.unshift({ f: Date.now(), o: (placeOf(S.o) || {}).n || 'Origen', d: (placeOf(S.d) || {}).n || 'Destino', clase: (CLASES.find(c => c.id === R.clase) || {}).n || R.clase, precio: R.precio }); saveMis(); render(); } } }
 function stepFleet(dt) { for (const v of FLEET) { if (v.job || (S.ride && S.ride.car === v && S.ride.fase !== 'fin')) continue;
   const dk = dist(v.pos, v.tgt), mv = 28 * SIM / 3600 * dt; if (dk < mv) { v.tgt = randIn(v.loc); if (!v.owned && rnd() < 0.25) v.estado = v.estado === 'libre' ? 'ocupado' : 'libre'; } else v.pos = along([v.pos, v.tgt], mv / dk); } }
@@ -2165,8 +2169,7 @@ async function sb(path) { const r = await fetch(`${SB_URL}/rest/v1/${path}`, { h
 async function cargarBD() { const el = document.getElementById('dbState');
   try { const [locs, tars] = await Promise.all([sb('localidad?select=id,nombre,estado'), sb('tarifa?select=localidad_id,clase,base,por_km,por_min,minimo,bajada_bandera,por_200m')]);
     for (const l of locs) if (LOC[l.id]) { LOC[l.id].estado = l.estado === 'proximamente' ? 'próximamente' : l.estado; LOC[l.id].nombre = l.nombre; }
-    for (const t of tars) { if (t.clase === 'eco' && LOC[t.localidad_id]) LOC[t.localidad_id].tarifa = { base: t.base, km: t.por_km, min: t.por_min, minimo: t.minimo };
-      if (t.clase === 'taxi' && t.bajada_bandera) { TAXI.bajada = t.bajada_bandera; TAXI.cada200 = t.por_200m; } }
+    for (const t of tars) { if (t.clase === 'eco' && LOC[t.localidad_id]) LOC[t.localidad_id].tarifa = { base: t.base, km: t.por_km, min: t.por_min, minimo: t.minimo }; }
     locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
     try { const cp = await sb('config_precio?select=localidad_id,min_conductores,min_pagados&localidad_id=eq.casablanca'); if (cp[0]) { PRECIO.minConductores = cp[0].min_conductores; PRECIO.minPagados = cp[0].min_pagados; } } catch (e) {}
     try { await cargarRecorridos(); } catch (e) { console.warn('Recorridos: usando respaldo local', e); }
