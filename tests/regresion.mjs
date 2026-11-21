@@ -426,6 +426,90 @@ await test('Pantalla de inicio: anima 5 s, se puede saltar y deja la app usable'
   assert(!(await sp.$('#splash')), 'un toque no saltó la pantalla de inicio');
   await sp.goto(BASE); await sp.waitForTimeout(400); assert(!(await sp.$('#splash')), 'se repitió en la misma sesión');
   assert(!errs.length, errs.join(' | ')); await sp.close(); });
+// ---- Solicitudes de viaje reales y colectivos (Supabase simulado en memoria, compartido entre teléfonos) ----
+{
+  const SOLS = {}, SL = [], ESPERAS = [], AVISOS = []; let nSol = 0;
+  const RID_T = 'bbbbbbbb-1111-2222-3333-444444444444', RID_C = 'cccccccc-1111-2222-3333-444444444444';
+  const VEHS = { [RID_T]: { id: RID_T, tipo: 'taxi', patente: 'TAXI11', marca_modelo: 'Hyundai Accent', capacidad: 4, estado_verificacion: 'verificado', en_pausa: false },
+    [RID_C]: { id: RID_C, tipo: 'colectivo', patente: 'COLE33', marca_modelo: 'Nissan V16', capacidad: 4, estado_verificacion: 'verificado', en_pausa: false } };
+  const nueva = (o = {}) => { const id = 'sol-' + (++nSol); SOLS[id] = { id, tipo: 'taxi', estado: 'buscando', origen_texto: 'Hospital de Casablanca', destino_texto: 'Plaza de Casablanca', distancia_km: 2.4, precio_ref: 3000, creada_en: new Date().toISOString(), vence_en: new Date(Date.now() + 180000).toISOString(), km_al_pasajero: 1.2, min_al_pasajero: 3, o_lat: -33.32, o_lng: -71.41, d_lat: -33.319, d_lng: -71.407, ...o }; return id; };
+  const mock = (uid, rid, sid) => async r => { const u = new URL(r.request().url()), m = r.request().method(), path = u.pathname, perfil = r.request().headers()['accept-profile'];
+    let b = r.request().postData(); try { b = b ? JSON.parse(b) : null; } catch (e) {}
+    const t = path.split('/').pop(); SL.push({ uid, t, b });
+    const ok = d => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) }), err = msg => r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: msg }) });
+    if (path.endsWith('/auth/v1/signup')) return ok({ access_token: 'tok-' + uid, refresh_token: 'ref', expires_in: 3600, user: { id: uid } });
+    if (perfil !== 'flota') return ok([]);
+    if (t === 'vehiculo') return ok(rid ? [{ ...VEHS[rid], propietario: { usuario_id: uid } }] : []);
+    if (t === 'sesion_servicio') return ok(rid ? [{ id: sid, vehiculo_id: rid, cupos: 3, completo: false, sentido: 'Hacia Valparaíso', consentimiento_gps_en: null }] : []);
+    if (t === 'en_servicio') return ok(u.search.includes('taxi') ? [{ sesion_id: 'sid-t', tipo: 'taxi' }] : []);
+    if (t === 'crear_solicitud') return ok(nueva({ tipo: b.p_tipo, origen_texto: b.o_texto, destino_texto: b.d_texto, precio_ref: b.p_precio }));
+    if (t === 'mi_solicitud') { const x = SOLS[b.sol]; return ok(x && { ...x, rechazos: 0, propuestas: [], vehiculo: x.veh || null, precio_final: x.precio_ref, eta_min: x.estado === 'tomada' ? 4 : null }); }
+    if (t === 'cancelar_solicitud') { SOLS[b.sol].estado = 'cancelada'; return ok(null); }
+    if (t === 'solicitudes_cercanas') return ok(Object.values(SOLS).filter(x => x.estado === 'buscando' && !(x.resp || {})[sid]));
+    if (t === 'responder_solicitud') { const x = SOLS[b.sol]; if (b.accion === 'rechazar') { (x.resp = x.resp || {})[sid] = 1; return ok('rechazada'); }
+      if (x.estado !== 'buscando') return err('Ya lo tomó otro conductor'); Object.assign(x, { estado: 'tomada', sid, veh: { patente: VEHS[rid].patente, marca_modelo: VEHS[rid].marca_modelo, tipo: 'taxi' } }); return ok('tomada'); }
+    if (t === 'mi_viaje_en_curso') return ok(Object.values(SOLS).find(x => x.sid === sid && ['tomada', 'llego', 'en_viaje'].includes(x.estado)) || null);
+    if (t === 'avanzar_viaje') { SOLS[b.sol].estado = b.e; return ok(null); }
+    if (t === 'esperas_colectivo') return ok(ESPERAS);
+    if (t === 'marcar_espera') { ESPERAS.push({ lugar_texto: b.p_lugar, lat: -33.319, lng: -71.408, sentido: b.p_sentido, personas: b.p_personas, desde: new Date().toISOString(), km: 0.4 }); return ok('esp-1'); }
+    if (t === 'cancelar_espera') { ESPERAS.length = 0; return ok(null); }
+    if (t === 'avisar_disponible') { AVISOS.unshift({ id: 1, sesion_id: sid, sentido: 'Hacia Valparaíso', cupos: b.n, lugar_texto: null, creado_en: new Date().toISOString() }); return ok(1); }
+    if (t === 'aviso_colectivo') return ok(AVISOS);
+    return ok([]); };
+  const telefono = async (uid, rid, sid) => { const c = await browser.newContext({ viewport: { width: 390, height: 844 }, geolocation: { latitude: -33.3191, longitude: -71.4079 }, permissions: ['geolocation'] });
+    await c.addInitScript(PASAJERO); const p = await c.newPage(); p.on('pageerror', e => errors.push('solicitudes: ' + e.message));
+    await p.route(/supabase\.co\/(auth|rest|storage)\//, mock(uid, rid, sid)); await p.goto(BASE); await p.waitForTimeout(900); return p; };
+  const pas = await telefono('u-pasajero'), tx = await telefono('u-taxista', RID_T, 'sid-t'), co = await telefono('u-colectivero', RID_C, 'sid-c');
+  const alPanel = async (p, rid) => { await p.evaluate(async () => { await FLOTA.sesion(); await sincronizar(true); }); await p.evaluate(r => { S.panelVid = OWNER.vehiculos.find(v => v.rid === r).id; ir('panelcond'); }, rid); await p.waitForTimeout(300); };
+  await alPanel(tx, RID_T); await alPanel(co, RID_C);
+  await test('Solicitud real: el pasajero pide taxi y queda buscando conductores reales', async () => {
+    await pas.evaluate(() => { ir('viaje'); S.clase = 'taxi'; render(); }); await pas.click('#pedir');
+    assert(await pas.waitForFunction(() => S.ride && S.ride.real && S.ride.sol === 'sol-1', null, { timeout: 5000 }).then(() => true, () => false), 'no creó la solicitud real');
+    const b = SL.find(x => x.t === 'crear_solicitud').b; assert(b.p_tipo === 'taxi' && b.p_precio > 0 && b.o_texto && b.d_texto, 'datos de la solicitud: ' + JSON.stringify(b));
+    assert(/Buscando taxi cerca/.test(await pas.locator('#view').innerText()), 'no muestra que está buscando'); });
+  await test('Conductor de taxi: tarjeta con origen → destino, minutos al pasajero y 30 segundos', async () => {
+    await tx.waitForSelector('.sol-velo', { timeout: 8000 }); const txt = await tx.locator('.sol-velo').innerText();
+    assert(txt.includes(SOLS['sol-1'].origen_texto) && txt.includes(SOLS['sol-1'].destino_texto) && /3 min/.test(txt) && /sugerido en la zona/i.test(txt) && (await tx.inputValue('#solPrecioIn')) === String(SOLS['sol-1'].precio_ref), 'tarjeta incompleta: ' + txt.replace(/\n/g, ' | '));
+    assert(+(await tx.locator('#solSeg').innerText()) > 20, 'no muestra la cuenta regresiva');
+    assert(await tx.locator('[data-solr=aceptar]').count() === 1 && await tx.locator('[data-solr=rechazar]').count() === 1, 'faltan Aceptar y Rechazar'); });
+  await test('Si otro conductor la toma primero, la tarjeta avisa «Ya lo tomó otro conductor»', async () => {
+    Object.assign(SOLS['sol-1'], { estado: 'tomada', veh: { patente: 'OTRO77', marca_modelo: 'Kia Rio', tipo: 'taxi' } });
+    await tx.waitForFunction(() => /Ya lo tomó otro conductor/.test((document.querySelector('.sol-velo') || {}).textContent || ''), null, { timeout: 8000 });
+    await tx.waitForSelector('.sol-velo', { state: 'detached', timeout: 5000 }); });
+  await test('El pasajero ve al conductor, la patente y cuánto tarda', async () => {
+    await pas.waitForFunction(() => /OTRO77/.test(document.getElementById('view').innerText), null, { timeout: 8000 });
+    const txt = await pas.locator('#view .card').first().innerText(); assert(/en camino/i.test(txt) && /4 min/.test(txt) && /Kia Rio/.test(txt), 'faltan datos: ' + txt.replace(/\n/g, ' | ').slice(0, 600)); });
+  await test('Aceptar: el primero se lleva el viaje y el panel guía al conductor', async () => {
+    nueva({ origen_texto: 'Terminal de buses', destino_texto: 'Lo Orozco', precio_ref: null });
+    await tx.waitForSelector('.sol-velo [data-solr=aceptar]', { timeout: 8000 }); await tx.fill('#solPrecioIn', ''); await tx.click('[data-solr=aceptar]');
+    assert(await tx.locator('.sol-velo [data-solr=aceptar]').count() === 1, 'aceptó sin precio'); await tx.fill('#solPrecioIn', '3000'); await tx.click('[data-solp="500"]');
+    assert(/Aceptar \$3\.500/.test(await tx.locator('#solSi').innerText()), 'el botón no muestra el precio'); await tx.click('[data-solr=aceptar]');
+    assert(SL.some(x => x.t === 'responder_solicitud' && x.b.accion === 'aceptar' && x.b.sol === 'sol-2' && x.b.s === 'sid-t' && x.b.p_precio === 3500), 'no aceptó en el servidor con el precio del taxista: ' + JSON.stringify(SL.filter(x => x.t === 'responder_solicitud').map(x => x.b)));
+    await tx.waitForSelector('.sol-velo', { state: 'detached', timeout: 6000 });
+    await tx.waitForFunction(() => /LLEGUÉ AL ORIGEN/.test(document.getElementById('view').innerText), null, { timeout: 5000 });
+    await tx.click('[data-solv=llego]'); await tx.waitForTimeout(400); assert(SOLS['sol-2'].estado === 'llego', 'no avanzó el viaje');
+    assert(/INICIAR VIAJE/.test(await tx.locator('#view').innerText()), 'no muestra el siguiente paso'); });
+  await test('Rechazar cierra la tarjeta sin tomar el viaje', async () => {
+    SOLS['sol-2'].estado = 'finalizada'; await tx.evaluate(() => { SOL._st.viaje = null; SOL._st.viajeAt = Date.now(); });
+    nueva({ origen_texto: 'Lo Vásquez' }); await tx.waitForSelector('.sol-velo [data-solr=rechazar]', { timeout: 8000 }); await tx.click('[data-solr=rechazar]');
+    await tx.waitForSelector('.sol-velo', { state: 'detached', timeout: 4000 }); assert(SOLS['sol-3'].estado === 'buscando', 'el rechazo cambió la solicitud'); });
+  await test('Colectivero: ve «pasajeros esperando» y avisa «disponible con N cupos»', async () => {
+    ESPERAS.push({ lugar_texto: 'Cerca de Plaza de Casablanca', lat: -33.319, lng: -71.408, sentido: 'Hacia Valparaíso', personas: 2, desde: new Date().toISOString(), km: 0.4 });
+    await co.evaluate(() => { SOL._st.esperasAt = 0; }); await co.waitForFunction(() => /2 pasajeros esperando/.test(document.getElementById('view').innerText), null, { timeout: 20000 });
+    assert(/Solo informativo/.test(await co.locator('#view').innerText()), 'no aclara que es informativo');
+    await co.click('[data-sol=cupos]'); await co.waitForTimeout(400); assert(SL.some(x => x.t === 'avisar_disponible' && x.b.n === 3 && x.b.s === 'sid-c'), 'no envió el aviso de cupos');
+    assert(/Aviso enviado: disponible con 3 cupos/.test(await co.locator('#view').innerText()), 'no confirma el aviso'); });
+  await test('Pasajero de colectivo: marca que espera y ve el aviso de cupos', async () => {
+    await pas.evaluate(() => { ir('colectivos'); }); await pas.click('[data-solsent="Hacia Valparaíso"]'); await pas.click('[data-solper="2"]'); await pas.click('[data-sol=espero]');
+    await pas.waitForFunction(() => /lo ven hasta las/.test(document.getElementById('view').innerText), null, { timeout: 12000 });
+    const b = (SL.filter(x => x.t === 'marcar_espera').pop() || { b: { tipos: SL.filter(x => x.uid === 'u-pasajero').map(x => x.t).slice(-12).join(',') } }).b; assert(b.p_sentido === 'Hacia Valparaíso' && b.p_personas === 2 && Math.abs(b.p_lat + 33.3191) < 0.001, 'datos de la espera: ' + JSON.stringify(b));
+    await pas.evaluate(() => { SOL._st.avisosAt = 0; rerender(); }); await pas.waitForFunction(() => /Disponible con 3 cupos/.test(document.getElementById('view').innerText), null, { timeout: 5000 });
+    await pas.click('[data-sol=subi]'); await pas.waitForTimeout(300); assert(SL.some(x => x.t === 'cancelar_espera'), 'no quitó la espera'); });
+  await test('Sin conductores reales en servicio sigue la demostración', async () => {
+    await pas.evaluate(() => { S.ride = null; ir('viaje'); S.clase = 'eco'; PRECIO.modo = 'conductor'; render(); }); await pas.click('#pedir');
+    assert(await pas.waitForFunction(() => S.ride && !S.ride.real && S.ride.fase === 'ofertas', null, { timeout: 6000 }).then(() => true, () => false), 'no mostró la demostración'); });
+  for (const p of [pas, tx, co]) await p.context().close();
+}
 await test('Sin errores de JavaScript', async () => { assert(!errors.length, errors.join(' | ')); });
 
 await browser.close(); if (server) server.close();

@@ -3,6 +3,8 @@
 //   · inicio de servicio y «en punto de salida» de buses/colectivos compatibles (lo que marca el conductor)
 //   · próxima salida programada dentro de la anticipación elegida (horario publicado, pendiente de confirmación)
 //   · suspensiones del día registradas por el equipo VAMO
+// Además, al instante (sin esperar el minuto): solicitudes de viaje a taxis/autos en jornada cercanos, pasajeros esperando
+// colectivo a los colectiveros en servicio, y «colectivo disponible con N cupos» a quienes esperan o tienen alerta.
 // No calcula aproximación por GPS en el servidor (eso queda en la app abierta).
 // Cada aviso se registra en public.notificacion con una clave única: nunca se envía dos veces.
 // Secretos: la clave privada VAPID la genera esta misma función la primera vez y queda en flota.config_privada
@@ -44,6 +46,8 @@ Deno.serve(async req => {
   }
   if (!C.vapid_privada) return new Response('sin claves', { status: 503 });
   webpush.setVapidDetails('https://desarrollo.trayectocsb.pages.dev', C.vapid_publica, C.vapid_privada);
+  // ===== Avisos inmediatos (los dispara la base al insertar): solicitud de viaje, pasajero esperando colectivo, colectivo con cupos =====
+  if (['solicitud', 'espera', 'cupos'].includes(cuerpo.accion)) return Response.json(await inmediato(db, fl, cuerpo.accion, cuerpo.fila || {}));
   const { fecha, min } = ahoraChile(), resumen = { alertas: 0, enviados: 0, fallidos: 0 };
 
   const { data: alertas } = await db.from('alerta_pasajero').select('*').eq('activa', true).gt('vence_en', new Date().toISOString());
@@ -101,3 +105,53 @@ Deno.serve(async req => {
   }
   return Response.json(resumen);
 });
+
+// Distancia aproximada en km entre dos puntos
+const km = (a: number, b: number, c: number, d: number) => { const r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * 6371; };
+const clp = (n: number) => '$' + Math.round(n).toLocaleString('es-CL');
+
+async function inmediato(db: any, fl: any, accion: string, f: any) {
+  const res = { accion, destinatarios: 0, enviados: 0, fallidos: 0 };
+  // Sesiones activas con su vehículo y última posición (para filtrar por cercanía)
+  async function sesiones(tipo: string) {
+    const { data: ss } = await fl.from('sesion_servicio').select('id,conductor_id,sentido,vehiculo:vehiculo_id(tipo,estado_verificacion)').is('fin', null);
+    const act = (ss || []).filter((s: any) => s.vehiculo?.tipo === tipo);
+    const { data: pos } = act.length ? await fl.from('en_servicio').select('sesion_id,lat,lng').in('sesion_id', act.map((s: any) => s.id)) : { data: [] };
+    return act.map((s: any) => ({ ...s, pos: (pos || []).find((p: any) => p.sesion_id === s.id && p.lat != null) }));
+  }
+  async function enviar(usuarios: string[], clave: string, tipo: string, aviso: any, ttl: number) {
+    usuarios = [...new Set(usuarios)].filter(Boolean); if (!usuarios.length) return;
+    const { data: subs } = await db.from('suscripcion_push').select('*').in('usuario_id', usuarios).gt('vence_en', new Date().toISOString());
+    for (const u of usuarios) {
+      const ss = (subs || []).filter((s: any) => s.usuario_id === u); if (!ss.length) continue;
+      res.destinatarios++;
+      const ins = await db.from('notificacion').insert({ usuario_id: u, clave, tipo, texto: aviso.texto, canal: 'push', estado: 'pendiente' }).select('id');
+      if (ins.error || !ins.data?.length) continue;          // ya enviado (clave única)
+      let ok = false;
+      for (const s of ss) {
+        try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ ...aviso, tag: clave }), { TTL: ttl, urgency: 'high' }); ok = true; }
+        catch (e: any) { if (e?.statusCode === 404 || e?.statusCode === 410) await db.from('suscripcion_push').delete().eq('id', s.id); }
+      }
+      await db.from('notificacion').update({ estado: ok ? 'enviada' : 'fallida' }).eq('id', ins.data[0].id);
+      ok ? res.enviados++ : res.fallidos++;
+    }
+  }
+  if (accion === 'solicitud') {          // a taxis o autos en jornada, a menos de 6 km (o sin ubicación compartida)
+    const cand = (await sesiones(f.tipo)).filter((s: any) => !s.pos || km(s.pos.lat, s.pos.lng, f.o_lat, f.o_lng) <= 6);
+    const txt = `${f.origen_texto} → ${f.destino_texto}${f.distancia_km ? ` · ${String(f.distancia_km).replace('.', ',')} km` : ''}${f.precio_ref ? ` · ${f.tipo === 'taxi' ? '' : 'ref. '}${clp(f.precio_ref)}` : ''}. Tienes 30 segundos para aceptar.`;
+    await enviar(cand.map((s: any) => s.conductor_id), `sol:${f.id}`, 'solicitud', { titulo: f.tipo === 'taxi' ? '🚕 Nueva solicitud de taxi' : '🚗 Nueva solicitud de viaje', texto: txt, url: `./?solicitud=${f.id}`, urgente: true }, 40);
+  } else if (accion === 'espera') {      // a colectiveros en servicio en ese sentido (informativo)
+    const cand = (await sesiones('colectivo')).filter((s: any) => s.vehiculo?.estado_verificacion === 'verificado' && (!s.sentido || s.sentido === f.sentido));
+    await enviar(cand.map((s: any) => s.conductor_id), `esp:${f.id}`, 'espera', { titulo: '🙋 Pasajero esperando colectivo', texto: `${f.personas > 1 ? f.personas + ' personas esperan' : '1 persona espera'} en ${f.lugar_texto} · ${f.sentido}. Solo informativo.`, url: './?esperas=1' }, 600);
+  } else if (accion === 'cupos') {       // a quienes esperan colectivo en ese sentido y a quienes tienen alerta Casablanca–Valparaíso
+    const ahora = new Date().toISOString();
+    const [{ data: esp }, { data: al }] = await Promise.all([
+      fl.from('espera_colectivo').select('usuario_id,sentido').eq('activa', true).gt('vence_en', ahora),
+      db.from('alerta_pasajero').select('usuario_id,origen,destino,modos').eq('activa', true).gt('vence_en', ahora)]);
+    const dest = f.sentido === 'Hacia Casablanca' ? 'casablanca' : f.sentido === 'Hacia Valparaíso' ? 'valparaiso' : null;
+    const us = [...(esp || []).filter((e: any) => !f.sentido || e.sentido === f.sentido).map((e: any) => e.usuario_id),
+      ...(al || []).filter((a: any) => a.modos?.includes('colectivo') && [a.origen, a.destino].sort().join() === 'casablanca,valparaiso' && (!dest || a.destino === dest)).map((a: any) => a.usuario_id)];
+    await enviar(us, `cup:${f.id}`, 'cupos', { titulo: '🚐 Colectivo disponible', texto: `Colectivo con ${f.cupos} ${f.cupos === 1 ? 'cupo' : 'cupos'}${f.sentido ? ' · ' + f.sentido : ''}${f.lugar_texto ? ' · en ' + f.lugar_texto : ''}. Lo informa el conductor.`, url: './?aviso=1' }, 600);
+  }
+  return res;
+}

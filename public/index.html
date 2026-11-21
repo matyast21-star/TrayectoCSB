@@ -15,6 +15,7 @@
 <script src="ui/admin-horarios.js"></script>
 <script src="ui/rendimiento.js"></script>
 <script src="ui/push.js"></script>
+<script src="ui/solicitudes.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
 /* Modo de bajo consumo: sin mapa ni librería de mapas (?lite=1 lo activa, ?lite=0 lo desactiva) */
@@ -943,7 +944,8 @@ function viewViaje() {
       <button class="btn" id="pedir" ${S.o === S.d ? 'disabled' : ''}>${S.clase !== 'taxi' && modo === 'conductor' ? 'Pedir ofertas de conductores' : 'Pedir ' + CLASES.find(c => c.id === S.clase).n}</button>
       ${precioInfoHTML(o.loc, 'viaje')}
       <p class="hint">${S.clase === 'taxi' ? `Taxímetro de ejemplo: bajada de bandera ${clp(TAXI.bajada)} + ${clp(TAXI.cada200)} cada 200 m. El precio final lo marca el taxímetro; los taxis siempre cobran con taxímetro.` : modo === 'conductor' ? `Tarifa de referencia para ${LOC[o.loc].nombre}: ${clp(LOC[o.loc].tarifa.base)} base + ${clp(LOC[o.loc].tarifa.km)}/km + ${clp(LOC[o.loc].tarifa.min)}/min. Cada conductor ofrece su propio precio.` : `Rango calculado con lo que se pagó en viajes parecidos en ${LOC[o.loc].nombre}.`} Distancia y tiempo por calles reales. Pago en efectivo, débito o tarjeta.</p>`;
-  } else {
+  } else if (R.real) h += SOL.pasajeroHTML(R);
+  else {
     const veh = R.clase === 'taxi' ? 'taxi' : 'auto';
     const st = { buscando: [R.modo === 'conductor' ? 'Pidiendo precio a los conductores cercanos…' : `Buscando el ${veh} libre más cercano…`, 'var(--warn)', true], ofertas: ['Elige una oferta', 'var(--accent)', false], va: ['Tu conductor va en camino', 'var(--auto)', true], llego: ['Tu conductor llegó a A', 'var(--ok)', false], viaje: ['En viaje hacia B', 'var(--accent)', true], fin: ['Llegaste a tu destino', 'var(--ok)', false] }[R.fase];
     h += `<div class="card"><div class="status"><span class="dot ${st[2] ? 'pulse' : ''}" style="background:${st[1]}"></span><div><h3>${st[0]}</h3><div class="hint" id="rideEta"></div></div></div>`;
@@ -1295,7 +1297,7 @@ function viewAvisos() {
 function viewColectivos() {
   const pts = [['Sector Santa Isabel', 'Casablanca', 'Hacia Valparaíso'], ['Paradero de colectivos de Av. Argentina', 'Valparaíso', 'Hacia Casablanca']];
   return `<div><h2>Colectivos Casablanca–Valparaíso</h2><p class="sub">Disponibilidad informada por los propios conductores: estado, cupos, sentido y hora de salida.</p></div>
-    ${colectivosHTML()}${FL.cola && FL.cola.length ? '<h3>Puntos de salida</h3>' : ''}
+    ${SOL.esperaHTML()}${colectivosHTML()}${FL.cola && FL.cola.length ? '<h3>Puntos de salida</h3>' : ''}
     ${pts.map(([n, l, s]) => `<div class="card"><div class="row" style="justify-content:space-between"><h3>${n}</h3><span class="tag warn">Ubicación por verificar</span></div><div class="hint">${l} · ${s}</div>${(n => n ? UI.semaforo('confirmado', n + (n > 1 ? ' colectivos con cupos' : ' colectivo con cupos'), '') : UI.semaforo('sininfo', 'Aún no hay conductores informando', ''))((FL.cola || []).filter(c => c.sentido === s && !c.completo && c.cupos).length)}</div>`).join('')}
     <p class="hint">Los conductores autorizados podrán marcarse como Disponible, Sin cupos, En viaje o Fuera de servicio desde su panel (etapa 2). Aquí no se muestran datos inventados: si nadie informa, verás «Sin información».</p>`;
 }
@@ -1424,9 +1426,9 @@ function viewPanelCond() {
     if (!ok) h += `<p class="hint" style="margin:0;text-align:center">${v.enPausa ? 'El dueño suspendió el servicio de este vehículo.' : 'Disponible cuando VAMO verifique tus documentos.'}</p><button class="btn ghost" id="pDemo">Probar el panel (demostración, no visible a pasajeros)</button>`;
   } else {
     if (k === 'colectivo') h += `<div class="paso"><h3 class="paso-n">${UI.icono('cupos', 18)} ACTUALIZAR CUPOS</h3><div class="cupos"><button id="pMenos" aria-label="Un cupo menos">−</button><output id="pCupos">${s.cupos}</output><button id="pMas" aria-label="Un cupo más">+</button></div><p class="hint" style="text-align:center;margin:0">de ${cap} autorizados</p></div>
-      <div class="grid2"><button class="gbtn" id="pSalida" style="--c:var(--turquesa)">INFORMAR SALIDA</button><button class="gbtn" id="pCompleto" style="--c:var(--amarillo)">${s.completo ? 'HAY CUPOS' : 'COMPLETO'}</button></div>${s.salida ? `<p class="hint" style="margin:0;text-align:center">Salida informada a las ${s.salida}</p>` : ''}`;
+      <div class="grid2"><button class="gbtn" id="pSalida" style="--c:var(--turquesa)">INFORMAR SALIDA</button><button class="gbtn" id="pCompleto" style="--c:var(--amarillo)">${s.completo ? 'HAY CUPOS' : 'COMPLETO'}</button></div>${s.salida ? `<p class="hint" style="margin:0;text-align:center">Salida informada a las ${s.salida}</p>` : ''}${SOL.colectivoHTML(v, s)}`;
     else if (k === 'bus') h += `<div class="paso"><h3 class="paso-n">${UI.icono('reloj', 18)} INFORMAR RETRASO</h3><div class="opciones">${[5, 10, 15].map(m => `<button class="opcion" data-pret="${m}" aria-pressed="${s.retraso === m}">${m} min</button>`).join('')}</div></div>`;
-    else h += UI.vacio('Sin solicitudes por ahora', k === 'moto' ? 'Aquí verás los despachos cercanos para enviar tu oferta.' : 'Aquí verás los pedidos cercanos para enviar tu oferta.');
+    else h += (k !== 'moto' && SOL.panelHTML(v, k, s)) || UI.vacio('Sin solicitudes por ahora', k === 'moto' ? 'Aquí verás los despachos cercanos para enviar tu oferta.' : 'Aquí verás los pedidos cercanos para enviar tu oferta.');
     if (k === 'colectivo' || k === 'bus') h += `<div class="paso"><h3 class="paso-n">ESTADO DEL SERVICIO</h3><div class="opciones">${EST_SERV.filter(([e]) => k === 'colectivo' || e !== 'en_punto_salida').map(([e, n]) => `<button class="opcion" data-pest="${e}" aria-pressed="${(s.estado || 'disponible') === e}">${n}</button>`).join('')}</div><p class="hint" style="margin:0">Los pasajeros con alerta reciben un aviso cuando inicias servicio o marcas «En punto de salida». Solo lo que tú marcas cuenta como disponible; nunca se deduce por tu ubicación.</p></div>`;
     h += REND.panelHTML(v, k, s);
     h += `<button class="gbtn fin" id="pFin" style="--c:var(--fucsia)">${UI.icono('bandera', 20)} ${k === 'auto' || k === 'taxi' || k === 'moto' ? 'FINALIZAR JORNADA' : 'FINALIZAR SERVICIO'}</button>`;
@@ -1472,7 +1474,7 @@ view.addEventListener('click', e => { const b = e.target.closest('button'); if (
   if (b.id === 'pIniciar' || b.id === 'pDemo') { const v = OWNER.vehiculos.find(x => x.id === S.panelVid); const s = ses();
     if (b.id === 'pIniciar' && FLOTA.on && v.rid) { iniciarRemoto(v, s); return; }
     Object.assign(s, { activo: true, demo: b.id === 'pDemo' || !puedeServir(v), inicio: hhmm(nowMin()), cupos: v.cap || TIPOS_V[tipoDe(v)].cap, completo: false, salida: null, retraso: 0, sentido: s.sentido || 'Hacia Valparaíso' }); saveSes(); render(); return; }
-  if (b.id === 'pFin') { const s = ses(), sid = !s.demo && s.rsid; s.tramo = null; s.activo = false; s.demo = false; s.rsid = null; saveSes(); gpsDetener(); render(); if (FLOTA.on && sid) remoto('finalizar_servicio', { s: sid }, 'Servicio finalizado. Tu ubicación dejó de compartirse.').catch(() => {}); return; }
+  if (b.id === 'pFin') { SOL.detener(); const s = ses(), sid = !s.demo && s.rsid; s.tramo = null; s.activo = false; s.demo = false; s.rsid = null; saveSes(); gpsDetener(); render(); if (FLOTA.on && sid) remoto('finalizar_servicio', { s: sid }, 'Servicio finalizado. Tu ubicación dejó de compartirse.').catch(() => {}); return; }
   const rs = (fn, args) => { const s = ses(); if (!FLOTA.on || !s.rsid || s.demo) return; // en orden y, para los cupos, solo el último valor
     if (fn === 'actualizar_cupos') { clearTimeout(FL.tCupos); FL.tCupos = setTimeout(() => { FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, n: s.cupos })).catch(() => {}); }, 500); return; }
     FL.cola2 = (FL.cola2 || Promise.resolve()).then(() => remoto(fn, { s: s.rsid, ...args })).catch(() => {}); };
@@ -2125,6 +2127,9 @@ function startRide() {
   const o = placeOf(S.o), d = placeOf(S.d), c = CLASES.find(c => c.id === S.clase), q = quote(o.c, d.c, o.loc, c.f);
   const modo = c.f === 'taxi' ? 'taxi' : modoPrecio(o.loc, 'viaje');
   const precio = modo === 'rango' ? r100(rangoPrecio(o.loc, 'viaje', q.km, q.precio).med * c.f) : q.precio;
+  // Conductores reales en servicio: la solicitud les llega a ellos. Si no hay ninguno, sigue la demostración.
+  if (FLOTA.on && window.SOL && !startRide.demo) { const b = document.getElementById('pedir'); if (b) { b.disabled = true; b.textContent = 'Buscando conductores…'; }
+    SOL.pedirViaje({ tipo: c.tipo, clase: c.id, km: q.km, precio, o, d }).then(ok => { if (!ok) { startRide.demo = true; try { startRide(); } finally { startRide.demo = false; } } }); return; }
   S.ride = { fase: 'buscando', modo, clase: c.id, precio, km: q.km, loc: o.loc, o: o.c, d: d.c }; S.note = ''; render();
   setTimeout(() => { const R = S.ride; if (!R || R.fase !== 'buscando') return; const cand = nearbyCars(o.c, modo === 'conductor' ? 3 : 1, c.tipo);
     if (!cand.length) { S.ride = null; S.note = `No hay ${c.tipo === 'taxi' ? 'taxis' : 'autos'} libres cerca en este momento. Prueba otra opción.`; render(); return; }

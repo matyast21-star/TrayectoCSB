@@ -1,4 +1,4 @@
-/* VAMO · Service Worker solo para notificaciones push de «Avísame cuando venga».
+/* VAMO · Service Worker solo para notificaciones push («Avísame cuando venga», solicitudes de viaje a conductores y colectivos).
    No guarda la app en caché (la app sigue cargándose siempre desde la red). */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -9,7 +9,9 @@ self.addEventListener('push', e => {
   e.waitUntil(self.registration.showNotification(titulo, {
     body: d.texto || 'Hay novedades en tu trayecto.',
     icon: 'ui/icon-192.png', badge: 'ui/icon-192.png', lang: 'es-CL',
-    tag: d.tag || 'vamo-aviso', renotify: !!d.tag, data: { url: d.url || './?aviso=1' }
+    tag: d.tag || 'vamo-aviso', renotify: !!d.tag, data: { url: d.url || './?aviso=1' },
+    // Solicitud de viaje a un conductor: vibra fuerte y queda en pantalla hasta que la toque
+    ...(d.urgente ? { requireInteraction: true, vibrate: [300, 150, 300, 150, 500] } : {})
   }));
 });
 
@@ -17,7 +19,8 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ls => {
-    for (const c of ls) if (c.url.startsWith(self.registration.scope)) { c.focus(); c.postMessage({ tipo: 'abrir-aviso' }); return; }
+    const sol = /[?&](solicitud|esperas)=/.test(url);
+    for (const c of ls) if (c.url.startsWith(self.registration.scope)) { c.focus(); c.postMessage({ tipo: sol ? 'abrir-solicitud' : 'abrir-aviso', url }); return; }
     return self.clients.openWindow(url);
   }));
 });
