@@ -472,6 +472,7 @@ html.en-inicio .filtros{display:none}
   background:#0B1E3F url(ui/banner-fondo.svg) center/cover no-repeat;border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(11,30,63,.25)}
 :root .app .top.banner .brand{grid-row:1;grid-column:1}
 :root .app .top.banner #tema{grid-row:1;grid-column:2}:root .app .top.banner #campana{grid-row:1;grid-column:3}
+:root .app .top.banner .zona-fija{grid-row:2;grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:6px;background:rgba(11,30,63,.55);color:#fff;border:1px solid rgba(0,229,214,.55);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;backdrop-filter:blur(4px)}:root .app .top.banner .zona-fija svg{color:#00E5D6}
 :root .app .top.banner select{grid-row:2;grid-column:1/-1;justify-self:start;width:auto!important;max-width:100%!important;background:rgba(11,30,63,.55);color:#fff;border:1px solid rgba(0,229,214,.55);border-radius:999px;padding:7px 12px;font-weight:700;font-size:13px;backdrop-filter:blur(4px)}
 :root .app .top.banner select option{color:#0B1E3F;background:#fff}
 :root .app .top.banner .estadobar{grid-row:3;grid-column:1/-1;flex-wrap:nowrap;gap:8px}:root .app .top.banner .dbstate{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}:root .app .top.banner .dbstate::before{display:inline-block;margin-right:5px}:root .app .top.banner .estadobar .demo{font-size:10px;padding:2px 8px;white-space:nowrap;flex-shrink:0}:root .app .top.banner .dbstate{font-size:10.5px;line-height:1.2}
@@ -489,7 +490,8 @@ html.en-inicio .filtros{display:none}
   <header class="top banner">
     <div class="brand"><span id="marca"></span><span class="tagline" id="tagline">Tu viaje comienza aquí.</span></div>
     <label for="loc">Localidad</label>
-    <select id="loc"></select>
+    <select id="loc" hidden aria-hidden="true" tabindex="-1"></select>
+    <span class="zona-fija" id="zonaFija"></span>
     <div class="estadobar"><span class="demo" title="Horarios, tarifas, recorridos, vehículos y conductores son datos de ejemplo. El mapa, las calles y las direcciones son reales (OpenStreetMap).">PROTOTIPO · DATOS DE EJEMPLO</span>
     <span class="dbstate" id="dbState">Conectando base de datos…</span></div>
     <button class="iconbtn" id="tema" type="button" aria-label="Cambiar a tema oscuro" title="Tema claro / oscuro"></button>
@@ -736,7 +738,9 @@ function precioInfoHTML(loc, serv) {
 const offerRow = (o, i) => `<button class="offer" data-oferta="${i}"><span class="plate">${esc(o.v.patente)}</span><span><div style="font-weight:600">${esc(o.v.cond)} · ★ ${o.v.nota}</div><div class="hint">${o.v.tipo === 'moto' ? 'Moto' : o.v.tipo === 'taxi' ? 'Taxi' : 'Auto'} · ${esc(o.v.modelo)} · llega en ${o.eta} min</div></span><span class="p">${clp(o.precio)}</span></button>`;
 
 /* ============ Estado ============ */
-const S = { note: '', followCar: false, loc: 'casablanca', tab: 'inicio', pronto: null,
+// Por ahora VAMO funciona solo en Casablanca: los viajes salen de Casablanca o vuelven a ella (las demás localidades quedan como destinos).
+const ZONA = 'casablanca';
+const S = { note: '', followCar: false, loc: ZONA, tab: 'inicio', pronto: null,
   dest: (() => { try { return localStorage.getItem('vamo-destino') || 'valparaiso'; } catch (e) { return 'valparaiso'; } })(),
   ejemplos: (() => { try { return localStorage.getItem('vamo-ejemplos') !== '0'; } catch (e) { return true; } })(), pick: 'o', o: 'cb-plaza', d: 'cb-term', custom: {}, clase: 'eco',
   ride: null, selRoute: null, selDep: null, ticket: null, follow: null, plan: { o: 'cb-hosp', d: 'va-centro', sel: 0 }, owner: { viajes: 12, ticket: 3500, horas: 8 },
@@ -1040,7 +1044,9 @@ function subnav() {
 }
 const destinos = () => LOCALIDADES.filter(l => l.id !== S.loc);
 const nombreDest = () => (LOC[S.dest] || {}).nombre || '';
-function setDest(id) { if (!LOC[id] || id === S.loc) return false; S.dest = id; try { localStorage.setItem('vamo-destino', id); } catch (e) {} return true; }
+function setDest(id) { if (!LOC[id] || id === S.loc) return false;
+  if (S.loc !== ZONA && id !== ZONA) { locEl.value = ZONA; S.loc = ZONA; } // siempre un extremo en Casablanca
+  S.dest = id; try { localStorage.setItem('vamo-destino', id); } catch (e) {} return true; }
 const EST_SERV = [['disponible', 'Disponible'], ['en_punto_salida', 'En punto de salida'], ['en_recorrido', 'En recorrido'], ['completo', 'Completo'], ['fuera_servicio', 'Fuera de servicio']];
 const DEST_RAPIDOS = [['zona', 'Dentro de la zona', 'auto'], ['casablanca', 'Casablanca', 'bus'], ['valparaiso', 'Valparaíso', 'bus'], ['quilpue', 'Quilpué', 'bus'], ['santiago', 'Santiago', 'bus']];
 function viewInicio() {
@@ -1050,7 +1056,7 @@ function viewInicio() {
   const nota = { bus: 'En el mapa: buses con horario publicado y vehículos con GPS real cuando un conductor comparte su ubicación.', colectivo: 'En el mapa: colectivos solo cuando un conductor autorizado comparte su ubicación.', taxi: 'En el mapa: solo taxis (simulados).', auto: 'En el mapa: solo autos tipo Uber (simulados).' }[sv.id];
   return `<div class="servicios" role="group" aria-label="Tipo de transporte">${SERV.map(x => `<button class="serv" data-serv="${x.id}" aria-pressed="${x.id === sv.id}" style="--c:${x.c}">${UI.icono(x.id, 16)}${x.n}</button>`).join('')}</div>
     <p class="servnota">${nota}</p>
-    <div class="destcard"><div class="hero">${UI.icono('ubicacion', 26)}<div><h2>¿A dónde vamos?</h2><p class="sub">Desde <label class="desde">${UI.icono('ubicacion', 14)}<select id="desdeSel" aria-label="Origen">${LOCALIDADES.map(l => `<option value="${l.id}" ${l.id === S.loc ? 'selected' : ''}>${esc(l.nombre)}</option>`).join('')}</select></label></p></div></div>
+    <div class="destcard"><div class="hero">${UI.icono('ubicacion', 26)}<div><h2>¿A dónde vamos?</h2><p class="sub">Desde <span class="desde">${UI.icono('ubicacion', 14)}${esc(LOC[S.loc].nombre)}</span></p></div></div>
     <div class="destinos" role="group" aria-label="Destinos rápidos">${DEST_RAPIDOS.filter(([id]) => id !== S.loc).map(([id, n, i]) => `<button class="destino" data-irdest="${id}" aria-pressed="${!!S.destElegido && id !== 'zona' && S.dest === id}">${UI.icono(i, 16)}<span>${id === 'zona' ? n : 'Voy a ' + n}</span></button>`).join('')}</div>
     <div class="destrow"><div class="buscar">${UI.icono('ubicacion', 18)}<input id="destQ" list="destLista" type="search" autocomplete="off" placeholder="Otro destino: Viña, Villa Alemana…" aria-label="Otro destino" value=""><datalist id="destLista">${opts.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
     <button class="swap" id="swapLoc" aria-label="Invertir origen y destino" title="Invertir origen y destino">${UI.icono('cambiar', 20)}</button></div>
@@ -2004,6 +2010,7 @@ document.getElementById('legend').innerHTML = `<div class="lrow">${[['auto', 'Au
 
 /* ============ Render ============ */
 const tabsEl = document.getElementById('tabs'), locEl = document.getElementById('loc');
+document.getElementById('zonaFija').innerHTML = UI.icono('ubicacion', 14) + 'Casablanca';
 locEl.innerHTML = LOCALIDADES.map(l => `<option value="${l.id}">${l.nombre}${l.estado === 'piloto' ? ' (piloto)' : l.estado === 'destino' ? ' (destino)' : ' (próximamente)'}</option>`).join('');
 locEl.onchange = () => { S.loc = locEl.value; S.selRoute = null; S.selDep = null; const p = POIS.find(p => p.loc === S.loc); if (!S.ride) { S.o = p.id; S.d = (POIS.filter(x => x.loc === S.loc)[1] || p).id; } render(); fitLoc(S.loc); };
 function render() {
