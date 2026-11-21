@@ -50,9 +50,14 @@ await test('Pedir viaje: precio libre con 3 ofertas y asignación', async () => 
   await ev(() => { PRECIO.modo = 'conductor'; S.clase = 'eco'; render(); }); await page.click('#pedir');
   assert(await until(() => S.ride && S.ride.fase === 'ofertas', 5000), 'no llegaron ofertas');
   await page.locator('.offer').first().click(); assert(await ev(() => S.ride.fase === 'va' && !!S.ride.car), 'no se asignó conductor'); await page.click('#cancelar'); });
-await test('Pedir taxi: siempre con taxímetro, sin ofertas', async () => {
-  await ev(() => { S.clase = 'taxi'; render(); }); await page.click('#pedir');
-  assert(await until(() => S.ride && S.ride.fase === 'va', 5000), 'el taxi no fue asignado'); assert(await ev(() => S.ride.modo === 'taxi'), 'modo distinto de taxímetro'); await page.click('#cancelar'); });
+await test('Pedir taxi: sin taxímetro, el taxista da su precio al aceptar', async () => {
+  await ev(() => { S.clase = 'taxi'; render(); });
+  const txt = await page.locator('#view').innerText(); assert(/no usan taxímetro/.test(txt) && !/bajada de bandera/i.test(txt), 'sigue hablando de taxímetro');
+  await page.click('#pedir');
+  assert(await until(() => S.ride && S.ride.fase === 'ofertas', 5000), 'no llegaron precios de taxistas');
+  assert(await ev(() => { const o = placeOf(S.o), d = placeOf(S.d), sug = precioTaxiSugerido(o.loc, d.loc); return S.ride.ofertas.every(x => x.precio > 0 && (!sug || x.precio === sug)); }), 'precio distinto del sugerido dentro de la zona');
+  assert(await ev(() => precioTaxiSugerido('casablanca', 'casablanca') === 2500 && precioTaxiSugerido('casablanca', 'valparaiso') === null), 'precio sugerido mal calculado');
+  await page.click('[data-oferta="0"]'); assert(await until(() => S.ride && S.ride.fase === 'va', 3000), 'no se asignó el taxi elegido'); await page.click('#cancelar'); });
 await test('Pedir viaje: rango estimado según viajes pagados', async () => {
   await ev(() => { PRECIO.modo = 'rango'; S.clase = 'eco'; render(); }); assert(/–/.test(await page.locator('[data-clase=eco] .p').innerText()), 'no muestra rango');
   await page.click('#pedir'); assert(await until(() => S.ride && S.ride.fase === 'va', 5000), 'no asignó'); await page.click('#cancelar'); await ev(() => { PRECIO.modo = 'auto'; render(); }); });
