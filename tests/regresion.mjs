@@ -422,7 +422,7 @@ await test('Pantalla de inicio: anima 5 s, se puede saltar y deja la app usable'
   await sp.goto(BASE + '?splash=1'); await sp.waitForTimeout(600);
   assert(await sp.$('#splash .sp-logo .lv-pin') && await sp.$('#splash .sp-vamo'), 'no aparece la pantalla de inicio con logo y texto');
   await sp.waitForTimeout(5400); assert(!(await sp.$('#splash')), 'la pantalla de inicio no se cerró sola');
-  await sp.goto(BASE + '?splash=1'); await sp.waitForTimeout(400); await sp.click('#splash'); await sp.waitForTimeout(700);
+  await sp.goto(BASE + '?splash=1'); await sp.waitForTimeout(400); await sp.click('#splash'); await sp.waitForTimeout(300); if (await sp.$('#splash:not(.sp-sale)')) await sp.click('#splash'); await sp.waitForTimeout(700);
   assert(!(await sp.$('#splash')), 'un toque no saltó la pantalla de inicio');
   await sp.goto(BASE); await sp.waitForTimeout(400); assert(!(await sp.$('#splash')), 'se repitió en la misma sesión');
   assert(!errs.length, errs.join(' | ')); await sp.close(); });

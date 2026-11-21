@@ -47,6 +47,8 @@
   .sp-by b{font-weight:800;letter-spacing:.04em}.sp-by i{font-style:normal;color:#00E5D6;-webkit-text-fill-color:#00E5D6}
   .sp-carga{position:relative;width:44px;height:44px;margin-top:min(12vh,90px);border-radius:50%;border:4px solid rgba(0,229,214,.18);border-top-color:#00E5D6;border-right-color:#00B3C6;
     opacity:0;animation:spFade .5s 4s ease-out forwards,spGira 1.1s 4s linear infinite}
+  .sp-sonido{position:absolute;left:50%;bottom:max(28px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);border:1px solid rgba(0,229,214,.55);background:rgba(11,30,63,.7);
+    color:#fff;font:600 14px "Montserrat",system-ui,sans-serif;padding:10px 16px;border-radius:999px;white-space:nowrap;animation:spFade .5s .4s both;opacity:0}
   .sp.sp-sale{animation:spOut .45s ease-in forwards}
   .sp-quieto,.sp-quieto *{animation:none!important;opacity:1!important;transform:none!important}
   .sp-quieto .sp-trazo{display:none}
@@ -75,6 +77,7 @@
     <div class="sp-txt"><span class="sp-vamo">VAMO!</span><span class="sp-by">by <b>FLUV<i>A</i></b></span></div>
   </div>
   <div class="sp-carga" aria-hidden="true"></div>
+  <button type="button" class="sp-sonido" hidden>🔊 Toca para escuchar el sonido</button>
 </div>`;
   document.body.insertAdjacentHTML('afterbegin', html);
   const el = document.getElementById('splash');
@@ -84,7 +87,7 @@
   const inicio = performance.now(), DURA = quieto ? 1200 : 5000;
   let cerrado = false, cargado = document.readyState === 'complete';
   function cerrar() {
-    if (cerrado) return; cerrado = true;
+    if (cerrado) return; cerrado = true; apagar();
     if (meta) meta.content = document.documentElement.dataset.theme === 'dark' ? '#0B0F24' : '#FFFFFF';
     el.classList.add('sp-sale'); setTimeout(() => el.remove(), 480);
   }
@@ -92,6 +95,31 @@
   window.addEventListener('load', () => { cargado = true; intentar(); });
   setTimeout(intentar, DURA);
   setTimeout(cerrar, DURA + 4000); // si la red está lenta, no dejar la app tapada
-  el.addEventListener('click', cerrar);
+  // Sonido de inicio (opción B «Ruta urbana»). Los teléfonos no dejan sonar una página sin un toque:
+  // se intenta reproducir solo; si el navegador lo bloquea, el primer toque lo activa (sincronizado) y el segundo salta.
+  let audio = null, sonando = false;
+  const aviso = el.querySelector('.sp-sonido');
+  if (!quieto) {
+    try {
+      audio = new Audio('ui/sonido-inicio.mp3'); audio.preload = 'auto'; audio.volume = .9;
+      const pr = audio.play();
+      if (pr && pr.then) pr.then(() => { sonando = true; }, () => { if (!cerrado && aviso) aviso.hidden = false; });
+      else sonando = true;
+    } catch (e) { audio = null; }
+  }
+  function apagar() {
+    if (!audio || !sonando) return; const a = audio, v0 = a.volume, t0 = performance.now();
+    (function bajar() { const k = Math.min(1, (performance.now() - t0) / 600); a.volume = v0 * (1 - k); if (k < 1) requestAnimationFrame(bajar); else a.pause(); })();
+  }
+  el.addEventListener('click', () => {
+    const t = (performance.now() - inicio) / 1000;
+    if (audio && !sonando && t < DURA / 1000 - .4) {
+      try { audio.currentTime = t; } catch (e) {}
+      const pr = audio.play(); sonando = true; if (aviso) aviso.hidden = true;
+      if (pr && pr.catch) pr.catch(() => { sonando = false; });
+      return;
+    }
+    cerrar();
+  });
   window.VamoSplash = { cerrar };
 })();
