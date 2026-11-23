@@ -207,7 +207,11 @@ await test('Planificador: invertir A y B', async () => {
   await irA(page, 'planificar'); const [o, d] = await ev(() => [S.plan.o, S.plan.d]); await page.click('#planSwap'); assert(await ev(() => S.plan.o) === d && await ev(() => S.plan.d) === o, 'no invirtió'); await page.click('#planSwap'); });
 await test('Locomoción: tarjetas distinguen el origen del dato', async () => {
   await irA(page, 'locomocion'); await ev(() => { setDest('valparaiso'); S.lf = 'todos'; render(); }); assert(await page.locator('#view .tarjeta .fuente').count() >= 2, 'faltan etiquetas de fuente'); });
-await test('Cambio de localidad', async () => { await page.selectOption('#loc', 'curacavi'); assert(await ev(() => S.loc === 'curacavi'), 'no cambió'); await page.selectOption('#loc', 'casablanca'); });
+await test('Solo Casablanca: sin selector de localidad, viajes desde o hacia Casablanca', async () => {
+  assert(await page.locator('#loc').isHidden() && /Casablanca/.test(await page.locator('#zonaFija').innerText()), 'sigue el selector de localidad');
+  await ev(() => { S.loc = 'valparaiso'; locEl.value = 'valparaiso'; setDest('santiago'); });
+  assert(await ev(() => S.loc === 'casablanca' && S.dest === 'santiago'), 'permitió un viaje sin Casablanca');
+  await ev(() => { locEl.value = 'casablanca'; locEl.onchange(); }); });
 await test('Celular: barra inferior y sin desborde horizontal', async () => {
   const m = await nuevaPag({ viewport: { width: 390, height: 844 } }); await m.goto(BASE); await m.waitForTimeout(800);
   assert(await m.evaluate(() => document.documentElement.scrollWidth) <= 390, 'hay desborde horizontal');
